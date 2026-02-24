@@ -4,6 +4,7 @@ import { useGameApi } from './hooks/useGameApi';
 import { useTimer } from './hooks/useTimer';
 import { StartPage } from './pages/StartPage';
 import { GamePage } from './pages/GamePage';
+import { ResultsPage } from './pages/ResultsPage';
 import './App.css';
 
 function App() {
@@ -35,25 +36,37 @@ function App() {
     setTimeout(() => setMessage(''), 2000);
   };
 
+  const renderPage = () => {
+    const status = game?.status ?? null;
+    
+    switch (status) {
+      case null:
+      case GameStatus.Waiting:
+        return <StartPage onStartGame={handleStartGame} />;
+      
+      case GameStatus.InProgress:
+        return (
+          <GamePage 
+            game={game!}
+            words={words}
+            timeRemaining={timeRemaining}
+            message={message}
+            onSubmitWord={handleSubmitWord}
+          />
+        );
+      
+      case GameStatus.Finished:
+        return <ResultsPage words={words} onPlayAgain={handleStartGame} />;
+      
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="app">
       <h1>Froggle</h1>
-      
-      {!game || game.status === GameStatus.Finished ? (
-        <StartPage 
-          onStartGame={handleStartGame}
-          gameStatus={game?.status}
-          words={words}
-        />
-      ) : (
-        <GamePage 
-          game={game}
-          words={words}
-          timeRemaining={timeRemaining}
-          message={message}
-          onSubmitWord={handleSubmitWord}
-        />
-      )}
+      {renderPage()}
     </div>
   );
 }
