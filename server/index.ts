@@ -15,7 +15,7 @@ const gameController = new GameController();
 app.post('/api/game/start', (req, res) => {
   const { durationSeconds } = req.body;
   const game = gameController.startGame(durationSeconds || 180);
-  res.json({ game, words: [] });
+  res.json({ game });
 });
 
 // Submit a word

@@ -79,7 +79,7 @@ export const Board = ({ board, onSubmitWord }: BoardProps) => {
     setLastMousePos({ x: e.clientX, y: e.clientY });
   };
 
-  const handlePointerUp = () => {
+  const handleBoardPointerUp = () => {
     if (isDragging && currentPath.length > 0) {
       onSubmitWord(currentPath);
     }
@@ -89,7 +89,7 @@ export const Board = ({ board, onSubmitWord }: BoardProps) => {
     setCurrentPath([]);
   };
 
-  const handlePointerLeave = () => {
+  const handleBoardPointerLeave = () => {
     setIsDragging(false);
     setLastMousePos(null);
     setPendingCell(null);
@@ -107,8 +107,8 @@ export const Board = ({ board, onSubmitWord }: BoardProps) => {
     <>
       <div 
         className="board" 
-        onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerLeave}
+        onPointerUp={handleBoardPointerUp}
+        onPointerLeave={handleBoardPointerLeave}
       >
         {board.map((row, rowIndex) => (
           <div key={rowIndex} className="board-row">

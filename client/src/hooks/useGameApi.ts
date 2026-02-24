@@ -9,7 +9,7 @@ export const useGameApi = () => {
   const startGame = async (durationSeconds: number = 180) => {
     const data = await gameApi.startGame(durationSeconds);
     setGame(data.game);
-    setWords(data.words);
+    setWords([]);
   };
 
   const fetchGameState = async () => {

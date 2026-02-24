@@ -40,8 +40,7 @@ function App() {
     const status = game?.status ?? null;
     
     switch (status) {
-      case null:
-      case GameStatus.Waiting:
+      case null:  // No game has been created yet
         return <StartPage onStartGame={handleStartGame} />;
       
       case GameStatus.InProgress:
