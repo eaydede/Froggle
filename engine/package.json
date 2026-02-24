@@ -1,0 +1,17 @@
+{
+  "name": "engine",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    "./board": "./board.ts",
+    "./board.js": "./board.ts",
+    "./adjacency": "./adjacency.ts",
+    "./adjacency.js": "./adjacency.ts",
+    "./dictionary": "./dictionary.ts",
+    "./dictionary.js": "./dictionary.ts"
+  },
+  "private": true,
+  "dependencies": {
+    "models": "1.0.0"
+  }
+}
