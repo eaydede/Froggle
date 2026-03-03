@@ -27,8 +27,8 @@ function App() {
     await cancelGame();
   };
 
-  const handleStartGame = async (boardSize: number, timeLimit: number) => {
-    await startGame(timeLimit, boardSize);
+  const handleStartGame = async (boardSize: number, timeLimit: number, minWordLength: number) => {
+    await startGame(timeLimit, boardSize, minWordLength);
     setMessage('');
   };
 

@@ -24,6 +24,7 @@ export interface Game {
   durationSeconds: number;
   status: GameState;
   boardSize?: number;
+  minWordLength?: number;
 }
 export interface Room {
   code: string;

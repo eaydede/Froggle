@@ -1,16 +1,17 @@
 import { useState } from 'react';
 
 interface ConfigPageProps {
-  onStartGame: (boardSize: number, timeLimit: number) => void;
+  onStartGame: (boardSize: number, timeLimit: number, minWordLength: number) => void;
   onBack: () => void;
 }
 
 export const ConfigPage = ({ onStartGame, onBack }: ConfigPageProps) => {
   const [boardSize, setBoardSize] = useState<number>(4);
   const [timeLimit, setTimeLimit] = useState<number>(120);
+  const [minWordLength, setMinWordLength] = useState<number>(3);
 
   const handleStartGame = () => {
-    onStartGame(boardSize, timeLimit);
+    onStartGame(boardSize, timeLimit, minWordLength);
   };
 
   return (
@@ -55,13 +56,37 @@ export const ConfigPage = ({ onStartGame, onBack }: ConfigPageProps) => {
               className={`config-option ${timeLimit === 120 ? 'selected' : ''}`}
               onClick={() => setTimeLimit(120)}
             >
-              2 min
+              2 mins
             </button>
             <button
               className={`config-option ${timeLimit === -1 ? 'selected' : ''}`}
               onClick={() => setTimeLimit(-1)}
             >
               Unlimited
+            </button>
+          </div>
+        </div>
+
+        <div className="config-section">
+          <label htmlFor="min-word-length">Minimum Word Length:</label>
+          <div className="config-options">
+            <button
+              className={`config-option ${minWordLength === 3 ? 'selected' : ''}`}
+              onClick={() => setMinWordLength(3)}
+            >
+              3 letters
+            </button>
+            <button
+              className={`config-option ${minWordLength === 4 ? 'selected' : ''}`}
+              onClick={() => setMinWordLength(4)}
+            >
+              4 letters
+            </button>
+            <button
+              className={`config-option ${minWordLength === 5 ? 'selected' : ''}`}
+              onClick={() => setMinWordLength(5)}
+            >
+              5 letters
             </button>
           </div>
         </div>

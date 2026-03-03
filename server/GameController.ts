@@ -32,6 +32,7 @@ export class GameController {
       startedAt: 0,
       durationSeconds: 180,
       boardSize: 4,
+      minWordLength: 3,
       status: GameState.Config,
     };
     this.words = [];
@@ -39,7 +40,7 @@ export class GameController {
     return this.game;
   }
 
-  startGame(durationSeconds: number, boardSize: number = 4): Game {
+  startGame(durationSeconds: number, boardSize: number = 4, minWordLength: number = 3): Game {
     if (!this.game || this.game.status !== GameState.Config) {
       throw new Error('Cannot start game: game not in Config state');
     }
@@ -50,6 +51,7 @@ export class GameController {
       startedAt: Date.now(),
       durationSeconds,
       boardSize,
+      minWordLength,
       status: GameState.InProgress,
     };
     this.words = [];
@@ -102,9 +104,10 @@ export class GameController {
       return { valid: false, word, reason: 'Invalid path' };
     }
 
-    // Validate word is in dictionary (min 3 letters)
-    if (word.length < 3) {
-      return { valid: false, word, reason: 'Word too short (minimum 3 letters)' };
+    // Validate word length meets minimum requirement
+    const minLength = this.game.minWordLength || 3;
+    if (word.length < minLength) {
+      return { valid: false, word, reason: `Word too short (minimum ${minLength} letters)` };
     }
 
     if (!isValidWord(this.dictionary, word.toLowerCase())) {

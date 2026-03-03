@@ -12,13 +12,17 @@ export const createGame = async (): Promise<{
   return response.json();
 };
 
-export const startGame = async (durationSeconds: number = 180, boardSize: number = 4): Promise<{
+export const startGame = async (
+  durationSeconds: number = 180, 
+  boardSize: number = 4, 
+  minWordLength: number = 3
+): Promise<{
   game: Game;
 }> => {
   const response = await fetch(`${API_URL}/game/start`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ durationSeconds, boardSize }),
+    body: JSON.stringify({ durationSeconds, boardSize, minWordLength }),
   });
   return response.json();
 };

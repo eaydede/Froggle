@@ -12,8 +12,12 @@ export const useGameApi = () => {
     setWords([]);
   };
 
-  const startGame = async (durationSeconds: number = 180, boardSize: number = 4) => {
-    const data = await gameApi.startGame(durationSeconds, boardSize);
+  const startGame = async (
+    durationSeconds: number = 180, 
+    boardSize: number = 4, 
+    minWordLength: number = 3
+  ) => {
+    const data = await gameApi.startGame(durationSeconds, boardSize, minWordLength);
     setGame(data.game);
     setWords([]);
   };

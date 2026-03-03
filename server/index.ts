@@ -19,9 +19,13 @@ app.post('/api/game/create', (req, res) => {
 
 // Start the game (transition from Config to InProgress)
 app.post('/api/game/start', (req, res) => {
-  const { durationSeconds, boardSize } = req.body;
+  const { durationSeconds, boardSize, minWordLength } = req.body;
   try {
-    const game = gameController.startGame(durationSeconds || 180, boardSize || 4);
+    const game = gameController.startGame(
+      durationSeconds || 180, 
+      boardSize || 4, 
+      minWordLength || 3
+    );
     res.json({ game });
   } catch (error) {
     res.status(400).json({ error: (error as Error).message });

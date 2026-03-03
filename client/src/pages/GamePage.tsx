@@ -1,6 +1,7 @@
 import { Game, Position, Word } from 'models';
 import { Board } from '../components/Board';
 import { FoundWords } from '../components/FoundWords';
+import { TimerBar } from '../components/TimerBar';
 
 interface GamePageProps {
   game: Game;
@@ -31,6 +32,8 @@ export const GamePage = ({ game, words, timeRemaining, message, onSubmitWord, on
           </button>
         </div>
       </div>
+
+      <TimerBar game={game} />
       
       <Board board={game.board} onSubmitWord={onSubmitWord} />
       
