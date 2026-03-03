@@ -13,7 +13,6 @@ export class GameController {
   private words: Word[] = [];
   private timer: NodeJS.Timeout | null = null;
   private dictionary: Set<string>;
-  private onGameEnd: (() => void) | null = null;
 
   constructor() {
     // Load dictionary once when controller is created
@@ -66,11 +65,28 @@ export class GameController {
   }
 
   cancelGame(): void {
+    // Cancel game in any state - reset everything
     if (this.timer) {
       clearTimeout(this.timer);
+      this.timer = null;
     }
     this.game = null;
     this.words = [];
+  }
+
+  endGame(): Game | null {
+    // End game (either manually or when timer expires)
+    if (!this.game || this.game.status !== GameState.InProgress) {
+      return null;
+    }
+
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+
+    this.game.status = GameState.Finished;
+    return this.game;
   }
 
   submitWord(path: Position[]): { valid: boolean; word?: string; reason?: string } {
@@ -116,25 +132,5 @@ export class GameController {
       game: this.game,
       words: [...this.words],
     };
-  }
-
-  private endGame(): void {
-    if (this.game) {
-      this.game.status = GameState.Finished;
-    }
-    if (this.onGameEnd) {
-      this.onGameEnd();
-    }
-  }
-
-  setOnGameEnd(callback: () => void): void {
-    this.onGameEnd = callback;
-  }
-
-  cleanup(): void {
-    if (this.timer) {
-      clearTimeout(this.timer);
-      this.timer = null;
-    }
   }
 }

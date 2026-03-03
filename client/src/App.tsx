@@ -9,7 +9,7 @@ import { ResultsPage } from './pages/ResultsPage';
 import './App.css';
 
 function App() {
-  const { game, words, createGame, startGame, cancelGame, fetchGameState, submitWord } = useGameApi();
+  const { game, words, createGame, startGame, cancelGame, endGame, fetchGameState, submitWord } = useGameApi();
   const [message, setMessage] = useState('');
 
   const timeRemaining = useTimer(game, fetchGameState);
@@ -30,6 +30,14 @@ function App() {
   const handleStartGame = async (boardSize: number, timeLimit: number) => {
     await startGame(timeLimit, boardSize);
     setMessage('');
+  };
+
+  const handleCancelGame = async () => {
+    await cancelGame();
+  };
+
+  const handleEndGame = async () => {
+    await endGame();
   };
 
   const handlePlayAgain = async () => {
@@ -77,6 +85,8 @@ function App() {
             timeRemaining={timeRemaining}
             message={message}
             onSubmitWord={handleSubmitWord}
+            onCancelGame={handleCancelGame}
+            onEndGame={handleEndGame}
           />
         );
 

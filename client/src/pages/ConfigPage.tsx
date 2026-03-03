@@ -7,7 +7,7 @@ interface ConfigPageProps {
 
 export const ConfigPage = ({ onStartGame, onBack }: ConfigPageProps) => {
   const [boardSize, setBoardSize] = useState<number>(4);
-  const [timeLimit, setTimeLimit] = useState<number>(180);
+  const [timeLimit, setTimeLimit] = useState<number>(120);
 
   const handleStartGame = () => {
     onStartGame(boardSize, timeLimit);
@@ -56,24 +56,6 @@ export const ConfigPage = ({ onStartGame, onBack }: ConfigPageProps) => {
               onClick={() => setTimeLimit(120)}
             >
               2 min
-            </button>
-            <button
-              className={`config-option ${timeLimit === 180 ? 'selected' : ''}`}
-              onClick={() => setTimeLimit(180)}
-            >
-              3 min
-            </button>
-            <button
-              className={`config-option ${timeLimit === 240 ? 'selected' : ''}`}
-              onClick={() => setTimeLimit(240)}
-            >
-              4 min
-            </button>
-            <button
-              className={`config-option ${timeLimit === 300 ? 'selected' : ''}`}
-              onClick={() => setTimeLimit(300)}
-            >
-              5 min
             </button>
             <button
               className={`config-option ${timeLimit === -1 ? 'selected' : ''}`}

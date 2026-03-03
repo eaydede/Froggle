@@ -24,6 +24,11 @@ export const useGameApi = () => {
     setWords([]);
   };
 
+  const endGame = async () => {
+    const data = await gameApi.endGame();
+    setGame(data.game);
+  };
+
   const fetchGameState = async () => {
     const data = await gameApi.fetchGameState();
     setGame(data.game);
@@ -40,6 +45,7 @@ export const useGameApi = () => {
     createGame,
     startGame,
     cancelGame,
+    endGame,
     fetchGameState,
     submitWord,
   };

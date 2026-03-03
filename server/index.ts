@@ -28,10 +28,20 @@ app.post('/api/game/start', (req, res) => {
   }
 });
 
-// Cancel the game (delete game in Config state)
+// Cancel the game in any state (Config or InProgress)
 app.post('/api/game/cancel', (req, res) => {
   gameController.cancelGame();
   res.json({ success: true });
+});
+
+// End game early (transition to Finished state, keep words)
+app.post('/api/game/end', (req, res) => {
+  const game = gameController.endGame();
+  if (game) {
+    res.json({ game });
+  } else {
+    res.status(400).json({ error: 'No active game to end' });
+  }
 });
 
 // Submit a word

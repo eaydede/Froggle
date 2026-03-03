@@ -31,6 +31,14 @@ export const cancelGame = async (): Promise<{ success: boolean }> => {
   return response.json();
 };
 
+export const endGame = async (): Promise<{ game: Game }> => {
+  const response = await fetch(`${API_URL}/game/end`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  return response.json();
+};
+
 export const submitWord = async (path: Position[]): Promise<{
   valid: boolean;
   word?: string;
