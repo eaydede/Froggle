@@ -18,13 +18,17 @@ export interface Player {
   words: Word[];
 }
 
+export interface GameConfig {
+  durationSeconds: number;
+  boardSize: number;
+  minWordLength: number;
+}
+
 export interface Game {
   board: Board;
   startedAt: number;
-  durationSeconds: number;
   status: GameState;
-  boardSize?: number;
-  minWordLength?: number;
+  config: GameConfig;
 }
 export interface Room {
   code: string;

@@ -8,7 +8,7 @@ export const useTimer = (game: Game | null, onTimeExpired: () => void) => {
     if (game && game.status === GameState.InProgress) {
       const interval = setInterval(() => {
         const elapsed = Date.now() - game.startedAt;
-        const remaining = Math.max(0, game.durationSeconds * 1000 - elapsed);
+        const remaining = Math.max(0, game.config.durationSeconds * 1000 - elapsed);
         setTimeRemaining(Math.ceil(remaining / 1000));
         
         if (remaining === 0) {

@@ -9,14 +9,14 @@ export const TimerBar = ({ game }: TimerBarProps) => {
   const [remainingPercentage, setRemainingPercentage] = useState(100);
 
   useEffect(() => {
-    if (game.durationSeconds <= 0) {
+    if (game.config.durationSeconds <= 0) {
       setRemainingPercentage(100);
       return;
     }
 
     const updateTimerBar = () => {
       const elapsed = Date.now() - game.startedAt;
-      const totalDuration = game.durationSeconds * 1000;
+      const totalDuration = game.config.durationSeconds * 1000;
       const remaining = Math.max(0, totalDuration - elapsed);
       const percentage = (remaining / totalDuration) * 100;
       setRemainingPercentage(Math.min(100, Math.max(0, percentage)));
@@ -29,10 +29,10 @@ export const TimerBar = ({ game }: TimerBarProps) => {
     const interval = setInterval(updateTimerBar, 100);
 
     return () => clearInterval(interval);
-  }, [game.startedAt, game.durationSeconds]);
+  }, [game.startedAt, game.config.durationSeconds]);
 
   // Don't render if unlimited time
-  if (game.durationSeconds <= 0) {
+  if (game.config.durationSeconds <= 0) {
     return null;
   }
 

@@ -30,10 +30,12 @@ export class GameController {
     this.game = {
       board: [],
       startedAt: 0,
-      durationSeconds: 180,
-      boardSize: 4,
-      minWordLength: 3,
       status: GameState.Config,
+      config: {
+        durationSeconds: 180,
+        boardSize: 4,
+        minWordLength: 3,
+      },
     };
     this.words = [];
 
@@ -49,10 +51,12 @@ export class GameController {
     this.game = {
       board,
       startedAt: Date.now(),
-      durationSeconds,
-      boardSize,
-      minWordLength,
       status: GameState.InProgress,
+      config: {
+        durationSeconds,
+        boardSize,
+        minWordLength,
+      },
     };
     this.words = [];
 
@@ -105,7 +109,7 @@ export class GameController {
     }
 
     // Validate word length meets minimum requirement
-    const minLength = this.game.minWordLength || 3;
+    const minLength = this.game.config.minWordLength;
     if (word.length < minLength) {
       return { valid: false, word, reason: `Word too short (minimum ${minLength} letters)` };
     }
