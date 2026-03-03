@@ -2,13 +2,31 @@ import { Position, Game, Word } from 'models';
 
 const API_URL = 'http://localhost:3000/api';
 
-export const startGame = async (durationSeconds: number = 180): Promise<{
+export const createGame = async (): Promise<{
+  game: Game;
+}> => {
+  const response = await fetch(`${API_URL}/game/create`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  return response.json();
+};
+
+export const startGame = async (durationSeconds: number = 180, boardSize: number = 4): Promise<{
   game: Game;
 }> => {
   const response = await fetch(`${API_URL}/game/start`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ durationSeconds }),
+    body: JSON.stringify({ durationSeconds, boardSize }),
+  });
+  return response.json();
+};
+
+export const cancelGame = async (): Promise<{ success: boolean }> => {
+  const response = await fetch(`${API_URL}/game/cancel`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
   });
   return response.json();
 };

@@ -1,4 +1,4 @@
-import { Game, GameStatus, Board, Word, Position } from 'models';
+import { Game, GameState, Word, Position } from 'models';
 import { generateBoard } from 'engine/board.js';
 import { isValidPath } from 'engine/adjacency.js';
 import { loadDictionary, isValidWord } from 'engine/dictionary.js';
@@ -21,31 +21,60 @@ export class GameController {
     this.dictionary = loadDictionary(dictionaryPath);
   }
 
-  startGame(durationSeconds: number): Game {
+  createGame(): Game {
     // Clear any existing game
     if (this.timer) {
       clearTimeout(this.timer);
     }
 
-    const board = generateBoard();
+    // Create a game in Config state with empty board
     this.game = {
-      board,
-      startedAt: Date.now(),
-      durationSeconds,
-      status: GameStatus.InProgress,
+      board: [],
+      startedAt: 0,
+      durationSeconds: 180,
+      boardSize: 4,
+      status: GameState.Config,
     };
     this.words = [];
-
-    // Start timer
-    this.timer = setTimeout(() => {
-      this.endGame();
-    }, durationSeconds * 1000);
 
     return this.game;
   }
 
+  startGame(durationSeconds: number, boardSize: number = 4): Game {
+    if (!this.game || this.game.status !== GameState.Config) {
+      throw new Error('Cannot start game: game not in Config state');
+    }
+
+    const board = generateBoard(boardSize);
+    this.game = {
+      board,
+      startedAt: Date.now(),
+      durationSeconds,
+      boardSize,
+      status: GameState.InProgress,
+    };
+    this.words = [];
+
+    // Start timer (only if not unlimited)
+    if (durationSeconds > 0) {
+      this.timer = setTimeout(() => {
+        this.endGame();
+      }, durationSeconds * 1000);
+    }
+
+    return this.game;
+  }
+
+  cancelGame(): void {
+    if (this.timer) {
+      clearTimeout(this.timer);
+    }
+    this.game = null;
+    this.words = [];
+  }
+
   submitWord(path: Position[]): { valid: boolean; word?: string; reason?: string } {
-    if (!this.game || this.game.status !== GameStatus.InProgress) {
+    if (!this.game || this.game.status !== GameState.InProgress) {
       return { valid: false, reason: 'No active game' };
     }
 
@@ -91,7 +120,7 @@ export class GameController {
 
   private endGame(): void {
     if (this.game) {
-      this.game.status = GameStatus.Finished;
+      this.game.status = GameState.Finished;
     }
     if (this.onGameEnd) {
       this.onGameEnd();

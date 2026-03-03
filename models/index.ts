@@ -22,7 +22,8 @@ export interface Game {
   board: Board;
   startedAt: number;
   durationSeconds: number;
-  status: GameStatus;
+  status: GameState;
+  boardSize?: number;
 }
 export interface Room {
   code: string;
@@ -30,8 +31,8 @@ export interface Room {
   game: Game | null;
 }
 
-export enum GameStatus {
-  Waiting,
-  InProgress,
-  Finished
+export enum GameState {
+  Config = 'Config',
+  InProgress = 'InProgress',
+  Finished = 'Finished'
 }

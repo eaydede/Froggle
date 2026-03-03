@@ -1,13 +1,19 @@
 interface StartPageProps {
-  onStartGame: () => void;
+  onSinglePlayer: () => void;
+  onHostGame: () => void;
 }
 
-export const StartPage = ({ onStartGame }: StartPageProps) => {
+export const StartPage = ({ onSinglePlayer, onHostGame }: StartPageProps) => {
   return (
     <div className="start-screen">
-      <button onClick={onStartGame} className="start-button">
-        Start Game
-      </button>
+      <div className="menu-buttons">
+        <button onClick={onSinglePlayer} className="menu-button">
+          Single Player
+        </button>
+        <button onClick={onHostGame} className="menu-button" disabled>
+          Host Game
+        </button>
+      </div>
     </div>
   );
 };

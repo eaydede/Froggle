@@ -11,10 +11,12 @@ interface GamePageProps {
 }
 
 export const GamePage = ({ game, words, timeRemaining, message, onSubmitWord }: GamePageProps) => {
+  const boardSize = game.board.length;
+  
   return (
-    <div className="game-screen">
+    <div className="game-screen" style={{ '--board-size': boardSize } as React.CSSProperties}>
       <div className="game-info">
-        <div className="timer">Time: {timeRemaining}s</div>
+        <div className="timer">Time: {timeRemaining > 0 ? `${timeRemaining}s` : 'Unlimited'}</div>
         <div className="score">Words: {words.length}</div>
       </div>
       

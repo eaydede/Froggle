@@ -1,29 +1,42 @@
 import { useState } from 'react';
-import { GameStatus, Position } from 'models';
+import { GameState, Position } from 'models';
 import { useGameApi } from './hooks/useGameApi';
 import { useTimer } from './hooks/useTimer';
 import { StartPage } from './pages/StartPage';
+import { ConfigPage } from './pages/ConfigPage';
 import { GamePage } from './pages/GamePage';
 import { ResultsPage } from './pages/ResultsPage';
 import './App.css';
 
 function App() {
-  const { game, words, startGame, fetchGameState, submitWord } = useGameApi();
+  const { game, words, createGame, startGame, cancelGame, fetchGameState, submitWord } = useGameApi();
   const [message, setMessage] = useState('');
 
   const timeRemaining = useTimer(game, fetchGameState);
 
-  const handleStartGame = async () => {
-    await startGame(180);
+  const handleSinglePlayer = async () => {
+    await createGame();
+  };
+
+  const handleHostGame = () => {
+    // Placeholder for multiplayer functionality
+    console.log('Host Game clicked - feature not yet implemented');
+  };
+
+  const handleBackToStart = async () => {
+    await cancelGame();
+  };
+
+  const handleStartGame = async (boardSize: number, timeLimit: number) => {
+    await startGame(timeLimit, boardSize);
     setMessage('');
   };
 
-  const handleSubmitWord = async (path: Position[]) => {
-    if (path.length < 3) {
-      setMessage('Word must be at least 3 letters');
-      return;
-    }
+  const handlePlayAgain = async () => {
+    await createGame();
+  };
 
+  const handleSubmitWord = async (path: Position[]) => {
     const result = await submitWord(path);
     
     if (result.valid) {
@@ -38,12 +51,25 @@ function App() {
 
   const renderPage = () => {
     const status = game?.status ?? null;
-    
+
     switch (status) {
-      case null:  // No game has been created yet
-        return <StartPage onStartGame={handleStartGame} />;
-      
-      case GameStatus.InProgress:
+      case null:  // No game created yet - show start screen
+        return (
+          <StartPage 
+            onSinglePlayer={handleSinglePlayer}
+            onHostGame={handleHostGame}
+          />
+        );
+
+      case GameState.Config:  // Game created, in config phase
+        return (
+          <ConfigPage 
+            onStartGame={handleStartGame}
+            onBack={handleBackToStart}
+          />
+        );
+
+      case GameState.InProgress:  // Game is active
         return (
           <GamePage 
             game={game!}
@@ -53,10 +79,10 @@ function App() {
             onSubmitWord={handleSubmitWord}
           />
         );
-      
-      case GameStatus.Finished:
-        return <ResultsPage words={words} onPlayAgain={handleStartGame} />;
-      
+
+      case GameState.Finished:
+        return <ResultsPage words={words} onPlayAgain={handlePlayAgain} />;
+
       default:
         return null;
     }

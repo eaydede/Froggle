@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Game, GameStatus } from 'models';
+import { Game, GameState } from 'models';
 
 export const useTimer = (game: Game | null, onTimeExpired: () => void) => {
   const [timeRemaining, setTimeRemaining] = useState(0);
 
   useEffect(() => {
-    if (game && game.status === GameStatus.InProgress) {
+    if (game && game.status === GameState.InProgress) {
       const interval = setInterval(() => {
         const elapsed = Date.now() - game.startedAt;
         const remaining = Math.max(0, game.durationSeconds * 1000 - elapsed);

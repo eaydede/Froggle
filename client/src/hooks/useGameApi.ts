@@ -6,9 +6,21 @@ export const useGameApi = () => {
   const [game, setGame] = useState<Game | null>(null);
   const [words, setWords] = useState<Word[]>([]);
 
-  const startGame = async (durationSeconds: number = 180) => {
-    const data = await gameApi.startGame(durationSeconds);
+  const createGame = async () => {
+    const data = await gameApi.createGame();
     setGame(data.game);
+    setWords([]);
+  };
+
+  const startGame = async (durationSeconds: number = 180, boardSize: number = 4) => {
+    const data = await gameApi.startGame(durationSeconds, boardSize);
+    setGame(data.game);
+    setWords([]);
+  };
+
+  const cancelGame = async () => {
+    await gameApi.cancelGame();
+    setGame(null);
     setWords([]);
   };
 
@@ -25,7 +37,9 @@ export const useGameApi = () => {
   return {
     game,
     words,
+    createGame,
     startGame,
+    cancelGame,
     fetchGameState,
     submitWord,
   };
