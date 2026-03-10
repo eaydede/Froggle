@@ -61,48 +61,95 @@ h1 {
 }
 
 .config-container h2 {
-  margin-bottom: 30px;
+  margin-bottom: 40px;
   color: #333;
+}
+
+.config-sections-row {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-bottom: 40px;
 }
 
 .config-section {
-  margin-bottom: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 25px;
 }
 
 .config-section label {
-  display: block;
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 15px;
-  color: #555;
-}
-
-.config-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-}
-
-.config-option {
   font-size: 16px;
-  padding: 12px 24px;
-  background-color: #f0f0f0;
-  color: #333;
-  border: 2px solid #ddd;
+  font-weight: bold;
+  color: #555;
+  text-align: center;
+}
+
+.config-display-box {
+  width: 180px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: bold;
+  background-color: white;
+  border: 3px solid #2196F3;
   border-radius: 8px;
+  color: #2196F3;
+  cursor: grab;
+  user-select: none;
+  touch-action: pan-y;
+}
+
+.config-display-box:active {
+  cursor: grabbing;
+}
+
+.config-navigator {
+  display: flex;
+  align-items: center;
+  width: 180px;
+  position: relative;
+}
+
+.nav-arrow {
+  font-size: 24px;
+  padding: 8px 16px;
+  background-color: transparent;
+  border: none;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
+  color: #333;
+  position: absolute;
 }
 
-.config-option:hover {
-  background-color: #e0e0e0;
+.nav-arrow:first-child {
+  left: 0;
 }
 
-.config-option.selected {
-  background-color: #2196F3;
-  color: white;
-  border-color: #2196F3;
+.nav-arrow:last-child {
+  right: 0;
+}
+
+.nav-arrow:hover:not(:disabled) {
+  color: #2196F3;
+  transform: scale(1.2);
+}
+
+.nav-arrow:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.nav-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #555;
+  text-align: center;
+  white-space: nowrap;
+  width: 100%;
 }
 
 .config-buttons {
@@ -319,12 +366,27 @@ h1 {
     padding: 0 20px;
   }
 
-  .config-options {
-    gap: 8px;
+  .config-sections-row {
+    flex-direction: column;
+    gap: 30px;
   }
 
-  .config-option {
-    font-size: 14px;
-    padding: 10px 20px;
+  .config-display-box {
+    width: 150px;
+    height: 150px;
+    font-size: 28px;
+  }
+
+  .config-navigator {
+    width: 150px;
+  }
+
+  .nav-arrow {
+    font-size: 20px;
+    padding: 6px 12px;
+  }
+
+  .nav-label {
+    font-size: 12px;
   }
 }
