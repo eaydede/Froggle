@@ -27,11 +27,11 @@ export const ConfigPage = ({ onStartGame, onBack }: ConfigPageProps) => {
         </div>
 
         <div className="config-buttons">
-          <button onClick={onBack} className="back-button">
-            Back
-          </button>
           <button onClick={handleStartGame} className="start-button">
             Start Game
+          </button>
+          <button onClick={onBack} className="back-button">
+            Back
           </button>
         </div>
       </div>
