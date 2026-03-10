@@ -20,45 +20,38 @@ export const useBoardInteraction = ({ board, onSubmitWord }: UseBoardInteraction
 
   const handleCellPointerEnter = (row: number, col: number, e: React.PointerEvent) => {
     if (!isDragging) return;
+    if (!lastMousePos) return;
     
     const lastPos = currentPath[currentPath.length - 1];
     if (!lastPos) return;
     
-    // Check if adjacent (within 1 cell in any direction)
     const isAdjacent = Math.abs(lastPos.row - row) <= 1 && Math.abs(lastPos.col - col) <= 1;
     if (!isAdjacent) return;
     
-    // Check if already in path
-    const isInPath = currentPath.some(p => p.row === row && p.col === col);
-    if (isInPath) return;
-    
     const currentMousePos = { x: e.clientX, y: e.clientY };
+    const isDiagonalCell = Math.abs(lastPos.row - row) === 1 && Math.abs(lastPos.col - col) === 1;
+    const isOrthogonalCell = lastPos.row === row || lastPos.col === col;
     
-    // Apply diagonal tolerance if we have mouse tracking
-    if (!lastMousePos) {
-      // No mouse tracking yet, just add to path
-      setCurrentPath([...currentPath, { row, col }]);
-      setLastMousePos(currentMousePos);
-      return;
-    }
-    
-    const isDiagonal = Math.abs(lastPos.row - row) === 1 && Math.abs(lastPos.col - col) === 1;
-    const isOrthogonal = lastPos.row === row || lastPos.col === col;
-    
-    // Check if cursor is moving diagonally
     const deltaX = Math.abs(currentMousePos.x - lastMousePos.x);
     const deltaY = Math.abs(currentMousePos.y - lastMousePos.y);
     const isMovingDiagonally = Math.min(deltaX, deltaY) / Math.max(deltaX, deltaY) > 0.3;
     
-    // If cursor is moving diagonally but we hit an orthogonal cell, delay selection
-    if (isMovingDiagonally && isOrthogonal) {
+    if (isMovingDiagonally && isOrthogonalCell) {
       setPendingCell({ row, col, timestamp: Date.now() });
       
       setTimeout(() => {
         setPendingCell(prev => {
-          // Only select if user stayed on this cell for 100ms
           if (prev && prev.row === row && prev.col === col && Date.now() - prev.timestamp >= 100) {
-            setCurrentPath(path => [...path, { row, col }]);
+            setCurrentPath(path => {
+              const cellIndexInPath = path.findIndex(p => p.row === row && p.col === col);
+              const isBacktracking = cellIndexInPath !== -1;
+              
+              if (isBacktracking) {
+                return path.slice(0, cellIndexInPath + 1);
+              } else {
+                return [...path, { row, col }];
+              }
+            });
             setLastMousePos(currentMousePos);
             return null;
           }
@@ -68,14 +61,21 @@ export const useBoardInteraction = ({ board, onSubmitWord }: UseBoardInteraction
       return;
     }
     
-    // If we enter a diagonal cell, cancel any pending orthogonal selection
-    if (isDiagonal && pendingCell) {
+    if (isDiagonalCell && pendingCell) {
       setPendingCell(null);
     }
     
-    // Add the cell to the path
-    setCurrentPath([...currentPath, { row, col }]);
-    setLastMousePos(currentMousePos);
+    const cellIndexInPath = currentPath.findIndex(p => p.row === row && p.col === col);
+    const isBacktracking = cellIndexInPath !== -1;
+    
+    if (isBacktracking) {
+      setCurrentPath(currentPath.slice(0, cellIndexInPath + 1));
+      setLastMousePos(currentMousePos);
+      setPendingCell(null);
+    } else {
+      setCurrentPath([...currentPath, { row, col }]);
+      setLastMousePos(currentMousePos);
+    }
   };
 
   const handleBoardPointerUp = () => {
