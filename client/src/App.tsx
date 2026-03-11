@@ -6,11 +6,12 @@ import { StartPage } from './pages/StartPage';
 import { ConfigPage } from './pages/ConfigPage';
 import { GamePage } from './pages/GamePage';
 import { ResultsPage } from './pages/ResultsPage';
+import { FeedbackType } from './components/Board';
 import './App.css';
 
 function App() {
   const { game, words, createGame, startGame, cancelGame, endGame, fetchGameState, submitWord } = useGameApi();
-  const [message, setMessage] = useState('');
+  const [feedback, setFeedback] = useState<{ type: FeedbackType; path: Position[] } | null>(null);
 
   const timeRemaining = useTimer(game, fetchGameState);
 
@@ -29,7 +30,7 @@ function App() {
 
   const handleStartGame = async (boardSize: number, timeLimit: number, minWordLength: number) => {
     await startGame(timeLimit, boardSize, minWordLength);
-    setMessage('');
+    setFeedback(null);
   };
 
   const handleCancelGame = async () => {
@@ -47,14 +48,18 @@ function App() {
   const handleSubmitWord = async (path: Position[]) => {
     const result = await submitWord(path);
     
+    let feedbackType: FeedbackType;
     if (result.valid) {
-      setMessage(`✓ ${result.word}`);
+      feedbackType = 'valid';
       fetchGameState();
+    } else if (result.reason === 'Word already found') {
+      feedbackType = 'duplicate';
     } else {
-      setMessage(`✗ ${result.word}: ${result.reason}`);
+      feedbackType = 'invalid';
     }
     
-    setTimeout(() => setMessage(''), 2000);
+    setFeedback({ type: feedbackType, path });
+    setTimeout(() => setFeedback(null), 200);
   };
 
   const renderPage = () => {
@@ -83,7 +88,7 @@ function App() {
             game={game!}
             words={words}
             timeRemaining={timeRemaining}
-            message={message}
+            feedback={feedback}
             onSubmitWord={handleSubmitWord}
             onCancelGame={handleCancelGame}
             onEndGame={handleEndGame}

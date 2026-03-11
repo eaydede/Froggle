@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Board, Position } from 'models';
+import { FeedbackType } from '../components/Board';
 
 interface UseBoardInteractionProps {
   board: Board;
   onSubmitWord: (path: Position[]) => void;
+  feedback: { type: FeedbackType; path: Position[] } | null;
 }
 
-export const useBoardInteraction = ({ board, onSubmitWord }: UseBoardInteractionProps) => {
+export const useBoardInteraction = ({ board, onSubmitWord, feedback }: UseBoardInteractionProps) => {
   const [currentPath, setCurrentPath] = useState<Position[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [lastMousePos, setLastMousePos] = useState<{ x: number; y: number } | null>(null);
@@ -34,7 +36,7 @@ export const useBoardInteraction = ({ board, onSubmitWord }: UseBoardInteraction
     
     const deltaX = Math.abs(currentMousePos.x - lastMousePos.x);
     const deltaY = Math.abs(currentMousePos.y - lastMousePos.y);
-    const isMovingDiagonally = Math.min(deltaX, deltaY) / Math.max(deltaX, deltaY) > 0.3;
+    const isMovingDiagonally = Math.min(deltaX, deltaY) / Math.max(deltaX, deltaY) > 0.5;
     
     if (isMovingDiagonally && isOrthogonalCell) {
       setPendingCell({ row, col, timestamp: Date.now() });
@@ -57,7 +59,7 @@ export const useBoardInteraction = ({ board, onSubmitWord }: UseBoardInteraction
           }
           return prev;
         });
-      }, 100);
+      }, 80);
       return;
     }
     
@@ -98,8 +100,10 @@ export const useBoardInteraction = ({ board, onSubmitWord }: UseBoardInteraction
     return currentPath.some(p => p.row === row && p.col === col);
   };
 
-  const getCurrentWord = () => {
-    return currentPath.map(pos => board[pos.row][pos.col]).join('');
+  const isInFeedbackPath = (row: number, col: number): FeedbackType => {
+    if (!feedback) return null;
+    const inPath = feedback.path.some(p => p.row === row && p.col === col);
+    return inPath ? feedback.type : null;
   };
 
   return {
@@ -109,6 +113,6 @@ export const useBoardInteraction = ({ board, onSubmitWord }: UseBoardInteraction
     handleBoardPointerUp,
     handleBoardPointerLeave,
     isInCurrentPath,
-    getCurrentWord,
+    isInFeedbackPath,
   };
 };

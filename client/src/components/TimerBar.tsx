@@ -31,17 +31,14 @@ export const TimerBar = ({ game }: TimerBarProps) => {
     return () => clearInterval(interval);
   }, [game.startedAt, game.config.durationSeconds]);
 
-  // Don't render if unlimited time
-  if (game.config.durationSeconds <= 0) {
-    return null;
-  }
-
   return (
     <div className="timer-bar-container">
-      <div 
-        className="timer-bar-fill" 
-        style={{ width: `${remainingPercentage}%` }}
-      />
+      {game.config.durationSeconds > 0 && (
+        <div 
+          className="timer-bar-fill" 
+          style={{ width: `${remainingPercentage}%` }}
+        />
+      )}
     </div>
   );
 };
