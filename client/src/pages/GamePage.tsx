@@ -12,7 +12,7 @@ interface GamePageProps {
   onEndGame: () => void;
 }
 
-export const GamePage = ({ game, words, timeRemaining, feedback, onSubmitWord, onCancelGame, onEndGame }: GamePageProps) => {
+export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGame }: GamePageProps) => {
   const boardSize = game.board.length;
   
   return (

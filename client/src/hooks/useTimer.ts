@@ -6,6 +6,12 @@ export const useTimer = (game: Game | null, onTimeExpired: () => void) => {
 
   useEffect(() => {
     if (game && game.status === GameState.InProgress) {
+      // Don't run timer for unlimited games
+      if (game.config.durationSeconds <= 0) {
+        setTimeRemaining(0);
+        return;
+      }
+
       const interval = setInterval(() => {
         const elapsed = Date.now() - game.startedAt;
         const remaining = Math.max(0, game.config.durationSeconds * 1000 - elapsed);

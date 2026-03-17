@@ -97,7 +97,7 @@ export class GameController {
 
   submitWord(path: Position[]): { valid: boolean; word?: string; reason?: string } {
     if (!this.game || this.game.status !== GameState.InProgress) {
-      return { valid: false, reason: 'No active game' };
+      return { valid: false, reason: 'invalid' };
     }
 
     // Derive word from path
@@ -105,22 +105,22 @@ export class GameController {
 
     // Validate path structure
     if (!isValidPath(path)) {
-      return { valid: false, word, reason: 'Invalid path' };
+      return { valid: false, word, reason: 'invalid' };
     }
 
     // Validate word length meets minimum requirement
     const minLength = this.game.config.minWordLength;
     if (word.length < minLength) {
-      return { valid: false, word, reason: `Word too short (minimum ${minLength} letters)` };
+      return { valid: false, word, reason: 'invalid' };
     }
 
     if (!isValidWord(this.dictionary, word.toLowerCase())) {
-      return { valid: false, word, reason: 'Not in dictionary' };
+      return { valid: false, word, reason: 'invalid' };
     }
 
     // Check if already submitted
     if (this.words.some(w => w.word.toLowerCase() === word.toLowerCase())) {
-      return { valid: false, word, reason: 'Already submitted' };
+      return { valid: false, word, reason: 'repeat' };
     }
 
     // Valid word - add it

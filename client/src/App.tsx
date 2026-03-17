@@ -52,7 +52,7 @@ function App() {
     if (result.valid) {
       feedbackType = 'valid';
       fetchGameState();
-    } else if (result.reason === 'Word already found') {
+    } else if (result.reason === 'repeat') {
       feedbackType = 'duplicate';
     } else {
       feedbackType = 'invalid';
