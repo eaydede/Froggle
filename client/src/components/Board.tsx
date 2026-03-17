@@ -13,6 +13,7 @@ export const Board = ({ board, onSubmitWord, feedback }: BoardProps) => {
   const {
     handleCellPointerDown,
     handleCellPointerEnter,
+    handleCellPointerLeave,
     handleBoardPointerUp,
     handleBoardPointerLeave,
     isInCurrentPath,
@@ -57,6 +58,7 @@ export const Board = ({ board, onSubmitWord, feedback }: BoardProps) => {
               }}
               onPointerDown={(e) => handleCellPointerDown(rowIndex, colIndex, e)}
               onPointerEnter={(e) => handleCellPointerEnter(rowIndex, colIndex, e)}
+              onPointerLeave={(e) => handleCellPointerLeave(e)}
             >
               {letter}
             </div>

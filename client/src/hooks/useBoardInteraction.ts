@@ -17,12 +17,17 @@ export const useBoardInteraction = ({ board, onSubmitWord, feedback }: UseBoardI
   const handleCellPointerDown = (row: number, col: number, e: React.PointerEvent) => {
     setIsDragging(true);
     setCurrentPath([{ row, col }]);
+    setLastMousePos(null); // Reset on new drag
+  };
+
+  const handleCellPointerLeave = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    // Capture mouse position when leaving a cell
     setLastMousePos({ x: e.clientX, y: e.clientY });
   };
 
   const handleCellPointerEnter = (row: number, col: number, e: React.PointerEvent) => {
     if (!isDragging) return;
-    if (!lastMousePos) return;
     
     const lastPos = currentPath[currentPath.length - 1];
     if (!lastPos) return;
@@ -34,9 +39,13 @@ export const useBoardInteraction = ({ board, onSubmitWord, feedback }: UseBoardI
     const isDiagonalCell = Math.abs(lastPos.row - row) === 1 && Math.abs(lastPos.col - col) === 1;
     const isOrthogonalCell = lastPos.row === row || lastPos.col === col;
     
-    const deltaX = Math.abs(currentMousePos.x - lastMousePos.x);
-    const deltaY = Math.abs(currentMousePos.y - lastMousePos.y);
-    const isMovingDiagonally = Math.min(deltaX, deltaY) / Math.max(deltaX, deltaY) > 0.5;
+    // Calculate movement direction from last mouse position (from leaving previous cell)
+    let isMovingDiagonally = false;
+    if (lastMousePos) {
+      const deltaX = Math.abs(currentMousePos.x - lastMousePos.x);
+      const deltaY = Math.abs(currentMousePos.y - lastMousePos.y);
+      isMovingDiagonally = Math.min(deltaX, deltaY) / Math.max(deltaX, deltaY) > 0.5;
+    }
     
     if (isMovingDiagonally && isOrthogonalCell) {
       setPendingCell({ row, col, timestamp: Date.now() });
@@ -54,12 +63,11 @@ export const useBoardInteraction = ({ board, onSubmitWord, feedback }: UseBoardI
                 return [...path, { row, col }];
               }
             });
-            setLastMousePos(currentMousePos);
             return null;
           }
           return prev;
         });
-      }, 80);
+      }, 120);
       return;
     }
     
@@ -72,11 +80,9 @@ export const useBoardInteraction = ({ board, onSubmitWord, feedback }: UseBoardI
     
     if (isBacktracking) {
       setCurrentPath(currentPath.slice(0, cellIndexInPath + 1));
-      setLastMousePos(currentMousePos);
       setPendingCell(null);
     } else {
       setCurrentPath([...currentPath, { row, col }]);
-      setLastMousePos(currentMousePos);
     }
   };
 
@@ -110,6 +116,7 @@ export const useBoardInteraction = ({ board, onSubmitWord, feedback }: UseBoardI
     currentPath,
     handleCellPointerDown,
     handleCellPointerEnter,
+    handleCellPointerLeave,
     handleBoardPointerUp,
     handleBoardPointerLeave,
     isInCurrentPath,
