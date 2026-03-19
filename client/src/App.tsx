@@ -7,6 +7,7 @@ import { ConfigPage } from './pages/ConfigPage';
 import { GamePage } from './pages/GamePage';
 import { ResultsPage } from './pages/ResultsPage';
 import { FeedbackType } from './components/Board';
+import './index.css';
 import './App.css';
 
 function App() {

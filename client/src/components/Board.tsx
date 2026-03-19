@@ -77,10 +77,6 @@ export const Board = ({ board, onSubmitWord, feedback, debugMode = false }: Boar
           </div>
         ))}
       </div>
-      
-      <div className="current-word">
-        {currentPath.map(p => board[p.row][p.col]).join('')}
-      </div>
     </>
   );
 };

@@ -50,16 +50,16 @@ export const DebugOverlay = ({ debugHistory, pendingCell, enabled, boardSize, ce
     if (coordLog.length === 0) return null;
     
     return (
-      <div className="mt-3 pt-3 border-t border-gray-700">
-        <div className="font-bold mb-2 text-sm text-purple-400">📍 Coordinate Log</div>
-        <div className="space-y-1 max-h-40 overflow-y-auto">
+      <div className="debug-coord-log">
+        <div className="debug-coord-log-header">📍 Coordinate Log</div>
+        <div className="debug-coord-log-entries">
           {coordLog.slice(-10).map((entry, index) => (
-            <div key={index} className="text-[9px] font-mono bg-gray-800 p-1 rounded">
-              <div className="flex justify-between">
-                <span className="text-gray-400">X,Y:</span>
-                <span className="font-bold text-white">{entry.x.toFixed(1)}, {entry.y.toFixed(1)}</span>
+            <div key={index} className="debug-coord-entry">
+              <div className="debug-coord-entry-header">
+                <span className="debug-coord-entry-label">X,Y:</span>
+                <span className="debug-coord-entry-value">{entry.x.toFixed(1)}, {entry.y.toFixed(1)}</span>
               </div>
-              <div className="text-gray-500 truncate" title={entry.source}>
+              <div className="debug-coord-entry-source" title={entry.source}>
                 {entry.source}
               </div>
             </div>
@@ -127,12 +127,10 @@ export const DebugOverlay = ({ debugHistory, pendingCell, enabled, boardSize, ce
     const toY = info.currentMousePos.y;
     
     const color = info.isMovingDiagonally ? 'yellow' : 'lime';
-    // Fade opacity for older moves
     const opacity = index === 0 ? 0.9 : index === 1 ? 0.5 : 0.25;
     
     return (
       <g key={`trajectory-${index}`}>
-        {/* Trajectory line */}
         <line
           x1={fromX}
           y1={fromY}
@@ -143,7 +141,6 @@ export const DebugOverlay = ({ debugHistory, pendingCell, enabled, boardSize, ce
           markerEnd={`url(#arrowhead-${color})`}
           opacity={opacity}
         />
-        {/* Starting point (exit from previous cell) */}
         <circle
           cx={fromX}
           cy={fromY}
@@ -153,7 +150,6 @@ export const DebugOverlay = ({ debugHistory, pendingCell, enabled, boardSize, ce
           strokeWidth="2"
           opacity={opacity}
         />
-        {/* Ending point (entry to current cell) */}
         <circle
           cx={toX}
           cy={toY}
@@ -175,7 +171,6 @@ export const DebugOverlay = ({ debugHistory, pendingCell, enabled, boardSize, ce
     const toRow = info.toCell.row;
     const toCol = info.toCell.col;
     
-    // Determine grid bounds to show (min 3x3 area around the cells)
     const minRow = Math.max(0, Math.min(fromRow, toRow) - 1);
     const maxRow = Math.min(boardSize - 1, Math.max(fromRow, toRow) + 1);
     const minCol = Math.max(0, Math.min(fromCol, toCol) - 1);
@@ -189,63 +184,41 @@ export const DebugOverlay = ({ debugHistory, pendingCell, enabled, boardSize, ce
         const isTo = row === toRow && col === toCol;
         const letter = board[row][col];
         
-        let cellClass = 'w-6 h-6 flex items-center justify-center border border-gray-400 text-[10px] font-semibold';
-        let bgClass = 'bg-gray-200 text-gray-400';
-        
-        if (isFrom) {
-          cellClass = 'w-8 h-8 flex items-center justify-center border-2 border-blue-500 text-sm font-bold shadow-lg';
-          bgClass = 'bg-blue-100 text-blue-700';
-        } else if (isTo) {
-          cellClass = 'w-8 h-8 flex items-center justify-center border-2 border-red-500 text-sm font-bold shadow-lg';
-          bgClass = 'bg-red-100 text-red-700';
-        }
+        let cellClass = 'debug-grid-cell';
+        if (isFrom) cellClass = 'debug-grid-cell debug-grid-cell-from';
+        else if (isTo) cellClass = 'debug-grid-cell debug-grid-cell-to';
         
         cells.push(
-          <div key={`${row}-${col}`} className={`${cellClass} ${bgClass} rounded`}>
+          <div key={`${row}-${col}`} className={cellClass}>
             {letter}
           </div>
         );
       }
       gridRows.push(
-        <div key={row} className="flex gap-0.5 items-center justify-center">
+        <div key={row} className="debug-grid-row">
           {cells}
         </div>
       );
     }
     
     return (
-      <div className="mb-3 p-2 bg-gray-800 rounded">
-        <div className="text-[8px] text-gray-400 mb-1 text-center">Board Position</div>
-        <div className="flex flex-col gap-0.5 items-center">
+      <div className="debug-mini-grid">
+        <div className="debug-grid-label">Board Position</div>
+        <div className="debug-grid-rows">
           {gridRows}
         </div>
-        <div className="flex justify-center gap-3 mt-2 text-[9px]">
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-blue-100 border border-blue-500 rounded"></div>
-            <span className="text-gray-400">From</span>
+        <div className="debug-grid-legend">
+          <div className="debug-legend-item">
+            <div className="debug-legend-box debug-legend-box-from"></div>
+            <span className="debug-legend-text">From</span>
           </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-red-100 border border-red-500 rounded"></div>
-            <span className="text-gray-400">To</span>
+          <div className="debug-legend-item">
+            <div className="debug-legend-box debug-legend-box-to"></div>
+            <span className="debug-legend-text">To</span>
           </div>
         </div>
       </div>
     );
-  };
-
-  const getPathActionInfo = (action?: string) => {
-    switch (action) {
-      case 'added':
-        return { text: '➕ ADDED', color: 'text-green-400' };
-      case 'skipped':
-        return { text: '⏭️ SKIPPED', color: 'text-gray-400' };
-      case 'backtracked':
-        return { text: '⬅️ BACKTRACKED', color: 'text-blue-400' };
-      case 'pending':
-        return { text: '⏳ PENDING', color: 'text-orange-400' };
-      default:
-        return { text: '❓ UNKNOWN', color: 'text-gray-500' };
-    }
   };
 
   const renderPathInfo = (info: DebugInfo) => {
@@ -255,42 +228,42 @@ export const DebugOverlay = ({ debugHistory, pendingCell, enabled, boardSize, ce
     const pathAfter = info.pathAfterMove || pathBefore;
     const actionLetter = info.toCell?.letter || '';
     
-    let actionColor = 'text-gray-400';
+    let actionColorClass = '';
     let actionSymbol = '?';
     
     if (info.pathAction === 'added') {
-      actionColor = 'text-green-400';
+      actionColorClass = 'debug-path-action-added';
       actionSymbol = '+';
     } else if (info.pathAction === 'skipped') {
-      actionColor = 'text-gray-500';
+      actionColorClass = 'debug-path-action-skipped';
       actionSymbol = '⊘';
     } else if (info.pathAction === 'backtracked') {
-      actionColor = 'text-blue-400';
+      actionColorClass = 'debug-path-action-backtracked';
       actionSymbol = '←';
     } else if (info.pathAction === 'pending') {
-      actionColor = 'text-orange-400';
+      actionColorClass = 'debug-path-action-pending';
       actionSymbol = '⏳';
     }
     
     return (
-      <div className="mb-2 p-2 bg-gray-800 rounded text-[10px]">
-        <div className="text-gray-400 mb-1">Word Path:</div>
-        <div className="flex items-center gap-1">
-          <span className="font-mono font-bold text-white">
+      <div className="debug-path-info">
+        <div className="debug-path-label">Word Path:</div>
+        <div className="debug-path-value">
+          <span className="debug-path-text">
             {pathBefore || '(empty)'}
           </span>
           {pathAfter !== pathBefore && (
             <>
-              <span className="text-gray-500">→</span>
-              <span className="font-mono font-bold text-white">
+              <span className="debug-path-arrow">→</span>
+              <span className="debug-path-text">
                 {pathAfter}
               </span>
             </>
           )}
         </div>
-        <div className="flex items-center gap-2 mt-1">
-          <span className="text-gray-400">Action:</span>
-          <span className={`font-bold ${actionColor}`}>
+        <div className="debug-path-action-row">
+          <span className="debug-path-label">Action:</span>
+          <span className={`debug-path-action ${actionColorClass}`}>
             {actionSymbol} {actionLetter}
           </span>
         </div>
@@ -299,59 +272,56 @@ export const DebugOverlay = ({ debugHistory, pendingCell, enabled, boardSize, ce
   };
 
   const renderMoveInfo = (info: DebugInfo, index: number, label: string) => (
-    <div key={index} className="mb-3 pb-3 border-b border-gray-700 last:border-b-0">
-      <div className="font-bold mb-2 text-sm text-blue-400">{label}</div>
+    <div key={index} className="debug-move-section">
+      <div className="debug-move-label">{label}</div>
       
-      {/* Mini grid showing board position */}
       {renderMiniGrid(info)}
-      
-      {/* Path change info */}
       {renderPathInfo(info)}
       
-      <div className="space-y-1">
-        <div className="flex justify-between items-start">
-          <span className="text-gray-400">Start X,Y:</span>
-          <div className="text-right">
-            <div className="font-bold">
+      <div className="debug-metrics">
+        <div className="debug-metric-row-start">
+          <span className="debug-metric-label">Start X,Y:</span>
+          <div className="debug-metric-value">
+            <div className="debug-metric-value-bold">
               {info.lastMousePos ? `${info.lastMousePos.x}, ${info.lastMousePos.y}` : 'null'}
             </div>
-            <div className="text-[8px] text-gray-500">
+            <div className="debug-metric-source">
               {info.startSource || 'unknown'}
             </div>
           </div>
         </div>
         
-        <div className="flex justify-between items-start">
-          <span className="text-gray-400">End X,Y:</span>
-          <div className="text-right">
-            <div className="font-bold">
+        <div className="debug-metric-row-start">
+          <span className="debug-metric-label">End X,Y:</span>
+          <div className="debug-metric-value">
+            <div className="debug-metric-value-bold">
               {info.currentMousePos ? `${info.currentMousePos.x}, ${info.currentMousePos.y}` : 'null'}
             </div>
-            <div className="text-[8px] text-gray-500">
+            <div className="debug-metric-source">
               {info.endSource || 'unknown'}
             </div>
           </div>
         </div>
         
-        <div className="flex justify-between">
-          <span className="text-gray-400">Ratio:</span>
-          <span className={`font-bold ${info.ratio > info.threshold ? 'text-yellow-400' : 'text-green-400'}`}>
+        <div className="debug-metric-row">
+          <span className="debug-metric-label">Ratio:</span>
+          <span className={`debug-metric-value-bold ${info.ratio > info.threshold ? 'debug-metric-ratio-high' : 'debug-metric-ratio-low'}`}>
             {info.ratio.toFixed(3)}
           </span>
         </div>
         
-        <div className="flex justify-between">
-          <span className="text-gray-400">Cell Type:</span>
-          <span className="font-bold text-xs">
+        <div className="debug-metric-row">
+          <span className="debug-metric-label">Cell Type:</span>
+          <span className="debug-metric-value-bold">
             {info.isDiagonalCell ? '⬈ Diagonal' : info.isOrthogonalCell ? '→ Orthogonal' : '-'}
           </span>
         </div>
         
-        <div className="flex justify-between">
-          <span className="text-gray-400">Movement:</span>
-          <span className={`font-bold text-xs ${
-            info.movementDirection === 'diagonal' ? 'text-yellow-400' : 
-            info.movementDirection === 'horizontal' ? 'text-green-400' : 'text-blue-400'
+        <div className="debug-metric-row">
+          <span className="debug-metric-label">Movement:</span>
+          <span className={`debug-metric-value-bold ${
+            info.movementDirection === 'diagonal' ? 'debug-metric-diagonal' : 
+            info.movementDirection === 'horizontal' ? 'debug-metric-horizontal' : 'debug-metric-vertical'
           }`}>
             {info.movementDirection === 'diagonal' ? '⬈ Diagonal' : 
              info.movementDirection === 'horizontal' ? '↔ Horizontal' : '↕ Vertical'}
@@ -359,24 +329,18 @@ export const DebugOverlay = ({ debugHistory, pendingCell, enabled, boardSize, ce
         </div>
         
         {info.wasPending && (
-          <div className="flex justify-between">
-            <span className="text-gray-400">Was Delayed:</span>
-            <span className="font-bold text-xs text-orange-400">⏱️ YES (120ms)</span>
+          <div className="debug-metric-row">
+            <span className="debug-metric-label">Was Delayed:</span>
+            <span className="debug-metric-value-bold debug-metric-delayed">⏱️ YES (120ms)</span>
           </div>
         )}
       </div>
     </div>
   );
 
-  const boardDimension = boardSize * cellSize;
-
   return (
     <>
-      {/* SVG overlay for trajectory lines */}
-      <svg
-        className="fixed top-0 left-0 pointer-events-none z-40"
-        style={{ width: '100%', height: '100%' }}
-      >
+      <svg className="debug-overlay-svg">
         <defs>
           <marker
             id="arrowhead-lime"
@@ -404,19 +368,18 @@ export const DebugOverlay = ({ debugHistory, pendingCell, enabled, boardSize, ce
         )}
       </svg>
 
-      {/* Info panel */}
-      <div className="fixed top-4 right-4 bg-black bg-opacity-90 text-white p-4 rounded-lg font-mono text-xs z-50 max-w-xs max-h-[90vh] overflow-y-auto">
-        <div className="font-bold mb-3 text-sm flex items-center justify-between">
+      <div className="debug-panel">
+        <div className="debug-panel-header">
           <span>🔍 Drag Debug Info</span>
-          <div className="flex items-center gap-2">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button
               onClick={copyDebugInfo}
-              className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-[10px] font-bold cursor-pointer"
+              className="debug-copy-button"
               title="Copy debug info to clipboard"
             >
               📋 Copy
             </button>
-            <span className="text-blue-400">Threshold: {debugHistory[0]?.threshold}</span>
+            <span className="debug-threshold">Threshold: {debugHistory[0]?.threshold}</span>
           </div>
         </div>
         
@@ -427,7 +390,6 @@ export const DebugOverlay = ({ debugHistory, pendingCell, enabled, boardSize, ce
           return renderMoveInfo(info, index, label);
         })}
         
-        {/* Coordinate log */}
         {renderCoordLog()}
       </div>
     </>
