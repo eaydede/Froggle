@@ -31,14 +31,14 @@ export const TimerBar = ({ game }: TimerBarProps) => {
     return () => clearInterval(interval);
   }, [game.startedAt, game.config.durationSeconds]);
 
+  const isUnlimited = game.config.durationSeconds <= 0;
+
   return (
     <div className="timer-bar-container">
-      {game.config.durationSeconds > 0 && (
-        <div 
-          className="timer-bar-fill" 
-          style={{ width: `${remainingPercentage}%` }}
-        />
-      )}
+      <div 
+        className={isUnlimited ? "timer-bar-fill-unlimited" : "timer-bar-fill"}
+        style={{ width: `${remainingPercentage}%` }}
+      />
     </div>
   );
 };

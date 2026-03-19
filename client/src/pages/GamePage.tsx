@@ -10,9 +10,10 @@ interface GamePageProps {
   onSubmitWord: (path: Position[]) => void;
   onCancelGame: () => void;
   onEndGame: () => void;
+  debugMode: boolean;
 }
 
-export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGame }: GamePageProps) => {
+export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGame, debugMode }: GamePageProps) => {
   const boardSize = game.board.length;
   
   return (
@@ -26,7 +27,9 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
       </div>
       
       <div className="board-container">
-        <Board board={game.board} onSubmitWord={onSubmitWord} feedback={feedback} />
+        <div className="board-with-word">
+          <Board board={game.board} onSubmitWord={onSubmitWord} feedback={feedback} debugMode={debugMode} />
+        </div>
       </div>
     </div>
   );

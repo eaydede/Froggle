@@ -6,24 +6,38 @@ interface UseBoardInteractionProps {
   board: Board;
   onSubmitWord: (path: Position[]) => void;
   feedback: { type: FeedbackType; path: Position[] } | null;
+  debugMode?: boolean;
 }
 
-export const useBoardInteraction = ({ board, onSubmitWord, feedback }: UseBoardInteractionProps) => {
+const DIAGONAL_THRESHOLD = 0.5;
+
+export const useBoardInteraction = ({ board, onSubmitWord, feedback, debugMode = false }: UseBoardInteractionProps) => {
   const [currentPath, setCurrentPath] = useState<Position[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [lastMousePos, setLastMousePos] = useState<{ x: number; y: number } | null>(null);
   const [pendingCell, setPendingCell] = useState<{ row: number; col: number; timestamp: number } | null>(null);
+  const [debugHistory, setDebugHistory] = useState<any[]>([]);
+  const [coordLog, setCoordLog] = useState<Array<{ x: number; y: number; source: string; timestamp: number }>>([]);
 
   const handleCellPointerDown = (row: number, col: number, e: React.PointerEvent) => {
     setIsDragging(true);
     setCurrentPath([{ row, col }]);
     setLastMousePos(null); // Reset on new drag
+    setDebugHistory([]); // Clear history on new drag
+    if (debugMode) {
+      setCoordLog([]); // Clear coordinate log on new drag
+    }
   };
 
   const handleCellPointerLeave = (e: React.PointerEvent) => {
     if (!isDragging) return;
     // Capture mouse position when leaving a cell
-    setLastMousePos({ x: e.clientX, y: e.clientY });
+    const pos = { x: e.clientX, y: e.clientY };
+    setLastMousePos(pos);
+    
+    if (debugMode) {
+      setCoordLog(prev => [...prev, { ...pos, source: 'handleCellPointerLeave', timestamp: Date.now() }]);
+    }
   };
 
   const handleCellPointerEnter = (row: number, col: number, e: React.PointerEvent) => {
@@ -36,19 +50,81 @@ export const useBoardInteraction = ({ board, onSubmitWord, feedback }: UseBoardI
     if (!isAdjacent) return;
     
     const currentMousePos = { x: e.clientX, y: e.clientY };
+    
+    // If we don't have a lastMousePos, use the current entry point as the start
+    // This handles the first move or cases where pointerLeave didn't fire
+    const effectiveLastMousePos = lastMousePos || currentMousePos;
     const isDiagonalCell = Math.abs(lastPos.row - row) === 1 && Math.abs(lastPos.col - col) === 1;
     const isOrthogonalCell = lastPos.row === row || lastPos.col === col;
     
     // Calculate movement direction from last mouse position (from leaving previous cell)
     let isMovingDiagonally = false;
-    if (lastMousePos) {
-      const deltaX = Math.abs(currentMousePos.x - lastMousePos.x);
-      const deltaY = Math.abs(currentMousePos.y - lastMousePos.y);
-      isMovingDiagonally = Math.min(deltaX, deltaY) / Math.max(deltaX, deltaY) > 0.5;
+    let deltaX = 0;
+    let deltaY = 0;
+    let ratio = 0;
+    
+    if (effectiveLastMousePos) {
+      deltaX = Math.abs(currentMousePos.x - effectiveLastMousePos.x);
+      deltaY = Math.abs(currentMousePos.y - effectiveLastMousePos.y);
+      const maxDelta = Math.max(deltaX, deltaY);
+      ratio = maxDelta > 0 ? Math.min(deltaX, deltaY) / maxDelta : 0;
+      isMovingDiagonally = ratio > DIAGONAL_THRESHOLD;
+      
+      // Update debug history
+      if (debugMode) {
+        const fromCell = lastPos ? { row: lastPos.row, col: lastPos.col, letter: board[lastPos.row][lastPos.col] } : null;
+        const toCell = { row, col, letter: board[row][col] };
+        
+        // Determine movement direction
+        let movementDirection: 'horizontal' | 'vertical' | 'diagonal' = 'diagonal';
+        if (!isMovingDiagonally) {
+          // Straight movement - check if horizontal or vertical based on mouse deltas
+          movementDirection = deltaX > deltaY ? 'horizontal' : 'vertical';
+        }
+        
+        // Capture path state before this move
+        const pathBeforeMove = currentPath.map(p => board[p.row][p.col]).join('');
+        
+        const newDebugInfo = {
+          lastMousePos: effectiveLastMousePos,
+          currentMousePos,
+          deltaX,
+          deltaY,
+          ratio,
+          isMovingDiagonally,
+          isDiagonalCell,
+          isOrthogonalCell,
+          movementDirection,
+          threshold: DIAGONAL_THRESHOLD,
+          timestamp: Date.now(),
+          cellCoords: { row, col },
+          fromCell,
+          toCell,
+          wasPending: false, // Will be updated if delayed
+          pathAction: 'pending' as 'added' | 'skipped' | 'backtracked' | 'pending', // Will be updated
+          pathBeforeMove, // Path before this cell interaction
+          pathAfterMove: '', // Will be updated when path changes
+          // Track where coordinates came from
+          startSource: 'handleCellPointerLeave',
+          endSource: 'handleCellPointerEnter',
+        };
+        setDebugHistory(prev => [...prev, newDebugInfo]);
+      }
     }
     
     if (isMovingDiagonally && isOrthogonalCell) {
       setPendingCell({ row, col, timestamp: Date.now() });
+      
+      // Mark as pending in debug history
+      if (debugMode) {
+        setDebugHistory(prev => {
+          const updated = [...prev];
+          if (updated.length > 0) {
+            updated[updated.length - 1].wasPending = true;
+          }
+          return updated;
+        });
+      }
       
       setTimeout(() => {
         setPendingCell(prev => {
@@ -58,9 +134,35 @@ export const useBoardInteraction = ({ board, onSubmitWord, feedback }: UseBoardI
               const isBacktracking = cellIndexInPath !== -1;
               
               if (isBacktracking) {
-                return path.slice(0, cellIndexInPath + 1);
+                const newPath = path.slice(0, cellIndexInPath + 1);
+                // Mark as backtracked in debug history
+                if (debugMode) {
+                  setDebugHistory(prev => {
+                    const updated = [...prev];
+                    const debugEntry = updated.find(d => d.cellCoords?.row === row && d.cellCoords?.col === col);
+                    if (debugEntry) {
+                      debugEntry.pathAction = 'backtracked';
+                      debugEntry.pathAfterMove = newPath.map(p => board[p.row][p.col]).join('');
+                    }
+                    return updated;
+                  });
+                }
+                return newPath;
               } else {
-                return [...path, { row, col }];
+                const newPath = [...path, { row, col }];
+                // Mark as added to path in debug history
+                if (debugMode) {
+                  setDebugHistory(prev => {
+                    const updated = [...prev];
+                    const debugEntry = updated.find(d => d.cellCoords?.row === row && d.cellCoords?.col === col);
+                    if (debugEntry) {
+                      debugEntry.pathAction = 'added';
+                      debugEntry.pathAfterMove = newPath.map(p => board[p.row][p.col]).join('');
+                    }
+                    return updated;
+                  });
+                }
+                return newPath;
               }
             });
             return null;
@@ -72,6 +174,19 @@ export const useBoardInteraction = ({ board, onSubmitWord, feedback }: UseBoardI
     }
     
     if (isDiagonalCell && pendingCell) {
+      // Mark the pending cell as skipped since we moved to diagonal before it resolved
+      if (debugMode) {
+        setDebugHistory(prev => {
+          const updated = [...prev];
+          const debugEntry = updated.find(d => 
+            d.cellCoords?.row === pendingCell.row && d.cellCoords?.col === pendingCell.col
+          );
+          if (debugEntry && debugEntry.pathAction === 'pending') {
+            debugEntry.pathAction = 'skipped';
+          }
+          return updated;
+        });
+      }
       setPendingCell(null);
     }
     
@@ -79,10 +194,43 @@ export const useBoardInteraction = ({ board, onSubmitWord, feedback }: UseBoardI
     const isBacktracking = cellIndexInPath !== -1;
     
     if (isBacktracking) {
-      setCurrentPath(currentPath.slice(0, cellIndexInPath + 1));
+      const newPath = currentPath.slice(0, cellIndexInPath + 1);
+      // Mark as backtracked in debug history
+      if (debugMode) {
+        setDebugHistory(prev => {
+          const updated = [...prev];
+          const debugEntry = updated.find(d => d.cellCoords?.row === row && d.cellCoords?.col === col);
+          if (debugEntry) {
+            debugEntry.pathAction = 'backtracked';
+            debugEntry.pathAfterMove = newPath.map(p => board[p.row][p.col]).join('');
+          }
+          return updated;
+        });
+      }
+      setCurrentPath(newPath);
       setPendingCell(null);
     } else {
-      setCurrentPath([...currentPath, { row, col }]);
+      const newPath = [...currentPath, { row, col }];
+      // Mark as added to path in debug history
+      if (debugMode) {
+        setDebugHistory(prev => {
+          const updated = [...prev];
+          const debugEntry = updated.find(d => d.cellCoords?.row === row && d.cellCoords?.col === col);
+          if (debugEntry) {
+            debugEntry.pathAction = 'added';
+            debugEntry.pathAfterMove = newPath.map(p => board[p.row][p.col]).join('');
+          }
+          return updated;
+        });
+      }
+      setCurrentPath(newPath);
+    }
+    
+    // Update lastMousePos to current entry point for next move's trajectory calculation
+    setLastMousePos(currentMousePos);
+    
+    if (debugMode) {
+      setCoordLog(prev => [...prev, { ...currentMousePos, source: 'handleCellPointerEnter (end)', timestamp: Date.now() }]);
     }
   };
 
@@ -121,5 +269,8 @@ export const useBoardInteraction = ({ board, onSubmitWord, feedback }: UseBoardI
     handleBoardPointerLeave,
     isInCurrentPath,
     isInFeedbackPath,
+    debugHistory,
+    pendingCell,
+    coordLog,
   };
 };

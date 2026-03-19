@@ -12,6 +12,7 @@ import './App.css';
 function App() {
   const { game, words, createGame, startGame, cancelGame, endGame, fetchGameState, submitWord } = useGameApi();
   const [feedback, setFeedback] = useState<{ type: FeedbackType; path: Position[] } | null>(null);
+  const [debugMode, setDebugMode] = useState(false);
 
   const timeRemaining = useTimer(game, fetchGameState);
 
@@ -92,6 +93,7 @@ function App() {
             onSubmitWord={handleSubmitWord}
             onCancelGame={handleCancelGame}
             onEndGame={handleEndGame}
+            debugMode={debugMode}
           />
         );
 
@@ -105,7 +107,12 @@ function App() {
 
   return (
     <div className="app">
-      <h1>Froggle</h1>
+      <h1 
+        onClick={() => setDebugMode(!debugMode)}
+        className={`app-title ${debugMode ? 'debug-active' : ''}`}
+      >
+        Froggle
+      </h1>
       {renderPage()}
     </div>
   );
