@@ -41,6 +41,7 @@ const WordRow = ({ word, path, score, onHoverWord, className, children }: {
 
 export const ResultsWordList = ({ foundWords, missedWords, onHoverWord }: ResultsWordListProps) => {
   const [expandedWord, setExpandedWord] = useState<string | null>(null);
+  const [foundExpanded, setFoundExpanded] = useState(true);
   const [missedExpanded, setMissedExpanded] = useState(false);
 
   const totalScore = foundWords.reduce((sum, w) => sum + w.score, 0);
@@ -51,57 +52,63 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord }: Result
 
   return (
     <div className="results-word-list">
-      <div className="results-summary">
-        <span className="results-summary-count">{foundWords.length} word{foundWords.length !== 1 ? 's' : ''} found</span>
-        <span className="results-summary-score">{totalScore} pts</span>
-      </div>
-
-      <div className="results-found-words">
-        {foundWords.map((w) => {
-          const related = findRelatedMissedWords(w, missedWords);
-          const hasRelated = related.length > 0;
-          const isExpanded = expandedWord === w.word;
-
-          return (
-            <div key={w.word} className="results-word-group">
-              <WordRow word={w.word} path={w.path} score={w.score} onHoverWord={onHoverWord}>
-                {hasRelated && (
-                  <button
-                    className={`results-word-expand ${isExpanded ? 'expanded' : ''}`}
-                    onClick={() => toggleExpanded(w.word)}
-                  >
-                    ▾
-                  </button>
-                )}
-              </WordRow>
-              {isExpanded && related.length > 0 && (
-                <div className="results-related-words">
-                  {related.map(r => (
-                    <WordRow
-                      key={r.word}
-                      word={r.word}
-                      path={r.path}
-                      score={r.score}
-                      onHoverWord={onHoverWord}
-                      className="results-related-word-row"
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="results-missed-section">
+      <div className="results-section">
         <button
-          className="results-missed-toggle"
+          className="results-section-toggle"
+          onClick={() => setFoundExpanded(!foundExpanded)}
+        >
+          <span>{foundExpanded ? '▾' : '▸'} {foundWords.length} word{foundWords.length !== 1 ? 's' : ''} found</span>
+          <span className="results-section-score">{totalScore} pts</span>
+        </button>
+        {foundExpanded && (
+          <div className="results-scrollable-list">
+            {foundWords.map((w) => {
+              const related = findRelatedMissedWords(w, missedWords);
+              const hasRelated = related.length > 0;
+              const isExpanded = expandedWord === w.word;
+
+              return (
+                <div key={w.word} className="results-word-group">
+                  <WordRow word={w.word} path={w.path} score={w.score} onHoverWord={onHoverWord}>
+                    {hasRelated && (
+                      <button
+                        className={`results-word-expand ${isExpanded ? 'expanded' : ''}`}
+                        onClick={() => toggleExpanded(w.word)}
+                      >
+                        ▾
+                      </button>
+                    )}
+                  </WordRow>
+                  {isExpanded && related.length > 0 && (
+                    <div className="results-related-words">
+                      {related.map(r => (
+                        <WordRow
+                          key={r.word}
+                          word={r.word}
+                          path={r.path}
+                          score={r.score}
+                          onHoverWord={onHoverWord}
+                          className="results-related-word-row"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="results-section">
+        <button
+          className="results-section-toggle"
           onClick={() => setMissedExpanded(!missedExpanded)}
         >
           <span>{missedExpanded ? '▾' : '▸'} Missed words ({missedWords.length})</span>
         </button>
         {missedExpanded && (
-          <div className="results-missed-words">
+          <div className="results-scrollable-list">
             {missedWords.map((w) => (
               <WordRow
                 key={w.word}

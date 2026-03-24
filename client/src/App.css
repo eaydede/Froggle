@@ -6,10 +6,14 @@
 }
 
 .app {
-  max-width: 500px;
+  max-width: 800px;
   margin: 0 auto;
   padding: 20px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 h1 {
@@ -133,7 +137,7 @@ h1 {
 }
 
 .config-container {
-  max-width: 480px;
+  max-width: 700px;
   margin: 0 auto;
 }
 
@@ -153,7 +157,7 @@ h1 {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 25px;
+  gap: 15px;
 }
 
 .config-section label {
@@ -267,6 +271,11 @@ h1 {
 
 .back-button:hover {
   background-color: #616161;
+}
+
+.game-screen {
+  max-width: 500px;
+  margin: 0 auto;
 }
 
 .timer-section {
@@ -487,13 +496,13 @@ h1 {
 }
 
 .results-board-section {
-  flex: 2;
+  flex-grow: 1;
   min-width: 0;
 }
 
 .results-list-section {
   flex: 1;
-  min-width: 0;
+  min-width: 200px;
 }
 
 .results-board-toggle-mobile {
@@ -508,7 +517,7 @@ h1 {
   border-radius: 8px;
   padding: 12px;
   background-color: #f5f5f5;
-  width: 100%;
+  max-width: 500px;
   aspect-ratio: 1;
   box-sizing: border-box;
   gap: 12px;
@@ -545,35 +554,46 @@ h1 {
 .results-word-list {
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 200px);
-  overflow-y: auto;
+  gap: 12px;
 }
 
-.results-summary {
+.results-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.results-section-toggle {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 10px 12px;
   background-color: #f5f5f5;
   border-radius: 8px;
-  margin-bottom: 10px;
+  border: none;
+  cursor: pointer;
   font-weight: bold;
-  gap: 12px;
-}
-
-.results-summary-count {
-  color: #333;
   font-size: 14px;
+  color: #333;
+  width: 100%;
+  text-align: left;
+  transition: background-color 0.2s;
 }
 
-.results-summary-score {
+.results-section-toggle:hover {
+  background-color: #e8e8e8;
+}
+
+.results-section-score {
   color: #4CAF50;
   font-size: 16px;
 }
 
-.results-found-words {
+.results-scrollable-list {
   display: flex;
   flex-direction: column;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 4px;
 }
 
 .results-word-group {
@@ -661,37 +681,7 @@ h1 {
   font-size: 12px;
 }
 
-/* Missed words section */
-.results-missed-section {
-  margin-top: 16px;
-  border-top: 1px solid #eee;
-  padding-top: 8px;
-}
-
-.results-missed-toggle {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 14px;
-  color: #888;
-  padding: 6px 0;
-  font-weight: 500;
-  width: 100%;
-  text-align: left;
-  transition: color 0.2s;
-}
-
-.results-missed-toggle:hover {
-  color: #555;
-}
-
-.results-missed-words {
-  display: flex;
-  flex-direction: column;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
+/* Missed word rows */
 .results-missed-word-row {
   opacity: 0.6;
 }
@@ -777,25 +767,8 @@ h1 {
     margin-bottom: 12px;
   }
 
-  .results-board-toggle-button {
-    background: none;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    padding: 8px 16px;
-    font-size: 14px;
-    color: #555;
-    cursor: pointer;
-    width: 100%;
-    text-align: left;
-  }
 
-  .results-board-toggle-button:hover {
-    background-color: #f5f5f5;
-  }
 
-  .results-word-list {
-    max-height: none;
-  }
 }
 
 /* Debug Overlay Styles */

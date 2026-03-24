@@ -19,14 +19,12 @@ export const ResultsPage = ({ results, onPlayAgain }: ResultsPageProps) => {
 
   return (
     <div className="results-page">
-      <h2 className="results-title">Game Over!</h2>
-
       <div className="results-board-toggle-mobile">
         <button
-          className="results-board-toggle-button"
+          className="results-section-toggle"
           onClick={() => setBoardVisible(!boardVisible)}
         >
-          {boardVisible ? '▾ Hide Board' : '▸ Show Board'}
+          <span>{boardVisible ? '▾ Hide Board' : '▸ Show Board'}</span>
         </button>
       </div>
 
