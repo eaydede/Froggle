@@ -761,10 +761,15 @@ h1 {
 
   .results-board-section {
     display: none;
+    width: 100%;
   }
 
   .results-board-section.results-board-visible {
     display: block;
+  }
+
+  .results-list-section {
+    width: 100%;
   }
 
   .results-board-toggle-mobile {
