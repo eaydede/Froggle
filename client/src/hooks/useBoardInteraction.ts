@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Board, Position } from 'models';
 import { FeedbackType } from '../components/Board';
 
@@ -18,14 +18,17 @@ export const useBoardInteraction = ({ board, onSubmitWord, feedback, debugMode =
   const [pendingCell, setPendingCell] = useState<{ row: number; col: number; timestamp: number } | null>(null);
   const [debugHistory, setDebugHistory] = useState<any[]>([]);
   const [coordLog, setCoordLog] = useState<Array<{ x: number; y: number; source: string; timestamp: number }>>([]);
+  const lastCellRef = useRef<{ row: number; col: number } | null>(null);
 
   const handleCellPointerDown = (row: number, col: number, e: React.PointerEvent) => {
+    console.log('[touch] pointerDown on cell', row, col, 'pointerType:', e.pointerType);
     setIsDragging(true);
     setCurrentPath([{ row, col }]);
-    setLastMousePos(null); // Reset on new drag
-    setDebugHistory([]); // Clear history on new drag
+    setLastMousePos(null);
+    setDebugHistory([]);
+    lastCellRef.current = { row, col };
     if (debugMode) {
-      setCoordLog([]); // Clear coordinate log on new drag
+      setCoordLog([]);
     }
   };
 
@@ -234,7 +237,35 @@ export const useBoardInteraction = ({ board, onSubmitWord, feedback, debugMode =
     }
   };
 
+  const getCellFromPoint = useCallback((x: number, y: number): { row: number; col: number } | null => {
+    const element = document.elementFromPoint(x, y);
+    if (!element) return null;
+    const cell = element.closest('[data-row][data-col]') as HTMLElement | null;
+    if (!cell) return null;
+    const row = parseInt(cell.dataset.row!, 10);
+    const col = parseInt(cell.dataset.col!, 10);
+    if (isNaN(row) || isNaN(col)) return null;
+    return { row, col };
+  }, []);
+
+  const handleBoardPointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+
+    const cell = getCellFromPoint(e.clientX, e.clientY);
+    if (!cell) return;
+
+    const last = lastCellRef.current;
+    if (last && last.row === cell.row && last.col === cell.col) return;
+
+    console.log('[touch] pointerMove detected new cell', cell.row, cell.col, 'from', last);
+    lastCellRef.current = cell;
+
+    // Synthesize the pointer enter for this cell
+    handleCellPointerEnter(cell.row, cell.col, e);
+  };
+
   const handleBoardPointerUp = () => {
+    console.log('[touch] pointerUp, path length:', currentPath.length);
     if (isDragging && currentPath.length > 0) {
       onSubmitWord(currentPath);
     }
@@ -242,12 +273,15 @@ export const useBoardInteraction = ({ board, onSubmitWord, feedback, debugMode =
     setLastMousePos(null);
     setPendingCell(null);
     setCurrentPath([]);
+    lastCellRef.current = null;
   };
 
   const handleBoardPointerLeave = () => {
+    console.log('[touch] pointerLeave');
     setIsDragging(false);
     setLastMousePos(null);
     setPendingCell(null);
+    lastCellRef.current = null;
   };
 
   const isInCurrentPath = (row: number, col: number) => {
@@ -265,6 +299,7 @@ export const useBoardInteraction = ({ board, onSubmitWord, feedback, debugMode =
     handleCellPointerDown,
     handleCellPointerEnter,
     handleCellPointerLeave,
+    handleBoardPointerMove,
     handleBoardPointerUp,
     handleBoardPointerLeave,
     isInCurrentPath,

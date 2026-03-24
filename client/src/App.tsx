@@ -7,13 +7,13 @@ import { ConfigPage } from './pages/ConfigPage';
 import { GamePage } from './pages/GamePage';
 import { ResultsPage } from './pages/ResultsPage';
 import { FeedbackType } from './components/Board';
-import './index.css';
 import './App.css';
 
 function App() {
   const { game, words, results, createGame, startGame, cancelGame, endGame, fetchGameState, submitWord } = useGameApi();
   const [feedback, setFeedback] = useState<{ type: FeedbackType; path: Position[] } | null>(null);
   const [debugMode, setDebugMode] = useState(false);
+  const [showHomeConfirm, setShowHomeConfirm] = useState(false);
 
   const timeRemaining = useTimer(game, fetchGameState);
 
@@ -36,6 +36,17 @@ function App() {
   };
 
   const handleCancelGame = async () => {
+    await cancelGame();
+  };
+
+  const handleTitleClick = () => {
+    const isOnStartScreen = game === null;
+    if (isOnStartScreen) return;
+    setShowHomeConfirm(true);
+  };
+
+  const handleConfirmHome = async () => {
+    setShowHomeConfirm(false);
     await cancelGame();
   };
 
@@ -109,11 +120,22 @@ function App() {
   return (
     <div className="app">
       <h1 
-        onClick={() => setDebugMode(!debugMode)}
-        className={`app-title ${debugMode ? 'debug-active' : ''}`}
+        onClick={handleTitleClick}
+        className="app-title"
       >
         Froggle
       </h1>
+      {showHomeConfirm && (
+        <div className="confirm-overlay" onClick={() => setShowHomeConfirm(false)}>
+          <div className="confirm-modal" onClick={e => e.stopPropagation()}>
+            <p>Return to the home screen?</p>
+            <div className="confirm-buttons">
+              <button className="confirm-yes" onClick={handleConfirmHome}>Yes</button>
+              <button className="confirm-no" onClick={() => setShowHomeConfirm(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
       {renderPage()}
     </div>
   );

@@ -16,6 +16,29 @@ const findRelatedMissedWords = (foundWord: ScoredWord, missedWords: ScoredWord[]
   });
 };
 
+const WordRow = ({ word, path, score, onHoverWord, className, children }: {
+  word: string;
+  path: Position[];
+  score: number;
+  onHoverWord: (path: Position[] | null) => void;
+  className?: string;
+  children?: React.ReactNode;
+}) => {
+  return (
+    <div
+      className={`results-word-row ${className || ''}`}
+      onMouseEnter={() => onHoverWord(path)}
+      onMouseLeave={() => onHoverWord(null)}
+    >
+      <span className="results-word-text">{word}</span>
+      <div className="results-word-right">
+        {children}
+        <span className="results-word-score">{score}</span>
+      </div>
+    </div>
+  );
+};
+
 export const ResultsWordList = ({ foundWords, missedWords, onHoverWord }: ResultsWordListProps) => {
   const [expandedWord, setExpandedWord] = useState<string | null>(null);
   const [missedExpanded, setMissedExpanded] = useState(false);
@@ -41,36 +64,27 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord }: Result
 
           return (
             <div key={w.word} className="results-word-group">
-              <div
-                className="results-word-row"
-                onMouseEnter={() => onHoverWord(w.path)}
-                onMouseLeave={() => onHoverWord(null)}
-              >
-                <span className="results-word-text">{w.word}</span>
-                <div className="results-word-right">
-                  <span className="results-word-score">{w.score}</span>
-                  {hasRelated && (
-                    <button
-                      className={`results-word-expand ${isExpanded ? 'expanded' : ''}`}
-                      onClick={() => toggleExpanded(w.word)}
-                    >
-                      ▾
-                    </button>
-                  )}
-                </div>
-              </div>
+              <WordRow word={w.word} path={w.path} score={w.score} onHoverWord={onHoverWord}>
+                {hasRelated && (
+                  <button
+                    className={`results-word-expand ${isExpanded ? 'expanded' : ''}`}
+                    onClick={() => toggleExpanded(w.word)}
+                  >
+                    ▾
+                  </button>
+                )}
+              </WordRow>
               {isExpanded && related.length > 0 && (
                 <div className="results-related-words">
                   {related.map(r => (
-                    <div
+                    <WordRow
                       key={r.word}
+                      word={r.word}
+                      path={r.path}
+                      score={r.score}
+                      onHoverWord={onHoverWord}
                       className="results-related-word-row"
-                      onMouseEnter={() => onHoverWord(r.path)}
-                      onMouseLeave={() => onHoverWord(null)}
-                    >
-                      <span className="results-related-word-text">{r.word}</span>
-                      <span className="results-related-word-score">{r.score}</span>
-                    </div>
+                    />
                   ))}
                 </div>
               )}
@@ -89,15 +103,13 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord }: Result
         {missedExpanded && (
           <div className="results-missed-words">
             {missedWords.map((w) => (
-              <div
+              <WordRow
                 key={w.word}
-                className="results-word-row results-missed-word-row"
-                onMouseEnter={() => onHoverWord(w.path)}
-                onMouseLeave={() => onHoverWord(null)}
-              >
-                <span className="results-word-text">{w.word}</span>
-                <span className="results-word-score">{w.score}</span>
-              </div>
+                word={w.word}
+                path={w.path}
+                score={w.score}
+                onHoverWord={onHoverWord}
+              />
             ))}
           </div>
         )}

@@ -17,6 +17,7 @@ export const Board = ({ board, onSubmitWord, feedback, debugMode = false }: Boar
     handleCellPointerDown,
     handleCellPointerEnter,
     handleCellPointerLeave,
+    handleBoardPointerMove,
     handleBoardPointerUp,
     handleBoardPointerLeave,
     isInCurrentPath,
@@ -58,6 +59,7 @@ export const Board = ({ board, onSubmitWord, feedback, debugMode = false }: Boar
       />
       <div 
         className="board" 
+        onPointerMove={handleBoardPointerMove}
         onPointerUp={handleBoardPointerUp}
         onPointerLeave={handleBoardPointerLeave}
       >
@@ -67,6 +69,8 @@ export const Board = ({ board, onSubmitWord, feedback, debugMode = false }: Boar
               <div
                 key={`${rowIndex}-${colIndex}`}
                 className={getCellClass(rowIndex, colIndex)}
+                data-row={rowIndex}
+                data-col={colIndex}
                 onPointerDown={(e) => handleCellPointerDown(rowIndex, colIndex, e)}
                 onPointerEnter={(e) => handleCellPointerEnter(rowIndex, colIndex, e)}
                 onPointerLeave={(e) => handleCellPointerLeave(e)}
