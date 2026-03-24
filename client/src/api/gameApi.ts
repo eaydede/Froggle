@@ -1,6 +1,6 @@
 import { Position, Game, Word } from 'models';
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = '/api';
 
 export const createGame = async (): Promise<{
   game: Game;

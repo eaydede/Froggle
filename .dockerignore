@@ -1,0 +1,8 @@
+node_modules
+client/node_modules
+server/node_modules
+engine/node_modules
+models/node_modules
+client/dist
+.git
+.claude

@@ -1,12 +1,21 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { GameController } from './GameController.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+
+// Serve static files from the client build
+const clientDistPath = path.join(__dirname, '../client/dist');
+app.use(express.static(clientDistPath));
 
 // Single game controller instance for single-player
 const gameController = new GameController();
@@ -59,6 +68,11 @@ app.post('/api/game/submit', (req, res) => {
 app.get('/api/game/state', (req, res) => {
   const state = gameController.getGameState();
   res.json(state);
+});
+
+// Serve client for all non-API routes (SPA fallback)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
 app.listen(PORT, () => {
