@@ -21,7 +21,6 @@ export const useBoardInteraction = ({ board, onSubmitWord, feedback, debugMode =
   const lastCellRef = useRef<{ row: number; col: number } | null>(null);
 
   const handleCellPointerDown = (row: number, col: number, e: React.PointerEvent) => {
-    console.log('[touch] pointerDown on cell', row, col, 'pointerType:', e.pointerType);
     setIsDragging(true);
     setCurrentPath([{ row, col }]);
     setLastMousePos(null);
@@ -257,7 +256,6 @@ export const useBoardInteraction = ({ board, onSubmitWord, feedback, debugMode =
     const last = lastCellRef.current;
     if (last && last.row === cell.row && last.col === cell.col) return;
 
-    console.log('[touch] pointerMove detected new cell', cell.row, cell.col, 'from', last);
     lastCellRef.current = cell;
 
     // Synthesize the pointer enter for this cell
@@ -265,7 +263,6 @@ export const useBoardInteraction = ({ board, onSubmitWord, feedback, debugMode =
   };
 
   const handleBoardPointerUp = () => {
-    console.log('[touch] pointerUp, path length:', currentPath.length);
     if (isDragging && currentPath.length > 0) {
       onSubmitWord(currentPath);
     }
@@ -277,7 +274,6 @@ export const useBoardInteraction = ({ board, onSubmitWord, feedback, debugMode =
   };
 
   const handleBoardPointerLeave = () => {
-    console.log('[touch] pointerLeave');
     setIsDragging(false);
     setLastMousePos(null);
     setPendingCell(null);
