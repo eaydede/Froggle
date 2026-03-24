@@ -2,14 +2,31 @@ import { Position, Game, Word } from 'models';
 
 const API_URL = '/api';
 
+let sessionId: string | null = null;
+
+export function getSessionId(): string | null {
+  return sessionId;
+}
+
+function sessionHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (sessionId) {
+    headers['X-Session-Id'] = sessionId;
+  }
+  return headers;
+}
+
 export const createGame = async (): Promise<{
   game: Game;
+  sessionId: string;
 }> => {
   const response = await fetch(`${API_URL}/game/create`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: sessionHeaders(),
   });
-  return response.json();
+  const data = await response.json();
+  sessionId = data.sessionId;
+  return data;
 };
 
 export const startGame = async (
@@ -21,7 +38,7 @@ export const startGame = async (
 }> => {
   const response = await fetch(`${API_URL}/game/start`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: sessionHeaders(),
     body: JSON.stringify({ durationSeconds, boardSize, minWordLength }),
   });
   return response.json();
@@ -30,15 +47,17 @@ export const startGame = async (
 export const cancelGame = async (): Promise<{ success: boolean }> => {
   const response = await fetch(`${API_URL}/game/cancel`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: sessionHeaders(),
   });
-  return response.json();
+  const data = await response.json();
+  sessionId = null;
+  return data;
 };
 
 export const endGame = async (): Promise<{ game: Game }> => {
   const response = await fetch(`${API_URL}/game/end`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: sessionHeaders(),
   });
   return response.json();
 };
@@ -50,7 +69,7 @@ export const submitWord = async (path: Position[]): Promise<{
 }> => {
   const response = await fetch(`${API_URL}/game/submit`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: sessionHeaders(),
     body: JSON.stringify({ path }),
   });
   return response.json();
@@ -60,7 +79,9 @@ export const fetchGameState = async (): Promise<{
   game: Game | null;
   words: Word[];
 }> => {
-  const response = await fetch(`${API_URL}/game/state`);
+  const response = await fetch(`${API_URL}/game/state`, {
+    headers: sessionHeaders(),
+  });
   return response.json();
 };
 
@@ -77,6 +98,8 @@ export interface GameResults {
 }
 
 export const fetchResults = async (): Promise<GameResults> => {
-  const response = await fetch(`${API_URL}/game/results`);
+  const response = await fetch(`${API_URL}/game/results`, {
+    headers: sessionHeaders(),
+  });
   return response.json();
 };
