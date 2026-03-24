@@ -63,3 +63,20 @@ export const fetchGameState = async (): Promise<{
   const response = await fetch(`${API_URL}/game/state`);
   return response.json();
 };
+
+export interface ScoredWord {
+  word: string;
+  path: Position[];
+  score: number;
+}
+
+export interface GameResults {
+  board: string[][];
+  foundWords: ScoredWord[];
+  missedWords: ScoredWord[];
+}
+
+export const fetchResults = async (): Promise<GameResults> => {
+  const response = await fetch(`${API_URL}/game/results`);
+  return response.json();
+};

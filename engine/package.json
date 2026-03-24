@@ -8,7 +8,11 @@
     "./adjacency": "./adjacency.ts",
     "./adjacency.js": "./adjacency.ts",
     "./dictionary": "./dictionary.ts",
-    "./dictionary.js": "./dictionary.ts"
+    "./dictionary.js": "./dictionary.ts",
+    "./scoring": "./scoring.ts",
+    "./scoring.js": "./scoring.ts",
+    "./solver": "./solver.ts",
+    "./solver.js": "./solver.ts"
   },
   "private": true,
   "dependencies": {

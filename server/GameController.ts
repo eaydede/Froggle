@@ -2,6 +2,8 @@ import { Game, GameState, Word, Position } from 'models';
 import { generateBoard } from 'engine/board.js';
 import { isValidPath } from 'engine/adjacency.js';
 import { loadDictionary, isValidWord } from 'engine/dictionary.js';
+import { findAllWords, FoundWord } from 'engine/solver.js';
+import { scoreWord } from 'engine/scoring.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -138,6 +140,42 @@ export class GameController {
     return {
       game: this.game,
       words: [...this.words],
+    };
+  }
+
+  getResults(): {
+    board: string[][];
+    foundWords: { word: string; path: Position[]; score: number }[];
+    missedWords: { word: string; path: Position[]; score: number }[];
+  } | null {
+    if (!this.game || this.game.status !== GameState.Finished) {
+      return null;
+    }
+
+    const allWords = findAllWords(this.game.board, this.dictionary, this.game.config.minWordLength);
+    const foundWordSet = new Set(this.words.map(w => w.word.toUpperCase()));
+
+    const foundWords = this.words.map(w => ({
+      word: w.word,
+      path: w.path,
+      score: scoreWord(w.word),
+    }));
+
+    const missedWords = allWords
+      .filter(w => !foundWordSet.has(w.word))
+      .map(w => ({
+        word: w.word,
+        path: w.path,
+        score: scoreWord(w.word),
+      }));
+
+    foundWords.sort((a, b) => b.score - a.score || b.word.length - a.word.length);
+    missedWords.sort((a, b) => b.score - a.score || b.word.length - a.word.length);
+
+    return {
+      board: this.game.board,
+      foundWords,
+      missedWords,
     };
   }
 }

@@ -11,7 +11,7 @@ import './index.css';
 import './App.css';
 
 function App() {
-  const { game, words, createGame, startGame, cancelGame, endGame, fetchGameState, submitWord } = useGameApi();
+  const { game, words, results, createGame, startGame, cancelGame, endGame, fetchGameState, submitWord } = useGameApi();
   const [feedback, setFeedback] = useState<{ type: FeedbackType; path: Position[] } | null>(null);
   const [debugMode, setDebugMode] = useState(false);
 
@@ -99,7 +99,7 @@ function App() {
         );
 
       case GameState.Finished:
-        return <ResultsPage words={words} onPlayAgain={handlePlayAgain} />;
+        return <ResultsPage results={results} onPlayAgain={handlePlayAgain} />;
 
       default:
         return null;

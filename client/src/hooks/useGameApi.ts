@@ -1,15 +1,20 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Game, Word, Position } from 'models';
 import * as gameApi from '../api/gameApi';
+import { GameResults } from '../api/gameApi';
 
 export const useGameApi = () => {
   const [game, setGame] = useState<Game | null>(null);
   const [words, setWords] = useState<Word[]>([]);
+  const [results, setResults] = useState<GameResults | null>(null);
+  const fetchingResults = useRef(false);
 
   const createGame = async () => {
     const data = await gameApi.createGame();
     setGame(data.game);
     setWords([]);
+    setResults(null);
+    fetchingResults.current = false;
   };
 
   const startGame = async (
@@ -31,12 +36,24 @@ export const useGameApi = () => {
   const endGame = async () => {
     const data = await gameApi.endGame();
     setGame(data.game);
+    if (!fetchingResults.current) {
+      fetchingResults.current = true;
+      const resultsData = await gameApi.fetchResults();
+      setResults(resultsData);
+      fetchingResults.current = false;
+    }
   };
 
   const fetchGameState = async () => {
     const data = await gameApi.fetchGameState();
     setGame(data.game);
     setWords(data.words);
+    if (data.game?.status === 'Finished' && !fetchingResults.current) {
+      fetchingResults.current = true;
+      const resultsData = await gameApi.fetchResults();
+      setResults(resultsData);
+      fetchingResults.current = false;
+    }
   };
 
   const submitWord = async (path: Position[]) => {
@@ -46,6 +63,7 @@ export const useGameApi = () => {
   return {
     game,
     words,
+    results,
     createGame,
     startGame,
     cancelGame,

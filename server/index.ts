@@ -53,7 +53,13 @@ app.post('/api/game/end', (req, res) => {
   if (game) {
     res.json({ game });
   } else {
-    res.status(400).json({ error: 'No active game to end' });
+    // Game may have already been ended by timer - return current state
+    const state = gameController.getGameState();
+    if (state.game) {
+      res.json({ game: state.game });
+    } else {
+      res.status(400).json({ error: 'No active game to end' });
+    }
   }
 });
 
@@ -68,6 +74,16 @@ app.post('/api/game/submit', (req, res) => {
 app.get('/api/game/state', (req, res) => {
   const state = gameController.getGameState();
   res.json(state);
+});
+
+// Get results after game ends
+app.get('/api/game/results', (req, res) => {
+  const results = gameController.getResults();
+  if (results) {
+    res.json(results);
+  } else {
+    res.status(400).json({ error: 'No finished game' });
+  }
 });
 
 // Serve client for all non-API routes (SPA fallback)
