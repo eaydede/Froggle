@@ -1,4 +1,4 @@
-app = 'froggle-game'
+app = 'froggle'
 primary_region = 'sjc'
 
 [build]
