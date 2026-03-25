@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { GameState, Position } from 'models';
 import { useGameApi } from './hooks/useGameApi';
 import { useTimer } from './hooks/useTimer';
+import { useFeedbackSounds } from './hooks/useFeedbackSounds';
 import { StartPage } from './pages/StartPage';
 import { ConfigPage } from './pages/ConfigPage';
 import { GamePage } from './pages/GamePage';
@@ -13,8 +14,13 @@ function App() {
   const { game, words, results, createGame, startGame, cancelGame, endGame, fetchGameState, submitWord } = useGameApi();
   const [feedback, setFeedback] = useState<{ type: FeedbackType; path: Position[] } | null>(null);
   const [showHomeConfirm, setShowHomeConfirm] = useState(false);
+  const [boardStyle, setBoardStyle] = useState({ base: 1, hover: 0, press: 3, sound: 0, validSound: 0, invalidSound: 0, duplicateSound: 2 });
+  const [showBoardStylePicker, setShowBoardStylePicker] = useState(false);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const longPressTriggered = useRef(false);
 
   const timeRemaining = useTimer(game, fetchGameState);
+  const { playValid, playInvalid, playDuplicate } = useFeedbackSounds(boardStyle.validSound, boardStyle.invalidSound, boardStyle.duplicateSound);
 
   const handleSinglePlayer = async () => {
     await createGame();
@@ -39,9 +45,25 @@ function App() {
   };
 
   const handleTitleClick = () => {
+    if (longPressTriggered.current) return;
     const isOnStartScreen = game === null;
     if (isOnStartScreen) return;
     setShowHomeConfirm(true);
+  };
+
+  const handleTitlePointerDown = () => {
+    longPressTriggered.current = false;
+    longPressTimer.current = setTimeout(() => {
+      longPressTriggered.current = true;
+      setShowBoardStylePicker(prev => !prev);
+    }, 800);
+  };
+
+  const handleTitlePointerUp = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
   };
 
   const handleConfirmHome = async () => {
@@ -63,11 +85,14 @@ function App() {
     let feedbackType: FeedbackType;
     if (result.valid) {
       feedbackType = 'valid';
+      playValid();
       fetchGameState();
     } else if (result.reason === 'repeat') {
       feedbackType = 'duplicate';
+      playDuplicate();
     } else {
       feedbackType = 'invalid';
+      playInvalid();
     }
     
     setFeedback({ type: feedbackType, path });
@@ -104,6 +129,9 @@ function App() {
             onSubmitWord={handleSubmitWord}
             onCancelGame={handleCancelGame}
             onEndGame={handleEndGame}
+            boardStyle={boardStyle}
+            onBoardStyleChange={setBoardStyle}
+            showBoardStylePicker={showBoardStylePicker}
           />
         );
 
@@ -119,6 +147,9 @@ function App() {
     <div className="app">
       <h1 
         onClick={handleTitleClick}
+        onPointerDown={handleTitlePointerDown}
+        onPointerUp={handleTitlePointerUp}
+        onPointerLeave={handleTitlePointerUp}
         className="app-title"
       >
         Froggle

@@ -23,6 +23,7 @@ button, input, select, textarea {
   font-weight: 900;
   background-color: #FAFAF8;
   height: 100dvh;
+  box-sizing: border-box;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
@@ -31,6 +32,8 @@ button, input, select, textarea {
 h1 {
   text-align: center;
   color: #333;
+  margin: 0 0 10px 0;
+  font-weight: 900;
 }
 
 .app-title {
@@ -125,6 +128,7 @@ h1 {
 
 .menu-button {
   font-size: 24px;
+  font-weight: 600;
   padding: 16px 32px;
   background-color: #4CAF50;
   color: white;
@@ -412,25 +416,70 @@ h1 {
   width: 100%;
 }
 
+.board-style-picker {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.board-style-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.board-style-label {
+  font-size: 12px;
+  color: #888;
+  text-align: left;
+}
+
+.board-style-switcher {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.board-style-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  background: white;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.board-style-btn:hover {
+  border-color: #aaa;
+  color: #555;
+}
+
+.board-style-btn.active {
+  background: #333;
+  color: white;
+  border-color: #333;
+}
+
+/* Base board styles (shared) */
 .board {
   display: flex;
   flex-direction: column;
-  border: 2px solid #333;
-  border-radius: 10px;
-  padding: 12px;
-  background-color: #f5f5f5;
   user-select: none;
   touch-action: none;
   width: 100%;
   aspect-ratio: 1;
   box-sizing: border-box;
-  gap: 12px;
+  gap: 10px;
+  padding: 10px;
 }
 
 .board-row {
   display: flex;
   flex: 1;
-  gap: 12px;
+  gap: 10px;
 }
 
 .cell {
@@ -438,45 +487,143 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: 'Roboto Mono', monospace;
   font-size: calc(min(32px, (100vw - 100px) / var(--board-size, 4) * 0.4));
-  font-weight: bold;
-  background-color: white;
-  border: 2px solid #ddd;
-  border-radius: 10px;
+  font-weight: 900;
   cursor: pointer;
-  transition: background-color 0.05s, color 0.05s, transform 0.05s;
+  transition: background-color 0.05s, color 0.05s, transform 0.05s, box-shadow 0.05s;
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
 }
 
-.cell:hover {
-  background-color: #e3f2fd;
+/* === BOARD BASE STYLES === */
+.board.base-soft {
+  background: transparent;
+  border: none;
+  padding: 0;
+  gap: 8px;
+}
+.base-soft .board-row { gap: 8px; }
+.base-soft .cell {
+  background-color: white;
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  color: #333;
 }
 
-.cell.selected {
+.board.base-frosted {
+  background-color: rgba(0, 0, 0, 0.03);
+  border: none;
+  border-radius: 20px;
+  padding: 14px;
+  gap: 10px;
+}
+.base-frosted .board-row { gap: 10px; }
+.base-frosted .cell {
+  background-color: white;
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  color: #333;
+}
+
+.board.base-flat {
+  background: transparent;
+  border: none;
+  padding: 0;
+  gap: 8px;
+}
+.base-flat .board-row { gap: 8px; }
+.base-flat .cell {
+  background-color: #EDECEA;
+  border: none;
+  border-radius: 12px;
+  color: #333;
+}
+
+.board.base-neu {
+  background-color: #EDECEA;
+  border: none;
+  border-radius: 20px;
+  padding: 16px;
+  gap: 10px;
+  box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.08), -8px -8px 16px rgba(255, 255, 255, 0.9);
+}
+.base-neu .board-row { gap: 10px; }
+.base-neu .cell {
+  background-color: #EDECEA;
+  border: none;
+  border-radius: 12px;
+  color: #333;
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.1), -4px -4px 8px rgba(255, 255, 255, 0.8);
+}
+
+/* === HOVER STYLES === */
+.hover-shadow-lift .cell:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.hover-bg-tint .cell:hover {
+  background-color: #f5f8ff;
+}
+
+.hover-darken .cell:hover {
+  background-color: #E0DFDD;
+}
+
+.hover-neu-press .cell:hover {
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1), -2px -2px 4px rgba(255, 255, 255, 0.8);
+}
+
+/* === PRESS/SELECTED STYLES === */
+.press-glow .cell.selected {
   background-color: #2196F3;
   color: white;
-  transform: scale(1.1);
+  box-shadow: 0 4px 14px rgba(33, 150, 243, 0.35);
+  transform: scale(1.05);
 }
 
+.press-flat .cell.selected {
+  background-color: #2196F3;
+  color: white;
+  box-shadow: none;
+  transform: scale(1.05);
+}
+
+.press-subtle .cell.selected {
+  background-color: #2196F3;
+  color: white;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+  transform: scale(1.05);
+}
+
+.press-inset .cell.selected {
+  background-color: #2196F3;
+  color: white;
+  box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.15), inset -3px -3px 6px rgba(255, 255, 255, 0.1);
+  transform: scale(1.02);
+}
+
+/* === FEEDBACK STYLES (always the same) === */
 .cell.selected-valid {
   background-color: #4CAF50;
   color: white;
-  transform: scale(1.1);
+  transform: scale(1.05);
 }
 
 .cell.selected-invalid {
   background-color: #f44336;
   color: white;
-  transform: scale(1.1);
+  transform: scale(1.05);
 }
 
 .cell.selected-duplicate {
   background-color: #FFC107;
   color: white;
-  transform: scale(1.1);
+  transform: scale(1.05);
 }
 
 .current-word {
@@ -570,20 +717,20 @@ h1 {
 .results-board {
   display: flex;
   flex-direction: column;
-  border: 2px solid #333;
-  border-radius: 10px;
-  padding: 12px;
-  background-color: #f5f5f5;
+  background-color: rgba(0, 0, 0, 0.03);
+  border: none;
+  border-radius: 20px;
+  padding: 14px;
   max-width: 500px;
   aspect-ratio: 1;
   box-sizing: border-box;
-  gap: 12px;
+  gap: 10px;
 }
 
 .results-board-row {
   display: flex;
   flex: 1;
-  gap: 12px;
+  gap: 10px;
 }
 
 .results-cell {
@@ -591,11 +738,13 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
+  font-family: 'Roboto Mono', monospace;
+  font-weight: 900;
   font-size: calc(min(32px, (100vw - 100px) / var(--board-size, 4) * 0.4));
   background-color: white;
-  border: 2px solid #ddd;
-  border-radius: 10px;
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
   transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
   user-select: none;
 }
@@ -603,8 +752,8 @@ h1 {
 .results-cell-highlighted {
   background-color: #2196F3;
   color: white;
-  transform: scale(1.05);
-  border-color: #1976D2;
+  transform: scale(1.02);
+  box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.15), inset -3px -3px 6px rgba(255, 255, 255, 0.1);
 }
 
 /* Results Word List */
@@ -778,28 +927,35 @@ h1 {
     padding: 0 20px;
   }
 
+  .config-screen {
+    padding: 20px 15px;
+  }
+
   .config-sections-row {
     flex-direction: column;
-    gap: 30px;
+    gap: 18px;
+  }
+
+  .config-section {
+    gap: 8px;
+  }
+
+  .config-section label {
+    font-size: 20px;
   }
 
   .config-display-box {
     width: 150px;
     height: 150px;
-    font-size: 28px;
+    font-size: 36px;
   }
 
   .config-navigator {
-    width: 150px;
+    display: none;
   }
 
-  .nav-arrow {
-    font-size: 20px;
-    padding: 6px 12px;
-  }
-
-  .nav-label {
-    font-size: 12px;
+  .config-buttons {
+    margin-top: 20px;
   }
 
   .results-content {

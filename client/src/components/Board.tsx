@@ -1,15 +1,30 @@
 import { Board as BoardType, Position } from 'models';
 import { useBoardInteraction } from '../hooks/useBoardInteraction';
+import { useThockSound } from '../hooks/useThockSound';
 
 export type FeedbackType = 'valid' | 'invalid' | 'duplicate' | null;
+
+export const BASE_STYLES = ['base-soft', 'base-frosted', 'base-flat', 'base-neu'];
+export const BASE_LABELS = ['Soft Cards', 'Frosted', 'Flat Minimal', 'Neumorphic'];
+
+export const HOVER_STYLES = ['hover-shadow-lift', 'hover-bg-tint', 'hover-darken', 'hover-neu-press'];
+export const HOVER_LABELS = ['Shadow Lift', 'BG Tint', 'Darken', 'Neu Press'];
+
+export const PRESS_STYLES = ['press-glow', 'press-flat', 'press-subtle', 'press-inset'];
+export const PRESS_LABELS = ['Glow', 'Flat', 'Subtle', 'Inset'];
 
 interface BoardProps {
   board: BoardType;
   onSubmitWord: (path: Position[]) => void;
   feedback: { type: FeedbackType; path: Position[] } | null;
+  baseStyleIndex?: number;
+  hoverStyleIndex?: number;
+  pressStyleIndex?: number;
+  soundIndex?: number;
 }
 
-export const Board = ({ board, onSubmitWord, feedback }: BoardProps) => {
+export const Board = ({ board, onSubmitWord, feedback, baseStyleIndex = 1, hoverStyleIndex = 0, pressStyleIndex = 3, soundIndex = 0 }: BoardProps) => {
+  const playThock = useThockSound(soundIndex);
   const {
     boardRef,
     handleCellPointerDown,
@@ -18,7 +33,7 @@ export const Board = ({ board, onSubmitWord, feedback }: BoardProps) => {
     handleBoardPointerLeave,
     isInCurrentPath,
     isInFeedbackPath,
-  } = useBoardInteraction({ onSubmitWord, feedback });
+  } = useBoardInteraction({ onSubmitWord, feedback, onCellSelected: playThock });
 
   const getCellClass = (rowIndex: number, colIndex: number) => {
     const feedbackState = isInFeedbackPath(rowIndex, colIndex);
@@ -36,10 +51,14 @@ export const Board = ({ board, onSubmitWord, feedback }: BoardProps) => {
     return 'cell';
   };
 
+  const baseClass = BASE_STYLES[baseStyleIndex] || BASE_STYLES[0];
+  const hoverClass = HOVER_STYLES[hoverStyleIndex] || HOVER_STYLES[0];
+  const pressClass = PRESS_STYLES[pressStyleIndex] || PRESS_STYLES[0];
+
   return (
     <div 
       ref={boardRef}
-      className="board" 
+      className={`board ${baseClass} ${hoverClass} ${pressClass}`}
       onPointerMove={handleBoardPointerMove}
       onPointerUp={handleBoardPointerUp}
       onPointerLeave={handleBoardPointerLeave}

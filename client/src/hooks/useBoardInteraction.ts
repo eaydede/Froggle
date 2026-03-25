@@ -5,12 +5,13 @@ import { FeedbackType } from '../components/Board';
 interface UseBoardInteractionProps {
   onSubmitWord: (path: Position[]) => void;
   feedback: { type: FeedbackType; path: Position[] } | null;
+  onCellSelected?: () => void;
 }
 
 const CELL_HITBOX_AREA_RATIO = 0.66;
 const CELL_HITBOX_SIDE_RATIO = Math.sqrt(CELL_HITBOX_AREA_RATIO);
 
-export const useBoardInteraction = ({ onSubmitWord, feedback }: UseBoardInteractionProps) => {
+export const useBoardInteraction = ({ onSubmitWord, feedback, onCellSelected }: UseBoardInteractionProps) => {
   const [currentPath, setCurrentPath] = useState<Position[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const boardRef = useRef<HTMLDivElement | null>(null);
@@ -20,6 +21,7 @@ export const useBoardInteraction = ({ onSubmitWord, feedback }: UseBoardInteract
     setCurrentPath(path => {
       const lastPos = path[path.length - 1];
       if (!lastPos) {
+        onCellSelected?.();
         return [{ row, col }];
       }
 
@@ -34,9 +36,11 @@ export const useBoardInteraction = ({ onSubmitWord, feedback }: UseBoardInteract
 
       const cellIndexInPath = path.findIndex(p => p.row === row && p.col === col);
       if (cellIndexInPath !== -1) {
+        onCellSelected?.();
         return path.slice(0, cellIndexInPath + 1);
       }
 
+      onCellSelected?.();
       return [...path, { row, col }];
     });
   };
@@ -69,6 +73,7 @@ export const useBoardInteraction = ({ onSubmitWord, feedback }: UseBoardInteract
     setIsDragging(true);
     setCurrentPath([{ row, col }]);
     lastCellRef.current = { row, col };
+    onCellSelected?.();
   };
 
   const getCellFromPoint = useCallback((x: number, y: number): { row: number; col: number } | null => {

@@ -8,7 +8,7 @@ export const StartPage = ({ onSinglePlayer, onHostGame }: StartPageProps) => {
     <div className="start-screen">
       <div className="menu-buttons">
         <button onClick={onSinglePlayer} className="menu-button">
-          Single Player
+          Play
         </button>
         <button onClick={onHostGame} className="menu-button" disabled>
           Host Game

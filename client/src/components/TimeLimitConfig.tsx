@@ -22,11 +22,11 @@ export function TimeLimitConfig({ value, onChange }: TimeLimitConfigProps) {
   const { elementRef, handleMouseDown, handleMouseUp } = useSwipe(decrease, increase);
 
   const formatDisplay = () => {
-    return value === -1 ? '∞' : `${value / 60} min${value > 60 ? 's' : ''}`;
+    return value === -1 ? '∞' : `${value}s`;
   };
 
   const formatLabel = () => {
-    return value === -1 ? 'No Limit' : `${value / 60} min${value > 60 ? 's' : ''}`;
+    return value === -1 ? 'No Limit' : `${value}s`;
   };
 
   return (
