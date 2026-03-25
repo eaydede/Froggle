@@ -416,7 +416,7 @@ h1 {
   border: 2px solid #ddd;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.05s, color 0.05s, transform 0.05s;
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;

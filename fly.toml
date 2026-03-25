@@ -1,5 +1,5 @@
 app = 'froggle'
-primary_region = 'sjc'
+primary_region = 'iad'
 
 [build]
 
@@ -8,7 +8,12 @@ primary_region = 'sjc'
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = 'connections'
+    hard_limit = 100
+    soft_limit = 80
 
 [[vm]]
   memory = '256mb'
