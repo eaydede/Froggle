@@ -71,12 +71,12 @@ app.post('/api/game/start', (req, res) => {
 
   const { durationSeconds, boardSize, minWordLength } = req.body;
   try {
-    const game = session.controller.startGame(
+    const result = session.controller.startGame(
       durationSeconds || 180, 
       boardSize || 4, 
       minWordLength || 3
     );
-    res.json({ game });
+    res.json(result);
   } catch (error) {
     res.status(400).json({ error: (error as Error).message });
   }

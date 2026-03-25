@@ -35,6 +35,8 @@ export const startGame = async (
   minWordLength: number = 3
 ): Promise<{
   game: Game;
+  wordHashes: string[];
+  salt: string;
 }> => {
   const response = await fetch(`${API_URL}/game/start`, {
     method: 'POST',

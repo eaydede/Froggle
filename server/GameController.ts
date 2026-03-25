@@ -1,4 +1,4 @@
-import { Game, GameState, Word, Position } from 'models';
+import { Game, GameState, Word, Position, hashWord, generateSalt } from 'models';
 import { generateBoard } from 'engine/board.js';
 import { isValidPath } from 'engine/adjacency.js';
 import { loadDictionary, isValidWord } from 'engine/dictionary.js';
@@ -15,6 +15,8 @@ export class GameController {
   private words: Word[] = [];
   private timer: NodeJS.Timeout | null = null;
   private dictionary: Set<string>;
+  private validWordHashes: Set<string> = new Set();
+  private wordSalt: string = '';
 
   constructor() {
     // Load dictionary once when controller is created
@@ -44,7 +46,7 @@ export class GameController {
     return this.game;
   }
 
-  startGame(durationSeconds: number, boardSize: number = 4, minWordLength: number = 3): Game {
+  startGame(durationSeconds: number, boardSize: number = 4, minWordLength: number = 3): { game: Game; wordHashes: string[]; salt: string } {
     if (!this.game || this.game.status !== GameState.Config) {
       throw new Error('Cannot start game: game not in Config state');
     }
@@ -62,6 +64,11 @@ export class GameController {
     };
     this.words = [];
 
+    // Find all valid words and hash them
+    this.wordSalt = generateSalt();
+    const allWords = findAllWords(board, this.dictionary, minWordLength);
+    this.validWordHashes = new Set(allWords.map(w => hashWord(w.word, this.wordSalt)));
+
     // Start timer (only if not unlimited)
     if (durationSeconds > 0) {
       this.timer = setTimeout(() => {
@@ -69,7 +76,11 @@ export class GameController {
       }, durationSeconds * 1000);
     }
 
-    return this.game;
+    return {
+      game: this.game,
+      wordHashes: Array.from(this.validWordHashes),
+      salt: this.wordSalt,
+    };
   }
 
   cancelGame(): void {
