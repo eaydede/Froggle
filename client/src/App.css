@@ -463,6 +463,61 @@ h1 {
   border-color: #333;
 }
 
+.color-wash-control {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.color-wash-previews {
+  display: flex;
+  gap: 6px;
+}
+
+.color-wash-swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  transition: background-color 0.1s;
+}
+
+.color-wash-slider {
+  width: 100%;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: linear-gradient(to right, #2196F3, #ccc);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+.color-wash-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #333;
+  cursor: pointer;
+}
+
+.color-wash-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #333;
+  cursor: pointer;
+  border: none;
+}
+
+.color-wash-range-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #aaa;
+}
+
 /* Base board styles (shared) */
 .board {
   display: flex;
@@ -580,48 +635,48 @@ h1 {
 
 /* === PRESS/SELECTED STYLES === */
 .press-glow .cell.selected {
-  background-color: #2196F3;
+  background-color: var(--color-selected);
   color: white;
-  box-shadow: 0 4px 14px rgba(33, 150, 243, 0.35);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
   transform: scale(1.05);
 }
 
 .press-flat .cell.selected {
-  background-color: #2196F3;
+  background-color: var(--color-selected);
   color: white;
   box-shadow: none;
   transform: scale(1.05);
 }
 
 .press-subtle .cell.selected {
-  background-color: #2196F3;
+  background-color: var(--color-selected);
   color: white;
-  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   transform: scale(1.05);
 }
 
 .press-inset .cell.selected {
-  background-color: #2196F3;
+  background-color: var(--color-selected);
   color: white;
   box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.15), inset -3px -3px 6px rgba(255, 255, 255, 0.1);
   transform: scale(1.02);
 }
 
-/* === FEEDBACK STYLES (always the same) === */
+/* === FEEDBACK STYLES === */
 .cell.selected-valid {
-  background-color: #4CAF50;
+  background-color: var(--color-valid);
   color: white;
   transform: scale(1.05);
 }
 
 .cell.selected-invalid {
-  background-color: #f44336;
+  background-color: var(--color-invalid);
   color: white;
   transform: scale(1.05);
 }
 
 .cell.selected-duplicate {
-  background-color: #FFC107;
+  background-color: var(--color-duplicate);
   color: white;
   transform: scale(1.05);
 }
@@ -750,7 +805,7 @@ h1 {
 }
 
 .results-cell-highlighted {
-  background-color: #2196F3;
+  background-color: var(--color-selected, #7BA7C9);
   color: white;
   transform: scale(1.02);
   box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.15), inset -3px -3px 6px rgba(255, 255, 255, 0.1);

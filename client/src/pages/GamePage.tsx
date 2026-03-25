@@ -1,5 +1,5 @@
 import { Game, Position, Word } from 'models';
-import { Board, FeedbackType, BASE_LABELS, HOVER_LABELS, PRESS_LABELS } from '../components/Board';
+import { Board, FeedbackType, BASE_LABELS, HOVER_LABELS, PRESS_LABELS, computeFeedbackColors } from '../components/Board';
 import { SOUND_LABELS } from '../hooks/useThockSound';
 import { VALID_SOUND_LABELS, INVALID_SOUND_LABELS, DUPLICATE_SOUND_LABELS } from '../hooks/useFeedbackSounds';
 import { TimerBar } from '../components/TimerBar';
@@ -12,6 +12,7 @@ interface BoardStyleState {
   validSound: number;
   invalidSound: number;
   duplicateSound: number;
+  colorWash: number;
 }
 
 interface GamePageProps {
@@ -29,6 +30,7 @@ interface GamePageProps {
 
 export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGame, boardStyle, onBoardStyleChange, showBoardStylePicker }: GamePageProps) => {
   const boardSize = game.board.length;
+  const colors = computeFeedbackColors(boardStyle.colorWash);
   
   const renderPicker = (label: string, options: string[], activeIndex: number, onChange: (i: number) => void) => (
     <div className="board-style-row">
@@ -67,6 +69,7 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
             hoverStyleIndex={boardStyle.hover}
             pressStyleIndex={boardStyle.press}
             soundIndex={boardStyle.sound}
+            colorWash={boardStyle.colorWash}
           />
         </div>
       </div>
@@ -80,6 +83,30 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
           {renderPicker('Valid Word', VALID_SOUND_LABELS, boardStyle.validSound, (i) => onBoardStyleChange({ ...boardStyle, validSound: i }))}
           {renderPicker('Invalid Word', INVALID_SOUND_LABELS, boardStyle.invalidSound, (i) => onBoardStyleChange({ ...boardStyle, invalidSound: i }))}
           {renderPicker('Duplicate Word', DUPLICATE_SOUND_LABELS, boardStyle.duplicateSound, (i) => onBoardStyleChange({ ...boardStyle, duplicateSound: i }))}
+
+          <div className="board-style-row">
+            <div className="board-style-label">Feedback Colors — {boardStyle.colorWash}% wash</div>
+            <div className="color-wash-control">
+              <div className="color-wash-previews">
+                <div className="color-wash-swatch" style={{ backgroundColor: colors.selected }} title="Selected" />
+                <div className="color-wash-swatch" style={{ backgroundColor: colors.valid }} title="Valid" />
+                <div className="color-wash-swatch" style={{ backgroundColor: colors.invalid }} title="Invalid" />
+                <div className="color-wash-swatch" style={{ backgroundColor: colors.duplicate }} title="Duplicate" />
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={boardStyle.colorWash}
+                onChange={(e) => onBoardStyleChange({ ...boardStyle, colorWash: parseInt(e.target.value) })}
+                className="color-wash-slider"
+              />
+              <div className="color-wash-range-labels">
+                <span>Vivid</span>
+                <span>Washed</span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
