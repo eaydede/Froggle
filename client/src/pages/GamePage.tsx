@@ -1,21 +1,16 @@
-import { Game, Position, Word } from 'models';
+import { Game, Position } from 'models';
 import { Board, FeedbackType } from '../components/Board';
 import { TimerBar } from '../components/TimerBar';
 
 interface GamePageProps {
   game: Game;
-  words: Word[];
   timeRemaining: number;
   feedback: { type: FeedbackType; path: Position[] } | null;
   onSubmitWord: (path: Position[]) => void;
-  onCancelGame: () => void;
   onEndGame: () => void;
-  debugMode: boolean;
-  dwellTime: number;
-  onDwellTimeChange: (value: number) => void;
 }
 
-export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGame, debugMode, dwellTime, onDwellTimeChange }: GamePageProps) => {
+export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGame }: GamePageProps) => {
   const boardSize = game.board.length;
   
   return (
@@ -28,17 +23,9 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
         </button>
       </div>
 
-      {debugMode && (
-        <div className="dwell-control">
-          <button onClick={() => onDwellTimeChange(Math.max(0, dwellTime - 10))}>−</button>
-          <span>{dwellTime}ms</span>
-          <button onClick={() => onDwellTimeChange(dwellTime + 10)}>+</button>
-        </div>
-      )}
-      
       <div className="board-container">
         <div className="board-with-word">
-          <Board board={game.board} onSubmitWord={onSubmitWord} feedback={feedback} dwellTime={dwellTime} />
+          <Board board={game.board} onSubmitWord={onSubmitWord} feedback={feedback} />
         </div>
       </div>
     </div>
