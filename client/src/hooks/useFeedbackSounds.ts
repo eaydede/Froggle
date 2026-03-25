@@ -1,18 +1,11 @@
-import { useRef, useCallback } from 'react';
+import { useCallback } from 'react';
+import { getSharedContext } from './useThockSound';
 
 export const VALID_SOUND_LABELS = ['Wobble', 'Chime', 'Ding', 'Sparkle', 'None'];
 export const INVALID_SOUND_LABELS = ['Buzz', 'Thud', 'Bonk', 'None'];
 export const DUPLICATE_SOUND_LABELS = ['Wobble', 'Double Tap', 'Muted', 'None'];
 
 export const useFeedbackSounds = (validIndex: number = 0, invalidIndex: number = 0, duplicateIndex: number = 0) => {
-  const audioContextRef = useRef<AudioContext | null>(null);
-
-  const getContext = () => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new AudioContext();
-    }
-    return audioContextRef.current;
-  };
 
   // === VALID SOUNDS ===
 
@@ -213,7 +206,7 @@ export const useFeedbackSounds = (validIndex: number = 0, invalidIndex: number =
 
   const playValid = useCallback(() => {
     try {
-      const ctx = getContext();
+      const ctx = getSharedContext();
       switch (validIndex) {
         case 0: playValidWobble(ctx); break;
         case 1: playChime(ctx); break;
@@ -225,7 +218,7 @@ export const useFeedbackSounds = (validIndex: number = 0, invalidIndex: number =
 
   const playInvalid = useCallback(() => {
     try {
-      const ctx = getContext();
+      const ctx = getSharedContext();
       switch (invalidIndex) {
         case 0: playBuzz(ctx); break;
         case 1: playThud(ctx); break;
@@ -236,7 +229,7 @@ export const useFeedbackSounds = (validIndex: number = 0, invalidIndex: number =
 
   const playDuplicate = useCallback(() => {
     try {
-      const ctx = getContext();
+      const ctx = getSharedContext();
       switch (duplicateIndex) {
         case 0: playWobble(ctx); break;
         case 1: playDoubleTap(ctx); break;

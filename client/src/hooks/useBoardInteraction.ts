@@ -109,12 +109,15 @@ export const useBoardInteraction = ({ onSubmitWord, feedback, onCellSelected }: 
     addCellToPath(cell.row, cell.col);
   };
 
+  const clearPath = () => {
+    setCurrentPath([]);
+  };
+
   const handleBoardPointerUp = () => {
     if (isDragging && currentPath.length > 0) {
       onSubmitWord(currentPath);
     }
     setIsDragging(false);
-    setCurrentPath([]);
     lastCellRef.current = null;
   };
 
@@ -137,6 +140,7 @@ export const useBoardInteraction = ({ onSubmitWord, feedback, onCellSelected }: 
   return {
     boardRef,
     currentPath,
+    clearPath,
     handleCellPointerDown,
     handleBoardPointerMove,
     handleBoardPointerUp,

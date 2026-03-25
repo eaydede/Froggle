@@ -1,17 +1,25 @@
-import { useRef, useCallback } from 'react';
+import { useCallback } from 'react';
 
 export const SOUND_LABELS = ['Trackpad', 'Typewriter', 'Pop', 'Tap', 'None'];
 export const SOUND_STYLES = ['trackpad', 'typewriter', 'pop', 'tap', 'none'];
 
-export const useThockSound = (soundIndex: number = 0) => {
-  const audioContextRef = useRef<AudioContext | null>(null);
+// Shared AudioContext across all sound hooks
+let sharedAudioContext: AudioContext | null = null;
 
-  const getContext = () => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new AudioContext();
-    }
-    return audioContextRef.current;
-  };
+function getSharedContext(): AudioContext {
+  if (!sharedAudioContext) {
+    sharedAudioContext = new AudioContext();
+  }
+  // Resume if suspended (required on mobile after user gesture)
+  if (sharedAudioContext.state === 'suspended') {
+    sharedAudioContext.resume();
+  }
+  return sharedAudioContext;
+}
+
+export { getSharedContext };
+
+export const useThockSound = (soundIndex: number = 0) => {
 
   const playTrackpad = (ctx: AudioContext) => {
     const now = ctx.currentTime;
@@ -100,7 +108,7 @@ export const useThockSound = (soundIndex: number = 0) => {
     if (style === 'none') return;
 
     try {
-      const ctx = getContext();
+      const ctx = getSharedContext();
 
       switch (style) {
         case 'trackpad': playTrackpad(ctx); break;

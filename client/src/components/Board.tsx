@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Board as BoardType, Position } from 'models';
 import { useBoardInteraction } from '../hooks/useBoardInteraction';
 import { useThockSound } from '../hooks/useThockSound';
@@ -27,6 +28,7 @@ export const Board = ({ board, onSubmitWord, feedback, baseStyleIndex = 1, hover
   const playThock = useThockSound(soundIndex);
   const {
     boardRef,
+    clearPath,
     handleCellPointerDown,
     handleBoardPointerMove,
     handleBoardPointerUp,
@@ -34,6 +36,13 @@ export const Board = ({ board, onSubmitWord, feedback, baseStyleIndex = 1, hover
     isInCurrentPath,
     isInFeedbackPath,
   } = useBoardInteraction({ onSubmitWord, feedback, onCellSelected: playThock });
+
+  // Clear the selection path when feedback arrives (feedback visually takes over)
+  useEffect(() => {
+    if (feedback) {
+      clearPath();
+    }
+  }, [feedback]);
 
   const getCellClass = (rowIndex: number, colIndex: number) => {
     const feedbackState = isInFeedbackPath(rowIndex, colIndex);
