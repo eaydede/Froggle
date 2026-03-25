@@ -36,7 +36,7 @@ export function BoardSizeConfig({ value, onChange }: BoardSizeConfigProps) {
           <div
             key={i}
             style={{
-              backgroundColor: '#2196F3',
+              backgroundColor: '#6B7FBF',
               borderRadius: '3px',
             }}
           />
@@ -50,7 +50,7 @@ export function BoardSizeConfig({ value, onChange }: BoardSizeConfigProps) {
       <label>Board Size</label>
       <div 
         ref={elementRef}
-        className="config-display-box"
+        className="config-display-box config-style-soft config-color-board"
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
       >

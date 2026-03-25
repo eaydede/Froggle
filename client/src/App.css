@@ -1,3 +1,8 @@
+body {
+  background-color: #FAFAF8;
+  margin: 0;
+}
+
 button, input, select, textarea {
   font-family: inherit;
   font-weight: inherit;
@@ -16,6 +21,7 @@ button, input, select, textarea {
   padding: 20px;
   font-family: 'Merriweather', Georgia, 'Times New Roman', serif;
   font-weight: 900;
+  background-color: #FAFAF8;
   height: 100dvh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -181,17 +187,33 @@ h1 {
   justify-content: center;
   font-size: 32px;
   font-weight: bold;
-  background-color: white;
-  border: 3px solid #2196F3;
-  border-radius: 8px;
-  color: #2196F3;
   cursor: grab;
   user-select: none;
   touch-action: pan-y;
+  color: #333;
 }
 
 .config-display-box:active {
   cursor: grabbing;
+}
+
+.config-style-soft {
+  background-color: #f8f8f8;
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.config-color-board {
+  color: #6B7FBF;
+}
+
+.config-color-time {
+  color: #5A9E8F;
+}
+
+.config-color-length {
+  color: #C07A6E;
 }
 
 .config-navigator {
@@ -394,7 +416,7 @@ h1 {
   display: flex;
   flex-direction: column;
   border: 2px solid #333;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 12px;
   background-color: #f5f5f5;
   user-select: none;
@@ -420,7 +442,7 @@ h1 {
   font-weight: bold;
   background-color: white;
   border: 2px solid #ddd;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   transition: background-color 0.05s, color 0.05s, transform 0.05s;
   user-select: none;
@@ -549,7 +571,7 @@ h1 {
   display: flex;
   flex-direction: column;
   border: 2px solid #333;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 12px;
   background-color: #f5f5f5;
   max-width: 500px;
@@ -573,7 +595,7 @@ h1 {
   font-size: calc(min(32px, (100vw - 100px) / var(--board-size, 4) * 0.4));
   background-color: white;
   border: 2px solid #ddd;
-  border-radius: 8px;
+  border-radius: 10px;
   transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
   user-select: none;
 }

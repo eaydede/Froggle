@@ -30,7 +30,7 @@ export function MinWordLengthConfig({ value, onChange }: MinWordLengthConfigProp
       <label>Min Word Length</label>
       <div 
         ref={elementRef}
-        className="config-display-box"
+        className="config-display-box config-style-soft config-color-length"
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
       >

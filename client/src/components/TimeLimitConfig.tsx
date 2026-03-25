@@ -34,7 +34,7 @@ export function TimeLimitConfig({ value, onChange }: TimeLimitConfigProps) {
       <label>Time Limit</label>
       <div 
         ref={elementRef}
-        className="config-display-box"
+        className="config-display-box config-style-soft config-color-time"
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
       >
