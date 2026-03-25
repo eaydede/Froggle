@@ -10,11 +10,10 @@ import { FeedbackType } from './components/Board';
 import './App.css';
 
 function App() {
-  const { game, words, results, createGame, startGame, cancelGame, endGame, fetchGameState, submitWord } = useGameApi();
+  const { game, results, createGame, startGame, cancelGame, endGame, fetchGameState, submitWord } = useGameApi();
   const [feedback, setFeedback] = useState<{ type: FeedbackType; path: Position[] } | null>(null);
   const [debugMode, setDebugMode] = useState(false);
   const [showHomeConfirm, setShowHomeConfirm] = useState(false);
-  const [dwellTime, setDwellTime] = useState(30);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const longPressTriggered = useRef(false);
 
@@ -46,10 +45,6 @@ function App() {
   const handleStartGame = async (boardSize: number, timeLimit: number, minWordLength: number) => {
     await startGame(timeLimit, boardSize, minWordLength);
     setFeedback(null);
-  };
-
-  const handleCancelGame = async () => {
-    await cancelGame();
   };
 
   const handleTitleClick = () => {
@@ -128,15 +123,10 @@ function App() {
         return (
           <GamePage 
             game={game!}
-            words={words}
             timeRemaining={timeRemaining}
             feedback={feedback}
             onSubmitWord={handleSubmitWord}
-            onCancelGame={handleCancelGame}
             onEndGame={handleEndGame}
-            debugMode={debugMode}
-            dwellTime={dwellTime}
-            onDwellTimeChange={setDwellTime}
           />
         );
 

@@ -7,19 +7,18 @@ interface BoardProps {
   board: BoardType;
   onSubmitWord: (path: Position[]) => void;
   feedback: { type: FeedbackType; path: Position[] } | null;
-  dwellTime: number;
 }
 
-export const Board = ({ board, onSubmitWord, feedback, dwellTime }: BoardProps) => {
+export const Board = ({ board, onSubmitWord, feedback }: BoardProps) => {
   const {
+    boardRef,
     handleCellPointerDown,
-    handleCellPointerEnter,
     handleBoardPointerMove,
     handleBoardPointerUp,
     handleBoardPointerLeave,
     isInCurrentPath,
     isInFeedbackPath,
-  } = useBoardInteraction({ board, onSubmitWord, feedback, dwellTime });
+  } = useBoardInteraction({ onSubmitWord, feedback });
 
   const getCellClass = (rowIndex: number, colIndex: number) => {
     const feedbackState = isInFeedbackPath(rowIndex, colIndex);
@@ -39,6 +38,7 @@ export const Board = ({ board, onSubmitWord, feedback, dwellTime }: BoardProps) 
 
   return (
     <div 
+      ref={boardRef}
       className="board" 
       onPointerMove={handleBoardPointerMove}
       onPointerUp={handleBoardPointerUp}
@@ -53,7 +53,6 @@ export const Board = ({ board, onSubmitWord, feedback, dwellTime }: BoardProps) 
               data-row={rowIndex}
               data-col={colIndex}
               onPointerDown={(e) => handleCellPointerDown(rowIndex, colIndex, e)}
-              onPointerEnter={(e) => handleCellPointerEnter(rowIndex, colIndex, e)}
             >
               {letter}
             </div>

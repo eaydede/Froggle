@@ -1,121 +1,95 @@
 import { useState, useRef, useCallback } from 'react';
-import { Board, Position } from 'models';
+import { Position } from 'models';
 import { FeedbackType } from '../components/Board';
 
 interface UseBoardInteractionProps {
-  board: Board;
   onSubmitWord: (path: Position[]) => void;
   feedback: { type: FeedbackType; path: Position[] } | null;
-  dwellTime: number;
 }
 
-export const useBoardInteraction = ({ board, onSubmitWord, feedback, dwellTime }: UseBoardInteractionProps) => {
+const CELL_HITBOX_AREA_RATIO = 0.66;
+const CELL_HITBOX_SIDE_RATIO = Math.sqrt(CELL_HITBOX_AREA_RATIO);
+
+export const useBoardInteraction = ({ onSubmitWord, feedback }: UseBoardInteractionProps) => {
   const [currentPath, setCurrentPath] = useState<Position[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const boardRef = useRef<HTMLDivElement | null>(null);
   const lastCellRef = useRef<{ row: number; col: number } | null>(null);
-  const dwellTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const pendingCellRef = useRef<{ row: number; col: number } | null>(null);
-
-  const clearDwellTimer = () => {
-    if (dwellTimerRef.current) {
-      clearTimeout(dwellTimerRef.current);
-      dwellTimerRef.current = null;
-    }
-    pendingCellRef.current = null;
-  };
-
-  const getIntermediateCells = (from: Position, to: Position): Position[] => {
-    const dRow = to.row - from.row;
-    const dCol = to.col - from.col;
-    const absDRow = Math.abs(dRow);
-    const absDCol = Math.abs(dCol);
-
-    // Check if cells are on a straight line (horizontal, vertical, or diagonal)
-    const isHorizontal = dRow === 0 && absDCol > 0;
-    const isVertical = dCol === 0 && absDRow > 0;
-    const isDiagonal = absDRow === absDCol && absDRow > 0;
-
-    if (!isHorizontal && !isVertical && !isDiagonal) return [];
-
-    const steps = Math.max(absDRow, absDCol);
-    const stepRow = dRow === 0 ? 0 : dRow / steps;
-    const stepCol = dCol === 0 ? 0 : dCol / steps;
-
-    const cells: Position[] = [];
-    for (let i = 1; i <= steps; i++) {
-      const r = from.row + stepRow * i;
-      const c = from.col + stepCol * i;
-      if (r >= 0 && r < board.length && c >= 0 && c < board[0].length) {
-        cells.push({ row: r, col: c });
-      }
-    }
-
-    return cells;
-  };
 
   const addCellToPath = (row: number, col: number) => {
     setCurrentPath(path => {
       const lastPos = path[path.length - 1];
-      if (!lastPos) return path;
+      if (!lastPos) {
+        return [{ row, col }];
+      }
+
+      if (lastPos.row === row && lastPos.col === col) {
+        return path;
+      }
 
       const cellIndexInPath = path.findIndex(p => p.row === row && p.col === col);
       if (cellIndexInPath !== -1) {
         return path.slice(0, cellIndexInPath + 1);
       }
 
-      const isAdjacent = Math.abs(lastPos.row - row) <= 1 && Math.abs(lastPos.col - col) <= 1;
-      if (isAdjacent) {
-        return [...path, { row, col }];
-      }
-
-      const intermediate = getIntermediateCells(lastPos, { row, col });
-      if (intermediate.length === 0) return path;
-
-      let newPath = [...path];
-      for (const cell of intermediate) {
-        if (newPath.some(p => p.row === cell.row && p.col === cell.col)) return path;
-        newPath.push(cell);
-      }
-
-      return newPath;
+      return [...path, { row, col }];
     });
   };
 
-  const handleCellPointerDown = (row: number, col: number, _e: React.PointerEvent) => {
-    clearDwellTimer();
+  const getCenteredHitbox = (element: HTMLElement) => {
+    const rect = element.getBoundingClientRect();
+    const hitboxWidth = rect.width * CELL_HITBOX_SIDE_RATIO;
+    const hitboxHeight = rect.height * CELL_HITBOX_SIDE_RATIO;
+    const hitboxLeft = rect.left + (rect.width - hitboxWidth) / 2;
+    const hitboxTop = rect.top + (rect.height - hitboxHeight) / 2;
+
+    return {
+      left: hitboxLeft,
+      right: hitboxLeft + hitboxWidth,
+      top: hitboxTop,
+      bottom: hitboxTop + hitboxHeight,
+    };
+  };
+
+  const isPointInCenteredHitbox = (x: number, y: number, element: HTMLElement) => {
+    const hitbox = getCenteredHitbox(element);
+    return x >= hitbox.left && x <= hitbox.right && y >= hitbox.top && y <= hitbox.bottom;
+  };
+
+  const handleCellPointerDown = (row: number, col: number, e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isPointInCenteredHitbox(e.clientX, e.clientY, e.currentTarget)) {
+      return;
+    }
+
     setIsDragging(true);
     setCurrentPath([{ row, col }]);
     lastCellRef.current = { row, col };
   };
 
-  const handleCellPointerEnter = (row: number, col: number, _e: React.PointerEvent) => {
-    if (!isDragging) return;
-
-    clearDwellTimer();
-    pendingCellRef.current = { row, col };
-
-    if (dwellTime <= 0) {
-      addCellToPath(row, col);
-      return;
+  const getCellFromPoint = useCallback((x: number, y: number): { row: number; col: number } | null => {
+    const boardElement = boardRef.current;
+    if (!boardElement) {
+      return null;
     }
 
-    dwellTimerRef.current = setTimeout(() => {
-      if (pendingCellRef.current?.row === row && pendingCellRef.current?.col === col) {
-        addCellToPath(row, col);
-        pendingCellRef.current = null;
-      }
-    }, dwellTime);
-  };
+    const cells = boardElement.querySelectorAll<HTMLElement>('[data-row][data-col]');
 
-  const getCellFromPoint = useCallback((x: number, y: number): { row: number; col: number } | null => {
-    const element = document.elementFromPoint(x, y);
-    if (!element) return null;
-    const cell = element.closest('[data-row][data-col]') as HTMLElement | null;
-    if (!cell) return null;
-    const row = parseInt(cell.dataset.row!, 10);
-    const col = parseInt(cell.dataset.col!, 10);
-    if (isNaN(row) || isNaN(col)) return null;
-    return { row, col };
+    for (const cell of cells) {
+      if (!isPointInCenteredHitbox(x, y, cell)) {
+        continue;
+      }
+
+      const row = parseInt(cell.dataset.row ?? '', 10);
+      const col = parseInt(cell.dataset.col ?? '', 10);
+
+      if (isNaN(row) || isNaN(col)) {
+        return null;
+      }
+
+      return { row, col };
+    }
+
+    return null;
   }, []);
 
   const handleBoardPointerMove = (e: React.PointerEvent) => {
@@ -128,11 +102,10 @@ export const useBoardInteraction = ({ board, onSubmitWord, feedback, dwellTime }
     if (last && last.row === cell.row && last.col === cell.col) return;
 
     lastCellRef.current = cell;
-    handleCellPointerEnter(cell.row, cell.col, e);
+    addCellToPath(cell.row, cell.col);
   };
 
   const handleBoardPointerUp = () => {
-    clearDwellTimer();
     if (isDragging && currentPath.length > 0) {
       onSubmitWord(currentPath);
     }
@@ -142,8 +115,8 @@ export const useBoardInteraction = ({ board, onSubmitWord, feedback, dwellTime }
   };
 
   const handleBoardPointerLeave = () => {
-    clearDwellTimer();
     setIsDragging(false);
+    setCurrentPath([]);
     lastCellRef.current = null;
   };
 
@@ -158,9 +131,9 @@ export const useBoardInteraction = ({ board, onSubmitWord, feedback, dwellTime }
   };
 
   return {
+    boardRef,
     currentPath,
     handleCellPointerDown,
-    handleCellPointerEnter,
     handleBoardPointerMove,
     handleBoardPointerUp,
     handleBoardPointerLeave,
