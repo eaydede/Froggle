@@ -14,7 +14,7 @@ function App() {
   const [feedback, setFeedback] = useState<{ type: FeedbackType; path: Position[] } | null>(null);
   const [debugMode, setDebugMode] = useState(false);
   const [showHomeConfirm, setShowHomeConfirm] = useState(false);
-  const [dwellTime, setDwellTime] = useState(60);
+  const [dwellTime, setDwellTime] = useState(30);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const longPressTriggered = useRef(false);
 
