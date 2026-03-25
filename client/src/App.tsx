@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { GameState, Position } from 'models';
 import { useGameApi } from './hooks/useGameApi';
 import { useTimer } from './hooks/useTimer';
@@ -14,8 +14,21 @@ function App() {
   const [feedback, setFeedback] = useState<{ type: FeedbackType; path: Position[] } | null>(null);
   const [debugMode, setDebugMode] = useState(false);
   const [showHomeConfirm, setShowHomeConfirm] = useState(false);
+  const [dwellTime, setDwellTime] = useState(60);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const longPressTriggered = useRef(false);
 
   const timeRemaining = useTimer(game, fetchGameState);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'd' || e.key === 'D') {
+        setDebugMode(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   const handleSinglePlayer = async () => {
     await createGame();
@@ -40,9 +53,25 @@ function App() {
   };
 
   const handleTitleClick = () => {
+    if (longPressTriggered.current) return;
     const isOnStartScreen = game === null;
     if (isOnStartScreen) return;
     setShowHomeConfirm(true);
+  };
+
+  const handleTitlePointerDown = () => {
+    longPressTriggered.current = false;
+    longPressTimer.current = setTimeout(() => {
+      longPressTriggered.current = true;
+      setDebugMode(prev => !prev);
+    }, 800);
+  };
+
+  const handleTitlePointerUp = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
   };
 
   const handleConfirmHome = async () => {
@@ -106,6 +135,8 @@ function App() {
             onCancelGame={handleCancelGame}
             onEndGame={handleEndGame}
             debugMode={debugMode}
+            dwellTime={dwellTime}
+            onDwellTimeChange={setDwellTime}
           />
         );
 
@@ -121,7 +152,10 @@ function App() {
     <div className="app">
       <h1 
         onClick={handleTitleClick}
-        className="app-title"
+        onPointerDown={handleTitlePointerDown}
+        onPointerUp={handleTitlePointerUp}
+        onPointerLeave={handleTitlePointerUp}
+        className={`app-title ${debugMode ? 'debug-active' : ''}`}
       >
         Froggle
       </h1>

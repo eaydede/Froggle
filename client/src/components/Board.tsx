@@ -1,6 +1,5 @@
 import { Board as BoardType, Position } from 'models';
 import { useBoardInteraction } from '../hooks/useBoardInteraction';
-import { DebugOverlay } from './DebugOverlay';
 
 export type FeedbackType = 'valid' | 'invalid' | 'duplicate' | null;
 
@@ -8,24 +7,19 @@ interface BoardProps {
   board: BoardType;
   onSubmitWord: (path: Position[]) => void;
   feedback: { type: FeedbackType; path: Position[] } | null;
-  debugMode?: boolean;
+  dwellTime: number;
 }
 
-export const Board = ({ board, onSubmitWord, feedback, debugMode = false }: BoardProps) => {
+export const Board = ({ board, onSubmitWord, feedback, dwellTime }: BoardProps) => {
   const {
-    currentPath,
     handleCellPointerDown,
     handleCellPointerEnter,
-    handleCellPointerLeave,
     handleBoardPointerMove,
     handleBoardPointerUp,
     handleBoardPointerLeave,
     isInCurrentPath,
     isInFeedbackPath,
-    debugHistory,
-    pendingCell,
-    coordLog,
-  } = useBoardInteraction({ board, onSubmitWord, feedback, debugMode });
+  } = useBoardInteraction({ board, onSubmitWord, feedback, dwellTime });
 
   const getCellClass = (rowIndex: number, colIndex: number) => {
     const feedbackState = isInFeedbackPath(rowIndex, colIndex);
@@ -43,44 +37,29 @@ export const Board = ({ board, onSubmitWord, feedback, debugMode = false }: Boar
     return 'cell';
   };
 
-  const boardSize = board.length;
-  const cellSize = 100 / boardSize;
-
   return (
-    <>
-      <DebugOverlay 
-        debugHistory={debugHistory} 
-        pendingCell={pendingCell} 
-        enabled={debugMode}
-        boardSize={boardSize}
-        cellSize={cellSize}
-        board={board}
-        coordLog={coordLog}
-      />
-      <div 
-        className="board" 
-        onPointerMove={handleBoardPointerMove}
-        onPointerUp={handleBoardPointerUp}
-        onPointerLeave={handleBoardPointerLeave}
-      >
-        {board.map((row, rowIndex) => (
-          <div key={rowIndex} className="board-row">
-            {row.map((letter, colIndex) => (
-              <div
-                key={`${rowIndex}-${colIndex}`}
-                className={getCellClass(rowIndex, colIndex)}
-                data-row={rowIndex}
-                data-col={colIndex}
-                onPointerDown={(e) => handleCellPointerDown(rowIndex, colIndex, e)}
-                onPointerEnter={(e) => handleCellPointerEnter(rowIndex, colIndex, e)}
-                onPointerLeave={(e) => handleCellPointerLeave(e)}
-              >
-                {letter}
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
-    </>
+    <div 
+      className="board" 
+      onPointerMove={handleBoardPointerMove}
+      onPointerUp={handleBoardPointerUp}
+      onPointerLeave={handleBoardPointerLeave}
+    >
+      {board.map((row, rowIndex) => (
+        <div key={rowIndex} className="board-row">
+          {row.map((letter, colIndex) => (
+            <div
+              key={`${rowIndex}-${colIndex}`}
+              className={getCellClass(rowIndex, colIndex)}
+              data-row={rowIndex}
+              data-col={colIndex}
+              onPointerDown={(e) => handleCellPointerDown(rowIndex, colIndex, e)}
+              onPointerEnter={(e) => handleCellPointerEnter(rowIndex, colIndex, e)}
+            >
+              {letter}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
   );
 };

@@ -278,6 +278,35 @@ h1 {
   margin: 0 auto;
 }
 
+.dwell-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #888;
+  font-family: monospace;
+}
+
+.dwell-control button {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #f5f5f5;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.dwell-control button:hover {
+  background: #e0e0e0;
+}
+
 .timer-section {
   display: grid;
   grid-template-columns: auto 1fr auto;
