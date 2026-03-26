@@ -109,16 +109,41 @@ const PreviewBoard = ({ size, minWordLength }: { size: number; minWordLength: nu
   );
 };
 
+const STORAGE_KEY = 'froggle-config';
+
+const loadSavedConfig = (): { boardSize: number; timeLimit: number; minWordLength: number } => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return {
+        boardSize: BOARD_SIZES.includes(parsed.boardSize) ? parsed.boardSize : 4,
+        timeLimit: TIME_LIMITS.includes(parsed.timeLimit) ? parsed.timeLimit : 120,
+        minWordLength: MIN_WORD_LENGTHS.includes(parsed.minWordLength) ? parsed.minWordLength : 3,
+      };
+    }
+  } catch { /* ignore */ }
+  return { boardSize: 4, timeLimit: 120, minWordLength: 3 };
+};
+
+const saveConfig = (boardSize: number, timeLimit: number, minWordLength: number) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ boardSize, timeLimit, minWordLength }));
+  } catch { /* ignore */ }
+};
+
 export const ConfigPage = ({ onStartGame }: ConfigPageProps) => {
-  const [boardSize, setBoardSize] = useState<number>(4);
-  const [timeLimit, setTimeLimit] = useState<number>(120);
-  const [minWordLength, setMinWordLength] = useState<number>(3);
+  const saved = loadSavedConfig();
+  const [boardSize, setBoardSize] = useState<number>(saved.boardSize);
+  const [timeLimit, setTimeLimit] = useState<number>(saved.timeLimit);
+  const [minWordLength, setMinWordLength] = useState<number>(saved.minWordLength);
 
   const handleStartGame = () => {
+    saveConfig(boardSize, timeLimit, minWordLength);
     onStartGame(boardSize, timeLimit, minWordLength);
   };
 
-  const timerDisplay = timeLimit > 0 ? `${timeLimit}s` : 'Unlimited';
+  const timerDisplay = timeLimit > 0 ? `${timeLimit}s` : '∞';
 
   return (
     <div className="config-screen">

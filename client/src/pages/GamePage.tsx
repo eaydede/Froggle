@@ -1,5 +1,5 @@
 import { Game, Position, Word } from 'models';
-import { Board, FeedbackType, BASE_LABELS, HOVER_LABELS, PRESS_LABELS, computeFeedbackColors } from '../components/Board';
+import { Board, FeedbackType, BASE_LABELS, HOVER_LABELS, PRESS_LABELS, PREACT_LABELS, computeFeedbackColors } from '../components/Board';
 import { SOUND_LABELS } from '../hooks/useThockSound';
 import { VALID_SOUND_LABELS, INVALID_SOUND_LABELS, DUPLICATE_SOUND_LABELS } from '../hooks/useFeedbackSounds';
 import { TimerBar } from '../components/TimerBar';
@@ -13,6 +13,9 @@ interface BoardStyleState {
   invalidSound: number;
   duplicateSound: number;
   colorWash: number;
+  preact: number;
+  preactRadius: number;
+  preactIntensity: number;
 }
 
 interface GamePageProps {
@@ -26,9 +29,11 @@ interface GamePageProps {
   boardStyle: BoardStyleState;
   onBoardStyleChange: (style: BoardStyleState) => void;
   showBoardStylePicker: boolean;
+  muted: boolean;
+  onToggleMute: () => void;
 }
 
-export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGame, boardStyle, onBoardStyleChange, showBoardStylePicker }: GamePageProps) => {
+export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGame, boardStyle, onBoardStyleChange, showBoardStylePicker, muted, onToggleMute }: GamePageProps) => {
   const boardSize = game.board.length;
   const colors = computeFeedbackColors(boardStyle.colorWash);
   
@@ -52,7 +57,7 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
   return (
     <div className="game-screen" style={{ '--board-size': boardSize } as React.CSSProperties}>
       <div className="timer-section">
-        <div className="timer-display">{timeRemaining > 0 ? `${timeRemaining}s` : 'Unlimited'}</div>
+        <div className="timer-display">{timeRemaining > 0 ? `${timeRemaining}s` : '∞'}</div>
         <TimerBar game={game} />
         <button onClick={onEndGame} className="icon-button end-game-icon" aria-label="End game">
           ✕
@@ -68,9 +73,15 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
             baseStyleIndex={boardStyle.base}
             hoverStyleIndex={boardStyle.hover}
             pressStyleIndex={boardStyle.press}
-            soundIndex={boardStyle.sound}
+            soundIndex={muted ? 4 : boardStyle.sound}
             colorWash={boardStyle.colorWash}
+            preactStyleIndex={boardStyle.preact}
+            preactRadius={boardStyle.preactRadius}
+            preactIntensity={boardStyle.preactIntensity}
           />
+          <button className="mute-toggle" onClick={onToggleMute} aria-label={muted ? 'Unmute' : 'Mute'}>
+            {muted ? '🔇' : '🔊'}
+          </button>
         </div>
       </div>
 
@@ -83,6 +94,46 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
           {renderPicker('Valid Word', VALID_SOUND_LABELS, boardStyle.validSound, (i) => onBoardStyleChange({ ...boardStyle, validSound: i }))}
           {renderPicker('Invalid Word', INVALID_SOUND_LABELS, boardStyle.invalidSound, (i) => onBoardStyleChange({ ...boardStyle, invalidSound: i }))}
           {renderPicker('Duplicate Word', DUPLICATE_SOUND_LABELS, boardStyle.duplicateSound, (i) => onBoardStyleChange({ ...boardStyle, duplicateSound: i }))}
+          {renderPicker('Pre-Actuation', PREACT_LABELS, boardStyle.preact, (i) => onBoardStyleChange({ ...boardStyle, preact: i }))}
+
+          {boardStyle.preact !== 0 && (
+            <>
+              <div className="board-style-row">
+                <div className="board-style-label">Proximity Radius — {boardStyle.preactRadius}%</div>
+                <div className="color-wash-control">
+                  <input
+                    type="range"
+                    min="20"
+                    max="150"
+                    value={boardStyle.preactRadius}
+                    onChange={(e) => onBoardStyleChange({ ...boardStyle, preactRadius: parseInt(e.target.value) })}
+                    className="color-wash-slider"
+                  />
+                  <div className="color-wash-range-labels">
+                    <span>Near</span>
+                    <span>Far</span>
+                  </div>
+                </div>
+              </div>
+              <div className="board-style-row">
+                <div className="board-style-label">Intensity — {boardStyle.preactIntensity}%</div>
+                <div className="color-wash-control">
+                  <input
+                    type="range"
+                    min="10"
+                    max="100"
+                    value={boardStyle.preactIntensity}
+                    onChange={(e) => onBoardStyleChange({ ...boardStyle, preactIntensity: parseInt(e.target.value) })}
+                    className="color-wash-slider"
+                  />
+                  <div className="color-wash-range-labels">
+                    <span>Subtle</span>
+                    <span>Strong</span>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="board-style-row">
             <div className="board-style-label">Feedback Colors — {boardStyle.colorWash}% wash</div>

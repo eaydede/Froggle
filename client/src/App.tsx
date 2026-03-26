@@ -10,14 +10,29 @@ import { ResultsPage } from './pages/ResultsPage';
 import { FeedbackType } from './components/Board';
 import './App.css';
 
+const loadMuted = (): boolean => {
+  try {
+    return localStorage.getItem('froggle-muted') === 'true';
+  } catch { return false; }
+};
+
 function App() {
   const { game, words, results, createGame, startGame, cancelGame, endGame, fetchGameState, submitWord } = useGameApi();
   const [feedback, setFeedback] = useState<{ type: FeedbackType; path: Position[] } | null>(null);
   const [showHomeConfirm, setShowHomeConfirm] = useState(false);
-  const [boardStyle, setBoardStyle] = useState({ base: 1, hover: 0, press: 3, sound: 0, validSound: 0, invalidSound: 0, duplicateSound: 2, colorWash: 35 });
+  const [boardStyle, setBoardStyle] = useState({ base: 1, hover: 0, press: 3, sound: 0, validSound: 0, invalidSound: 0, duplicateSound: 2, colorWash: 35, preact: 1, preactRadius: 130, preactIntensity: 100 });
   const [showBoardStylePicker, setShowBoardStylePicker] = useState(false);
+  const [muted, setMuted] = useState(loadMuted);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const longPressTriggered = useRef(false);
+
+  const toggleMute = () => {
+    setMuted(prev => {
+      const next = !prev;
+      try { localStorage.setItem('froggle-muted', String(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
 
   const timeRemaining = useTimer(game, fetchGameState);
   const { playValid, playInvalid, playDuplicate } = useFeedbackSounds(boardStyle.validSound, boardStyle.invalidSound, boardStyle.duplicateSound);
@@ -85,14 +100,14 @@ function App() {
     let feedbackType: FeedbackType;
     if (result.valid) {
       feedbackType = 'valid';
-      playValid();
+      if (!muted) playValid();
       fetchGameState();
     } else if (result.reason === 'repeat') {
       feedbackType = 'duplicate';
-      playDuplicate();
+      if (!muted) playDuplicate();
     } else {
       feedbackType = 'invalid';
-      playInvalid();
+      if (!muted) playInvalid();
     }
     
     setFeedback({ type: feedbackType, path });
@@ -132,6 +147,8 @@ function App() {
             boardStyle={boardStyle}
             onBoardStyleChange={setBoardStyle}
             showBoardStylePicker={showBoardStylePicker}
+            muted={muted}
+            onToggleMute={toggleMute}
           />
         );
 

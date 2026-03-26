@@ -14,8 +14,10 @@ export const HOVER_LABELS = ['Shadow Lift', 'BG Tint', 'Darken', 'Neu Press'];
 export const PRESS_STYLES = ['press-glow', 'press-flat', 'press-subtle', 'press-inset'];
 export const PRESS_LABELS = ['Glow', 'Flat', 'Subtle', 'Inset'];
 
+export const PREACT_STYLES = ['preact-none', 'preact-depress', 'preact-shadow', 'preact-bleed', 'preact-dim', 'preact-combo'];
+export const PREACT_LABELS = ['None', 'Depress', 'Shadow', 'Color Bleed', 'Dim', 'Depress + Bleed'];
+
 // Vivid HSL values: [hue, saturation, lightness]
-// Washed HSL values: lower saturation, higher lightness
 const COLOR_RANGES = {
   selected:  { vivid: [207, 90, 54], washed: [207, 25, 72] },
   valid:     { vivid: [122, 39, 49], washed: [122, 18, 65] },
@@ -39,6 +41,43 @@ export function computeFeedbackColors(wash: number) {
   return result;
 }
 
+function getProximityStyle(proximity: number, angle: number, preactStyle: number, selectedColor: string, intensity: number): React.CSSProperties {
+  if (proximity === 0 || preactStyle === 0) return {};
+
+  const p = Math.pow(proximity, 1.5);
+  const gradDir = (angle + 270) % 360;
+  const colorStop = Math.round(p * 50 * intensity);
+  const fadeStop = Math.min(100, colorStop + 30);
+  const bleedColor = `rgba(0, 0, 0, ${(p * 0.08 * intensity).toFixed(3)})`;
+  const scaleAmount = p * 0.15 * intensity;
+
+  switch (preactStyle) {
+    case 1: // Depress
+      return {
+        transform: `scale(${1 - scaleAmount})`,
+      };
+    case 2: // Shadow collapse
+      return {
+        boxShadow: `0 ${Math.round((1 - p * intensity) * 4)}px ${Math.round((1 - p * intensity) * 8)}px rgba(0, 0, 0, ${0.08 * (1 - p * intensity)})`,
+      };
+    case 3: // Color bleed (directional)
+      return {
+        background: `linear-gradient(${gradDir}deg, ${bleedColor} ${colorStop}%, transparent ${fadeStop}%)`,
+      };
+    case 4: // Dim
+      return {
+        filter: `brightness(${1 - p * 0.3 * intensity})`,
+      };
+    case 5: // Depress + directional color bleed
+      return {
+        transform: `scale(${1 - scaleAmount * 0.7})`,
+        background: `linear-gradient(${gradDir}deg, ${bleedColor} ${colorStop}%, transparent ${fadeStop}%)`,
+      };
+    default:
+      return {};
+  }
+}
+
 interface BoardProps {
   board: BoardType;
   onSubmitWord: (path: Position[]) => void;
@@ -48,9 +87,12 @@ interface BoardProps {
   pressStyleIndex?: number;
   soundIndex?: number;
   colorWash?: number;
+  preactStyleIndex?: number;
+  preactRadius?: number;
+  preactIntensity?: number;
 }
 
-export const Board = ({ board, onSubmitWord, feedback, baseStyleIndex = 1, hoverStyleIndex = 0, pressStyleIndex = 3, soundIndex = 0, colorWash = 35 }: BoardProps) => {
+export const Board = ({ board, onSubmitWord, feedback, baseStyleIndex = 1, hoverStyleIndex = 0, pressStyleIndex = 3, soundIndex = 0, colorWash = 35, preactStyleIndex = 0, preactRadius = 130, preactIntensity = 100 }: BoardProps) => {
   const playThock = useThockSound(soundIndex);
   const {
     boardRef,
@@ -61,9 +103,9 @@ export const Board = ({ board, onSubmitWord, feedback, baseStyleIndex = 1, hover
     handleBoardPointerLeave,
     isInCurrentPath,
     isInFeedbackPath,
-  } = useBoardInteraction({ onSubmitWord, feedback, onCellSelected: playThock });
+    getCellProximity,
+  } = useBoardInteraction({ onSubmitWord, feedback, onCellSelected: playThock, proximityRadius: preactRadius / 100 });
 
-  // Clear the selection path when feedback arrives (feedback visually takes over)
   useEffect(() => {
     if (feedback) {
       clearPath();
@@ -107,17 +149,27 @@ export const Board = ({ board, onSubmitWord, feedback, baseStyleIndex = 1, hover
     >
       {board.map((row, rowIndex) => (
         <div key={rowIndex} className="board-row">
-          {row.map((letter, colIndex) => (
-            <div
-              key={`${rowIndex}-${colIndex}`}
-              className={getCellClass(rowIndex, colIndex)}
-              data-row={rowIndex}
-              data-col={colIndex}
-              onPointerDown={(e) => handleCellPointerDown(rowIndex, colIndex, e)}
-            >
-              {letter}
-            </div>
-          ))}
+          {row.map((letter, colIndex) => {
+            const isSelected = isInCurrentPath(rowIndex, colIndex);
+            const hasFeedback = isInFeedbackPath(rowIndex, colIndex) !== null;
+            const { proximity, angle } = getCellProximity(rowIndex, colIndex);
+            const proxStyle = (!isSelected && !hasFeedback)
+              ? getProximityStyle(proximity, angle, preactStyleIndex, colors.selected, preactIntensity / 100)
+              : {};
+
+            return (
+              <div
+                key={`${rowIndex}-${colIndex}`}
+                className={getCellClass(rowIndex, colIndex)}
+                data-row={rowIndex}
+                data-col={colIndex}
+                style={proxStyle}
+                onPointerDown={(e) => handleCellPointerDown(rowIndex, colIndex, e)}
+              >
+                {letter}
+              </div>
+            );
+          })}
         </div>
       ))}
     </div>
