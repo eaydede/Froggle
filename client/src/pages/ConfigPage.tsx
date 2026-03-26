@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Board } from '../components/Board';
 
 interface ConfigPageProps {
   onStartGame: (boardSize: number, timeLimit: number, minWordLength: number) => void;
@@ -68,19 +67,45 @@ const SegmentedControl = ({ options, value, onChange, format }: {
   );
 };
 
-const PreviewBoard = ({ size }: { size: number }) => {
-  const board = Array.from({ length: size }, () => Array.from({ length: size }, () => ''));
-  const noop = () => {};
+const generatePath = (startRow: number, length: number, boardSize: number): [number, number][] => {
+  const path: [number, number][] = [];
+  let row = startRow;
+  let col = 0;
+  for (let i = 0; i < length; i++) {
+    path.push([row, col]);
+    if (col < boardSize - 1) {
+      col++;
+    } else {
+      row++;
+      // stay at last column, just go down
+    }
+  }
+  return path;
+};
+
+const PreviewBoard = ({ size, minWordLength }: { size: number; minWordLength: number }) => {
+  const tooShortPath = generatePath(0, minWordLength - 1, size);
+  const validPath = generatePath(1, minWordLength, size);
+
+  const getCellHighlight = (row: number, col: number): string => {
+    if (validPath.some(([r, c]) => r === row && c === col)) return 'preview-cell-valid';
+    if (tooShortPath.some(([r, c]) => r === row && c === col)) return 'preview-cell-invalid';
+    return '';
+  };
 
   return (
-    <Board
-      board={board}
-      onSubmitWord={noop}
-      feedback={null}
-      baseStyleIndex={1}
-      hoverStyleIndex={0}
-      pressStyleIndex={3}
-    />
+    <div className="preview-board-wrapper">
+      <div className="board base-frosted" style={{ pointerEvents: 'none' }}>
+        {Array.from({ length: size }, (_, rowIndex) => (
+          <div key={rowIndex} className="board-row">
+            {Array.from({ length: size }, (_, colIndex) => (
+              <div key={`${rowIndex}-${colIndex}`} className={`cell ${getCellHighlight(rowIndex, colIndex)}`} />
+            ))}
+          </div>
+        ))}
+      </div>
+      <div className="preview-board-fade" />
+    </div>
   );
 };
 
@@ -109,7 +134,7 @@ export const ConfigPage = ({ onStartGame }: ConfigPageProps) => {
 
           <div className="board-container">
             <div className="board-with-word">
-              <PreviewBoard size={boardSize} />
+              <PreviewBoard size={boardSize} minWordLength={minWordLength} />
             </div>
           </div>
         </div>

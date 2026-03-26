@@ -157,9 +157,36 @@ h1 {
 }
 
 .config-preview {
-  opacity: 0.7;
-  margin-bottom: 24px;
-  transition: opacity 0.3s;
+  pointer-events: none;
+  margin-bottom: 0;
+}
+
+.preview-board-wrapper {
+  position: relative;
+}
+
+.preview-cell-valid {
+  background-color: hsl(122, 32%, 65%) !important;
+}
+
+.preview-cell-invalid {
+  background-color: hsl(4, 35%, 70%) !important;
+}
+
+.preview-board-fade {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 75%;
+  background: linear-gradient(to bottom, transparent, #FAFAF8 70%);
+  pointer-events: none;
+}
+
+.config-segmented {
+  position: relative;
+  z-index: 1;
+  margin-top: -100px;
 }
 
 .config-buttons {
