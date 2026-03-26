@@ -8,7 +8,7 @@ button, input, select, textarea {
   font-weight: inherit;
 }
 
-.board, .board *, .config-display-box {
+.board, .board * {
   -webkit-user-drag: none;
   -khtml-user-drag: none;
   -moz-user-drag: none;
@@ -148,121 +148,18 @@ h1 {
 }
 
 .config-screen {
-  text-align: center;
-  padding: 40px 20px;
+  padding: 0;
 }
 
 .config-container {
-  max-width: 700px;
+  max-width: 500px;
   margin: 0 auto;
 }
 
-.config-container h2 {
-  margin-bottom: 40px;
-  color: #333;
-}
-
-.config-sections-row {
-  display: flex;
-  justify-content: center;
-  gap: 40px;
-  margin-bottom: 40px;
-}
-
-.config-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-}
-
-.config-section label {
-  font-size: 20px;
-  font-weight: bold;
-  color: #555;
-  text-align: center;
-}
-
-.config-display-box {
-  width: 180px;
-  height: 180px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 32px;
-  font-weight: bold;
-  cursor: grab;
-  user-select: none;
-  touch-action: pan-y;
-  color: #333;
-}
-
-.config-display-box:active {
-  cursor: grabbing;
-}
-
-.config-style-soft {
-  background-color: #f8f8f8;
-  border: none;
-  border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
-}
-
-.config-color-board {
-  color: #6B7FBF;
-}
-
-.config-color-time {
-  color: #5A9E8F;
-}
-
-.config-color-length {
-  color: #C07A6E;
-}
-
-.config-navigator {
-  display: flex;
-  align-items: center;
-  width: 180px;
-  position: relative;
-}
-
-.nav-arrow {
-  font-size: 24px;
-  padding: 8px 16px;
-  background-color: transparent;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
-  color: #333;
-  /* position: absolute; */
-}
-
-.nav-arrow:first-child {
-  left: 0;
-}
-
-.nav-arrow:last-child {
-  right: 0;
-}
-
-.nav-arrow:hover:not(:disabled) {
-  color: #2196F3;
-  transform: scale(1.2);
-}
-
-.nav-arrow:disabled {
-  color: #ccc;
-  cursor: not-allowed;
-}
-
-.nav-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #555;
-  text-align: center;
-  white-space: nowrap;
-  width: 100%;
+.config-preview {
+  opacity: 0.7;
+  margin-bottom: 24px;
+  transition: opacity 0.3s;
 }
 
 .config-buttons {
@@ -270,7 +167,68 @@ h1 {
   flex-direction: column;
   gap: 15px;
   align-items: center;
-  margin-top: 40px;
+  margin-top: 30px;
+}
+
+/* === Segmented Controls === */
+.config-segmented {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.config-seg-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.config-seg-label {
+  font-size: 15px;
+  color: #555;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.config-seg-control {
+  display: flex;
+  position: relative;
+  background: #f0f0f0;
+  border-radius: 10px;
+  padding: 3px;
+  gap: 16px;
+}
+
+.config-seg-slider {
+  position: absolute;
+  top: 3px;
+  height: calc(100% - 6px);
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
+}
+
+.config-seg-btn {
+  position: relative;
+  z-index: 1;
+  padding: 10px 0;
+  font-size: 14px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #888;
+  cursor: pointer;
+  transition: color 0.2s;
+  text-align: center;
+  flex: 1;
+  min-width: 40px;
+}
+
+.config-seg-btn.active {
+  color: #333;
 }
 
 .start-button {
@@ -980,33 +938,6 @@ h1 {
 
   .menu-buttons {
     padding: 0 20px;
-  }
-
-  .config-screen {
-    padding: 20px 15px;
-  }
-
-  .config-sections-row {
-    flex-direction: column;
-    gap: 18px;
-  }
-
-  .config-section {
-    gap: 8px;
-  }
-
-  .config-section label {
-    font-size: 20px;
-  }
-
-  .config-display-box {
-    width: 150px;
-    height: 150px;
-    font-size: 36px;
-  }
-
-  .config-navigator {
-    display: none;
   }
 
   .config-buttons {

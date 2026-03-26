@@ -12,6 +12,11 @@ export const useTimer = (game: Game | null, onTimeExpired: () => void) => {
         return;
       }
 
+      // Set initial value immediately to avoid stale flash
+      const elapsed = Date.now() - game.startedAt;
+      const initialRemaining = Math.max(0, game.config.durationSeconds * 1000 - elapsed);
+      setTimeRemaining(Math.ceil(initialRemaining / 1000));
+
       const interval = setInterval(() => {
         const elapsed = Date.now() - game.startedAt;
         const remaining = Math.max(0, game.config.durationSeconds * 1000 - elapsed);
@@ -24,6 +29,8 @@ export const useTimer = (game: Game | null, onTimeExpired: () => void) => {
       }, 100);
       
       return () => clearInterval(interval);
+    } else {
+      setTimeRemaining(0);
     }
   }, [game, onTimeExpired]);
 
