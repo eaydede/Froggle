@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { SharedBoard } from '../utils/boardCode';
-import { Board } from '../components/Board';
 
 interface ConfigPageProps {
   onStartGame: (boardSize: number, timeLimit: number, minWordLength: number) => void;
@@ -88,25 +87,8 @@ const generatePath = (startRow: number, length: number, boardSize: number): [num
 };
 
 const PreviewBoard = ({ size, minWordLength, sharedBoard }: { size: number; minWordLength: number; sharedBoard?: string[][] | null }) => {
-  // If shared board, show actual letters with no fade
-  if (sharedBoard) {
-    const noop = () => {};
-    return (
-      <div className="preview-board-wrapper">
-        <Board
-          board={sharedBoard}
-          onSubmitWord={noop}
-          feedback={null}
-          baseStyleIndex={1}
-          hoverStyleIndex={0}
-          pressStyleIndex={3}
-        />
-      </div>
-    );
-  }
-
-  const tooShortPath = generatePath(0, minWordLength - 1, size);
-  const validPath = generatePath(1, minWordLength, size);
+  const tooShortPath = sharedBoard ? [] : generatePath(0, minWordLength - 1, size);
+  const validPath = sharedBoard ? [] : generatePath(1, minWordLength, size);
 
   const getCellHighlight = (row: number, col: number): string => {
     if (validPath.some(([r, c]) => r === row && c === col)) return 'preview-cell-valid';
@@ -120,7 +102,9 @@ const PreviewBoard = ({ size, minWordLength, sharedBoard }: { size: number; minW
         {Array.from({ length: size }, (_, rowIndex) => (
           <div key={rowIndex} className="board-row">
             {Array.from({ length: size }, (_, colIndex) => (
-              <div key={`${rowIndex}-${colIndex}`} className={`cell ${getCellHighlight(rowIndex, colIndex)}`} />
+              <div key={`${rowIndex}-${colIndex}`} className={`cell ${getCellHighlight(rowIndex, colIndex)}`}>
+                {sharedBoard?.[rowIndex]?.[colIndex] || ''}
+              </div>
             ))}
           </div>
         ))}
