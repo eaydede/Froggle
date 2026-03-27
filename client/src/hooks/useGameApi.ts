@@ -29,7 +29,9 @@ export const useGameApi = () => {
     minWordLength: number = 3,
     predefinedBoard?: string[][]
   ) => {
+    console.log('[share] startGame called, predefinedBoard:', predefinedBoard ? 'exists, rows:' + predefinedBoard.length : 'undefined');
     const data = await gameApi.startGame(durationSeconds, boardSize, minWordLength, predefinedBoard);
+    console.log('[share] server returned board:', data.game.board[0]);
     setGame(data.game);
     setWords([]);
     wordHashesRef.current = new Set(data.wordHashes);

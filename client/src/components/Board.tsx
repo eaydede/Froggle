@@ -96,7 +96,7 @@ interface BoardProps {
   onCurrentWordChange?: (word: string) => void;
 }
 
-export const Board = ({ board, onSubmitWord, feedback, baseStyleIndex = 1, hoverStyleIndex = 0, pressStyleIndex = 3, soundIndex = 0, colorWash = 35, preactStyleIndex = 0, preactRadius = 130, preactIntensity = 100, onCurrentWordChange }: BoardProps) => {
+export const Board = ({ board, onSubmitWord, feedback, baseStyleIndex = 0, hoverStyleIndex = 0, pressStyleIndex = 3, soundIndex = 0, colorWash = 35, preactStyleIndex = 0, preactRadius = 130, preactIntensity = 100, onCurrentWordChange }: BoardProps) => {
   const playThock = useThockSound(soundIndex);
   const {
     boardRef,

@@ -149,7 +149,10 @@ h1 {
 
 .config-screen {
   padding: 0;
+  --config-bg: #FAFAF8;
 }
+
+
 
 .config-container {
   max-width: 500px;
@@ -175,13 +178,15 @@ h1 {
 
 .preview-board-fade {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 75%;
-  background: linear-gradient(to bottom, transparent, #FAFAF8 70%);
+  bottom: -10px;
+  left: -10px;
+  right: -10px;
+  height: 80%;
   pointer-events: none;
+  background: linear-gradient(to bottom, rgba(250, 250, 248, 0), #FAFAF8 65%);
 }
+
+
 
 .config-segmented {
   position: relative;
@@ -264,15 +269,54 @@ h1 {
 }
 
 .shared-board-label {
-  text-align: center;
-  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
   color: #999;
   letter-spacing: 1px;
   text-transform: uppercase;
   position: relative;
   z-index: 1;
-  margin-top: -8px;
+  margin-top: -300px;
   margin-bottom: 4px;
+  background-color: #FAFAF8;
+  border: 1px solid #999;
+  border-radius: 10px;
+  padding: 3px 8px;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.shared-board-close {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  transition: color 0.15s;
+}
+
+.shared-board-close:hover {
+  color: #666;
+}
+
+.shared-board-label.shake {
+  animation: label-shake 0.3s ease;
+}
+
+@keyframes label-shake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-3px); }
+  40% { transform: translateX(3px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+  100% { transform: translateX(0); }
 }
 
 .start-button {
@@ -875,20 +919,19 @@ h1 {
 .results-board {
   display: flex;
   flex-direction: column;
-  background-color: rgba(0, 0, 0, 0.03);
+  background: transparent;
   border: none;
-  border-radius: 20px;
-  padding: 14px;
+  padding: 0;
   max-width: 500px;
   aspect-ratio: 1;
   box-sizing: border-box;
-  gap: 10px;
+  gap: 8px;
 }
 
 .results-board-row {
   display: flex;
   flex: 1;
-  gap: 10px;
+  gap: 8px;
 }
 
 .results-cell {
@@ -901,8 +944,8 @@ h1 {
   font-size: calc(min(32px, (100vw - 100px) / var(--board-size, 4) * 0.4));
   background-color: white;
   border: none;
-  border-radius: 14px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
   transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
   user-select: none;
 }
@@ -1057,9 +1100,9 @@ h1 {
 
 .results-actions {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
+  gap: 10px;
   margin-top: 20px;
 }
 
@@ -1070,20 +1113,26 @@ h1 {
 .share-button {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 14px 20px;
-  font-size: 15px;
+  gap: 5px;
+  padding: 8px 16px;
+  font-size: 13px;
   background: none;
-  border: 2px solid #ddd;
-  border-radius: 8px;
-  color: #666;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  color: #888;
   cursor: pointer;
   transition: all 0.15s;
 }
 
+.share-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
 .share-button:hover {
   border-color: #aaa;
-  color: #333;
+  color: #555;
 }
 
 @media (max-width: 600px) {

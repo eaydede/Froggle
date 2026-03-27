@@ -8,7 +8,7 @@ import { ConfigPage } from './pages/ConfigPage';
 import { GamePage } from './pages/GamePage';
 import { ResultsPage } from './pages/ResultsPage';
 import { FeedbackType } from './components/Board';
-import { decodeBoard, parseCode, SharedBoard, encodeBoard } from './utils/boardCode';
+import { decodeBoard, decodeBoardOnly, parseCode, SharedBoard, SharedBoardOnly } from './utils/boardCode';
 import './App.css';
 
 const loadMuted = (): boolean => {
@@ -21,25 +21,40 @@ function App() {
   const { game, words, results, createGame, startGame, cancelGame, endGame, fetchGameState, submitWord } = useGameApi();
   const [feedback, setFeedback] = useState<{ type: FeedbackType; path: Position[] } | null>(null);
   const [showHomeConfirm, setShowHomeConfirm] = useState(false);
-  const [boardStyle, setBoardStyle] = useState({ base: 1, hover: 0, press: 3, sound: 0, validSound: 0, invalidSound: 0, duplicateSound: 2, colorWash: 35, preact: 1, preactRadius: 130, preactIntensity: 100, validAnim: 3 });
+  const [boardStyle, setBoardStyle] = useState({ base: 0, hover: 0, press: 3, sound: 0, validSound: 0, invalidSound: 0, duplicateSound: 2, colorWash: 35, preact: 1, preactRadius: 130, preactIntensity: 100, validAnim: 3 });
   const [showBoardStylePicker, setShowBoardStylePicker] = useState(false);
   const [muted, setMuted] = useState(loadMuted);
-  const [sharedBoard, setSharedBoard] = useState<SharedBoard | null>(null);
+  const [sharedGame, setSharedGame] = useState<SharedBoard | null>(null);
+  const [sharedBoardOnly, setSharedBoardOnly] = useState<SharedBoardOnly | null>(null);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const longPressTriggered = useRef(false);
 
-  // Check URL for shared board code on mount
+  // Check URL for shared game/board code on mount
   useEffect(() => {
     const path = window.location.pathname;
-    const match = path.match(/^\/b\/(.+)$/);
-    if (match) {
-      const code = parseCode(match[1]);
+
+    // /g/CODE = shared game (board + config locked)
+    const gameMatch = path.match(/^\/g\/(.+)$/);
+    if (gameMatch) {
+      const code = parseCode(gameMatch[1]);
       const decoded = decodeBoard(code);
       if (decoded) {
-        setSharedBoard(decoded);
+        setSharedGame(decoded);
         createGame();
       }
-      // Clear the URL without reload
+      window.history.replaceState({}, '', '/');
+      return;
+    }
+
+    // /b/CODE = shared board only (board locked, config editable)
+    const boardMatch = path.match(/^\/b\/(.+)$/);
+    if (boardMatch) {
+      const code = parseCode(boardMatch[1]);
+      const decoded = decodeBoardOnly(code);
+      if (decoded) {
+        setSharedBoardOnly(decoded);
+        createGame();
+      }
       window.history.replaceState({}, '', '/');
     }
   }, []);
@@ -69,9 +84,11 @@ function App() {
   };
 
   const handleStartGame = async (boardSize: number, timeLimit: number, minWordLength: number) => {
-    await startGame(timeLimit, boardSize, minWordLength, sharedBoard?.board);
+    const predefinedBoard = sharedGame?.board || sharedBoardOnly?.board;
+    await startGame(timeLimit, boardSize, minWordLength, predefinedBoard);
     setFeedback(null);
-    setSharedBoard(null);
+    setSharedGame(null);
+    setSharedBoardOnly(null);
   };
 
   const handleCancelGame = async () => {
@@ -102,7 +119,8 @@ function App() {
 
   const handleConfirmHome = async () => {
     setShowHomeConfirm(false);
-    setSharedBoard(null);
+    setSharedGame(null);
+    setSharedBoardOnly(null);
     await cancelGame();
   };
 
@@ -151,7 +169,9 @@ function App() {
           <ConfigPage 
             onStartGame={handleStartGame}
             onBack={handleBackToStart}
-            sharedBoard={sharedBoard}
+            sharedGame={sharedGame}
+            sharedBoardOnly={sharedBoardOnly}
+            onClearShared={() => { setSharedGame(null); setSharedBoardOnly(null); }}
           />
         );
 

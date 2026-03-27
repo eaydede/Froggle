@@ -12,6 +12,11 @@ export interface SharedBoard {
   minWordLength: number;
 }
 
+export interface SharedBoardOnly {
+  board: string[][];
+  boardSize: number;
+}
+
 export function encodeBoard(data: SharedBoard): string {
   const sizeIdx = BOARD_SIZES.indexOf(data.boardSize);
   const timeIdx = TIME_LIMITS.indexOf(data.timeLimit);
@@ -88,4 +93,40 @@ export function formatCode(code: string): string {
 
 export function parseCode(formatted: string): string {
   return formatted.replace(/-/g, '').toUpperCase();
+}
+
+// Board-only encoding: just letters, size implied by count (16=4x4, 25=5x5, 36=6x6)
+export function encodeBoardOnly(board: string[][], boardSize: number): string {
+  const letters: string[] = [];
+  for (let r = 0; r < boardSize; r++) {
+    for (let c = 0; c < boardSize; c++) {
+      letters.push(board[r][c].toUpperCase());
+    }
+  }
+  return letters.join('');
+}
+
+export function decodeBoardOnly(code: string): SharedBoardOnly | null {
+  try {
+    const letterStr = code.toUpperCase();
+    if (!/^[A-Z]+$/.test(letterStr)) return null;
+
+    const totalCells = letterStr.length;
+    const boardSize = BOARD_SIZES.find(s => s * s === totalCells);
+    if (!boardSize) return null;
+
+    const board: string[][] = [];
+    let idx = 0;
+    for (let r = 0; r < boardSize; r++) {
+      const row: string[] = [];
+      for (let c = 0; c < boardSize; c++) {
+        row.push(letterStr[idx++]);
+      }
+      board.push(row);
+    }
+
+    return { board, boardSize };
+  } catch {
+    return null;
+  }
 }

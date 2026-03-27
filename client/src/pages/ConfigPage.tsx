@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { SharedBoard } from '../utils/boardCode';
+import { SharedBoard, SharedBoardOnly } from '../utils/boardCode';
 
 interface ConfigPageProps {
   onStartGame: (boardSize: number, timeLimit: number, minWordLength: number) => void;
   onBack: () => void;
-  sharedBoard?: SharedBoard | null;
+  sharedGame?: SharedBoard | null;
+  sharedBoardOnly?: SharedBoardOnly | null;
+  onClearShared?: () => void;
 }
 
 const BOARD_SIZES = [4, 5, 6];
@@ -15,12 +17,13 @@ const formatTime = (v: number) => v === -1 ? '∞' : `${v}s`;
 const formatBoard = (v: number) => `${v}×${v}`;
 const formatLength = (v: number) => `${v}`;
 
-const SegmentedControl = ({ options, value, onChange, format, disabled = false }: {
+const SegmentedControl = ({ options, value, onChange, format, disabled = false, onDisabledClick }: {
   options: number[];
   value: number;
   onChange: (v: number) => void;
   format: (v: number) => string;
   disabled?: boolean;
+  onDisabledClick?: () => void;
 }) => {
   const controlRef = useRef<HTMLDivElement>(null);
   const [sliderStyle, setSliderStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
@@ -61,7 +64,7 @@ const SegmentedControl = ({ options, value, onChange, format, disabled = false }
         <button
           key={v}
           className={`config-seg-btn ${i === activeIndex ? 'active' : ''} ${disabled ? 'disabled' : ''}`}
-          onClick={() => !disabled && onChange(v)}
+          onClick={() => disabled ? onDisabledClick?.() : onChange(v)}
         >
           {format(v)}
         </button>
@@ -86,9 +89,9 @@ const generatePath = (startRow: number, length: number, boardSize: number): [num
   return path;
 };
 
-const PreviewBoard = ({ size, minWordLength, sharedBoard }: { size: number; minWordLength: number; sharedBoard?: string[][] | null }) => {
-  const tooShortPath = sharedBoard ? [] : generatePath(0, minWordLength - 1, size);
-  const validPath = sharedBoard ? [] : generatePath(1, minWordLength, size);
+const PreviewBoard = ({ size, minWordLength }: { size: number; minWordLength: number }) => {
+  const tooShortPath = generatePath(0, minWordLength - 1, size);
+  const validPath = generatePath(1, minWordLength, size);
 
   const getCellHighlight = (row: number, col: number): string => {
     if (validPath.some(([r, c]) => r === row && c === col)) return 'preview-cell-valid';
@@ -98,13 +101,11 @@ const PreviewBoard = ({ size, minWordLength, sharedBoard }: { size: number; minW
 
   return (
     <div className="preview-board-wrapper">
-      <div className="board base-frosted" style={{ pointerEvents: 'none' }}>
+      <div className="board base-soft" style={{ pointerEvents: 'none' }}>
         {Array.from({ length: size }, (_, rowIndex) => (
           <div key={rowIndex} className="board-row">
             {Array.from({ length: size }, (_, colIndex) => (
-              <div key={`${rowIndex}-${colIndex}`} className={`cell ${getCellHighlight(rowIndex, colIndex)}`}>
-                {sharedBoard?.[rowIndex]?.[colIndex] || ''}
-              </div>
+              <div key={`${rowIndex}-${colIndex}`} className={`cell ${getCellHighlight(rowIndex, colIndex)}`} />
             ))}
           </div>
         ))}
@@ -137,12 +138,21 @@ const saveConfig = (boardSize: number, timeLimit: number, minWordLength: number)
   } catch { /* ignore */ }
 };
 
-export const ConfigPage = ({ onStartGame, sharedBoard }: ConfigPageProps) => {
+export const ConfigPage = ({ onStartGame, sharedGame, sharedBoardOnly, onClearShared }: ConfigPageProps) => {
   const saved = loadSavedConfig();
-  const isShared = !!sharedBoard;
-  const [boardSize, setBoardSize] = useState<number>(sharedBoard?.boardSize ?? saved.boardSize);
-  const [timeLimit, setTimeLimit] = useState<number>(sharedBoard?.timeLimit ?? saved.timeLimit);
-  const [minWordLength, setMinWordLength] = useState<number>(sharedBoard?.minWordLength ?? saved.minWordLength);
+  const isSharedGame = !!sharedGame;
+  const isSharedBoard = !!sharedBoardOnly;
+  const isShared = isSharedGame || isSharedBoard;
+  const sharedBoardSize = sharedGame?.boardSize ?? sharedBoardOnly?.boardSize;
+  const [boardSize, setBoardSize] = useState<number>(sharedBoardSize ?? saved.boardSize);
+  const [timeLimit, setTimeLimit] = useState<number>(sharedGame?.timeLimit ?? saved.timeLimit);
+  const [minWordLength, setMinWordLength] = useState<number>(sharedGame?.minWordLength ?? saved.minWordLength);
+  const [shakeLabel, setShakeLabel] = useState(false);
+
+  const handleDisabledClick = () => {
+    setShakeLabel(true);
+    setTimeout(() => setShakeLabel(false), 300);
+  };
 
   const handleStartGame = () => {
     saveConfig(boardSize, timeLimit, minWordLength);
@@ -165,25 +175,23 @@ export const ConfigPage = ({ onStartGame, sharedBoard }: ConfigPageProps) => {
 
           <div className="board-container">
             <div className="board-with-word">
-              <PreviewBoard size={boardSize} minWordLength={minWordLength} sharedBoard={sharedBoard?.board} />
+              <PreviewBoard size={boardSize} minWordLength={minWordLength} />
             </div>
           </div>
         </div>
 
-        {isShared && <div className="shared-board-label">Shared Board</div>}
-
         <div className="config-segmented">
           <div className="config-seg-row">
             <div className="config-seg-label">Board Size</div>
-            <SegmentedControl options={BOARD_SIZES} value={boardSize} onChange={setBoardSize} format={formatBoard} disabled={isShared} />
+            <SegmentedControl options={BOARD_SIZES} value={boardSize} onChange={setBoardSize} format={formatBoard} disabled={isShared} onDisabledClick={handleDisabledClick} />
           </div>
           <div className="config-seg-row">
             <div className="config-seg-label">Time Limit</div>
-            <SegmentedControl options={TIME_LIMITS} value={timeLimit} onChange={setTimeLimit} format={formatTime} disabled={isShared} />
+            <SegmentedControl options={TIME_LIMITS} value={timeLimit} onChange={setTimeLimit} format={formatTime} disabled={isSharedGame} onDisabledClick={isSharedGame ? handleDisabledClick : undefined} />
           </div>
           <div className="config-seg-row">
             <div className="config-seg-label">Min Letters</div>
-            <SegmentedControl options={MIN_WORD_LENGTHS} value={minWordLength} onChange={setMinWordLength} format={formatLength} disabled={isShared} />
+            <SegmentedControl options={MIN_WORD_LENGTHS} value={minWordLength} onChange={setMinWordLength} format={formatLength} disabled={isSharedGame} onDisabledClick={isSharedGame ? handleDisabledClick : undefined} />
           </div>
         </div>
 
@@ -192,6 +200,18 @@ export const ConfigPage = ({ onStartGame, sharedBoard }: ConfigPageProps) => {
             Start Game
           </button>
         </div>
+        
+        {isShared && (
+          <div className={`shared-board-label ${shakeLabel ? 'shake' : ''}`}>
+            <span>{isSharedGame ? 'Shared Game' : 'Shared Board'}</span>
+            <button className="shared-board-close" onClick={onClearShared} aria-label="Exit shared board">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
