@@ -69,12 +69,13 @@ app.post('/api/game/start', (req, res) => {
   const session = getSession((req as any).sessionId);
   if (!session) return res.status(401).json({ error: 'Invalid session' });
 
-  const { durationSeconds, boardSize, minWordLength } = req.body;
+  const { durationSeconds, boardSize, minWordLength, board } = req.body;
   try {
     const result = session.controller.startGame(
       durationSeconds || 180, 
       boardSize || 4, 
-      minWordLength || 3
+      minWordLength || 3,
+      board
     );
     res.json(result);
   } catch (error) {

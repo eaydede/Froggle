@@ -46,12 +46,12 @@ export class GameController {
     return this.game;
   }
 
-  startGame(durationSeconds: number, boardSize: number = 4, minWordLength: number = 3): { game: Game; wordHashes: string[]; salt: string } {
+  startGame(durationSeconds: number, boardSize: number = 4, minWordLength: number = 3, predefinedBoard?: string[][]): { game: Game; wordHashes: string[]; salt: string } {
     if (!this.game || this.game.status !== GameState.Config) {
       throw new Error('Cannot start game: game not in Config state');
     }
 
-    const board = generateBoard(boardSize);
+    const board = predefinedBoard && predefinedBoard.length === boardSize ? predefinedBoard : generateBoard(boardSize);
     this.game = {
       board,
       startedAt: Date.now(),

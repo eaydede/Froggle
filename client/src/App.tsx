@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { GameState, Position } from 'models';
 import { useGameApi } from './hooks/useGameApi';
 import { useTimer } from './hooks/useTimer';
@@ -8,6 +8,7 @@ import { ConfigPage } from './pages/ConfigPage';
 import { GamePage } from './pages/GamePage';
 import { ResultsPage } from './pages/ResultsPage';
 import { FeedbackType } from './components/Board';
+import { decodeBoard, parseCode, SharedBoard, encodeBoard } from './utils/boardCode';
 import './App.css';
 
 const loadMuted = (): boolean => {
@@ -23,8 +24,25 @@ function App() {
   const [boardStyle, setBoardStyle] = useState({ base: 1, hover: 0, press: 3, sound: 0, validSound: 0, invalidSound: 0, duplicateSound: 2, colorWash: 35, preact: 1, preactRadius: 130, preactIntensity: 100, validAnim: 3 });
   const [showBoardStylePicker, setShowBoardStylePicker] = useState(false);
   const [muted, setMuted] = useState(loadMuted);
+  const [sharedBoard, setSharedBoard] = useState<SharedBoard | null>(null);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const longPressTriggered = useRef(false);
+
+  // Check URL for shared board code on mount
+  useEffect(() => {
+    const path = window.location.pathname;
+    const match = path.match(/^\/b\/(.+)$/);
+    if (match) {
+      const code = parseCode(match[1]);
+      const decoded = decodeBoard(code);
+      if (decoded) {
+        setSharedBoard(decoded);
+        createGame();
+      }
+      // Clear the URL without reload
+      window.history.replaceState({}, '', '/');
+    }
+  }, []);
 
   const toggleMute = () => {
     setMuted(prev => {
@@ -51,8 +69,9 @@ function App() {
   };
 
   const handleStartGame = async (boardSize: number, timeLimit: number, minWordLength: number) => {
-    await startGame(timeLimit, boardSize, minWordLength);
+    await startGame(timeLimit, boardSize, minWordLength, sharedBoard?.board);
     setFeedback(null);
+    setSharedBoard(null);
   };
 
   const handleCancelGame = async () => {
@@ -83,6 +102,7 @@ function App() {
 
   const handleConfirmHome = async () => {
     setShowHomeConfirm(false);
+    setSharedBoard(null);
     await cancelGame();
   };
 
@@ -131,6 +151,7 @@ function App() {
           <ConfigPage 
             onStartGame={handleStartGame}
             onBack={handleBackToStart}
+            sharedBoard={sharedBoard}
           />
         );
 
@@ -153,7 +174,7 @@ function App() {
         );
 
       case GameState.Finished:
-        return <ResultsPage results={results} onPlayAgain={handlePlayAgain} />;
+        return <ResultsPage results={results} onPlayAgain={handlePlayAgain} game={game!} />;
 
       default:
         return null;

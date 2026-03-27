@@ -26,9 +26,10 @@ export const useGameApi = () => {
   const startGame = async (
     durationSeconds: number = 180, 
     boardSize: number = 4, 
-    minWordLength: number = 3
+    minWordLength: number = 3,
+    predefinedBoard?: string[][]
   ) => {
-    const data = await gameApi.startGame(durationSeconds, boardSize, minWordLength);
+    const data = await gameApi.startGame(durationSeconds, boardSize, minWordLength, predefinedBoard);
     setGame(data.game);
     setWords([]);
     wordHashesRef.current = new Set(data.wordHashes);
