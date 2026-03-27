@@ -1,5 +1,6 @@
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Game, Position, Word } from 'models';
-import { Board, FeedbackType, BASE_LABELS, HOVER_LABELS, PRESS_LABELS, PREACT_LABELS, computeFeedbackColors } from '../components/Board';
+import { Board, FeedbackType, BASE_LABELS, HOVER_LABELS, PRESS_LABELS, PREACT_LABELS, VALID_ANIM_LABELS, VALID_ANIM_STYLES, computeFeedbackColors } from '../components/Board';
 import { SOUND_LABELS } from '../hooks/useThockSound';
 import { VALID_SOUND_LABELS, INVALID_SOUND_LABELS, DUPLICATE_SOUND_LABELS } from '../hooks/useFeedbackSounds';
 import { TimerBar } from '../components/TimerBar';
@@ -16,6 +17,7 @@ interface BoardStyleState {
   preact: number;
   preactRadius: number;
   preactIntensity: number;
+  validAnim: number;
 }
 
 interface GamePageProps {
@@ -35,6 +37,47 @@ interface GamePageProps {
 
 export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGame, boardStyle, onBoardStyleChange, showBoardStylePicker, muted, onToggleMute }: GamePageProps) => {
   const boardSize = game.board.length;
+  const [currentWord, setCurrentWord] = useState('');
+  const [displayWord, setDisplayWord] = useState('');
+  const [wordFeedback, setWordFeedback] = useState<FeedbackType>(null);
+  const [isFading, setIsFading] = useState(false);
+  const fadeTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const clearTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleCurrentWordChange = useCallback((word: string) => setCurrentWord(word), []);
+
+  // When actively dragging, show the live word
+  useEffect(() => {
+    if (currentWord) {
+      setDisplayWord(currentWord);
+      setWordFeedback(null);
+      setIsFading(false);
+      if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+    }
+  }, [currentWord]);
+
+  // When feedback arrives, show the submitted word with feedback color then fade
+  useEffect(() => {
+    if (feedback) {
+      const word = feedback.path.map(p => game.board[p.row]?.[p.col] || '').join('');
+      setDisplayWord(word);
+      setWordFeedback(feedback.type);
+      setIsFading(false);
+
+      if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+
+      fadeTimerRef.current = setTimeout(() => {
+        setIsFading(true);
+        clearTimerRef.current = setTimeout(() => {
+          setDisplayWord('');
+          setWordFeedback(null);
+          setIsFading(false);
+        }, 300);
+      }, 800);
+    }
+  }, [feedback]);
   const colors = computeFeedbackColors(boardStyle.colorWash);
   
   const renderPicker = (label: string, options: string[], activeIndex: number, onChange: (i: number) => void) => (
@@ -78,11 +121,40 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
             preactStyleIndex={boardStyle.preact}
             preactRadius={boardStyle.preactRadius}
             preactIntensity={boardStyle.preactIntensity}
+            onCurrentWordChange={handleCurrentWordChange}
           />
-          <button className="mute-toggle" onClick={onToggleMute} aria-label={muted ? 'Unmute' : 'Mute'}>
-            {muted ? '🔇' : '🔊'}
-          </button>
         </div>
+      </div>
+
+      <div className="board-footer">
+        <button className="mute-toggle" onClick={onToggleMute} aria-label={muted ? 'Unmute' : 'Mute'}>
+          {muted ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <line x1="23" y1="9" x2="17" y2="15" />
+              <line x1="17" y1="9" x2="23" y2="15" />
+            </svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+            </svg>
+          )}
+        </button>
+      </div>
+
+      <div className={`current-word ${wordFeedback ? `feedback-${wordFeedback}` : ''} ${wordFeedback === 'valid' ? (VALID_ANIM_STYLES[boardStyle.validAnim] || '') : ''} ${isFading ? 'fading' : ''}`} style={{
+        '--color-valid': colors.valid,
+        '--color-invalid': colors.invalid,
+        '--color-duplicate': colors.duplicate,
+      } as React.CSSProperties}>
+        {wordFeedback === 'valid' && boardStyle.validAnim === 3
+          ? displayWord.split('').map((letter, i) => (
+              <span key={i} className="wave-letter" style={{ animationDelay: `${i * 0.04}s` }}>{letter}</span>
+            ))
+          : displayWord
+        }
       </div>
 
       {showBoardStylePicker && (
@@ -95,6 +167,7 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
           {renderPicker('Invalid Word', INVALID_SOUND_LABELS, boardStyle.invalidSound, (i) => onBoardStyleChange({ ...boardStyle, invalidSound: i }))}
           {renderPicker('Duplicate Word', DUPLICATE_SOUND_LABELS, boardStyle.duplicateSound, (i) => onBoardStyleChange({ ...boardStyle, duplicateSound: i }))}
           {renderPicker('Pre-Actuation', PREACT_LABELS, boardStyle.preact, (i) => onBoardStyleChange({ ...boardStyle, preact: i }))}
+          {renderPicker('Valid Word Effect', VALID_ANIM_LABELS, boardStyle.validAnim, (i) => onBoardStyleChange({ ...boardStyle, validAnim: i }))}
 
           {boardStyle.preact !== 0 && (
             <>

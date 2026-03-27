@@ -393,7 +393,8 @@ h1 {
 .board-container {
   display: flex;
   justify-content: center;
-  margin: 15px 0;
+  margin-top: 15px;
+  margin-bottom: 2px;
   width: 100%;
 }
 
@@ -405,21 +406,28 @@ h1 {
   position: relative;
 }
 
+.board-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 24px;
+  margin-top: 0;
+}
+
 .mute-toggle {
-  position: absolute;
-  bottom: -30px;
-  right: 0;
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 16px;
-  opacity: 0.4;
-  transition: opacity 0.15s;
+  color: #bbb;
+  transition: color 0.15s;
   padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .mute-toggle:hover {
-  opacity: 0.7;
+  color: #888;
 }
 
 .board-style-picker {
@@ -688,16 +696,88 @@ h1 {
 }
 
 .current-word {
-  margin: 15px 0 0 0;
-  font-size: 32px;
-  font-weight: bold;
+  font-size: 24px;
+  font-weight: 900;
   text-align: center;
-  min-height: 48px;
-  height: 48px;
-  color: #2196F3;
+  min-height: 36px;
+  color: #999;
   display: flex;
   align-items: center;
   justify-content: center;
+  letter-spacing: 2px;
+  transition: opacity 0.3s ease, color 0.15s;
+  opacity: 1;
+}
+
+.current-word.feedback-valid {
+  color: var(--color-valid, hsl(122, 32%, 55%));
+}
+
+.current-word.feedback-valid.valid-bounce {
+  animation: word-bounce 0.4s ease;
+}
+
+.current-word.feedback-valid.valid-pulse {
+  animation: word-pulse 0.4s ease;
+}
+
+.current-word.feedback-valid.valid-slide {
+  animation: word-slide 0.5s ease;
+}
+
+.current-word.feedback-valid.valid-wave .wave-letter {
+  display: inline-block;
+  animation: letter-wave 0.4s ease both;
+}
+
+.current-word.feedback-invalid {
+  color: var(--color-invalid, hsl(4, 35%, 62%));
+  animation: word-shake 0.3s ease;
+}
+
+.current-word.feedback-duplicate {
+  color: var(--color-duplicate, hsl(45, 50%, 58%));
+  animation: word-shake 0.3s ease;
+}
+
+.current-word.fading {
+  opacity: 0;
+}
+
+@keyframes word-bounce {
+  0% { transform: translateY(0); }
+  30% { transform: translateY(-8px); }
+  50% { transform: translateY(0); }
+  70% { transform: translateY(-3px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes word-pulse {
+  0% { opacity: 1; filter: brightness(1); }
+  35% { opacity: 1; filter: brightness(1.4); }
+  100% { opacity: 1; filter: brightness(1); }
+}
+
+@keyframes word-slide {
+  0% { transform: translateY(0); opacity: 1; }
+  40% { transform: translateY(-6px); opacity: 1; }
+  80% { transform: translateY(-6px); opacity: 1; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes letter-wave {
+  0% { transform: translateY(0); }
+  40% { transform: translateY(-6px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes word-shake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+  100% { transform: translateX(0); }
 }
 
 .message {

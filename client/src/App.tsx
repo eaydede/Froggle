@@ -20,7 +20,7 @@ function App() {
   const { game, words, results, createGame, startGame, cancelGame, endGame, fetchGameState, submitWord } = useGameApi();
   const [feedback, setFeedback] = useState<{ type: FeedbackType; path: Position[] } | null>(null);
   const [showHomeConfirm, setShowHomeConfirm] = useState(false);
-  const [boardStyle, setBoardStyle] = useState({ base: 1, hover: 0, press: 3, sound: 0, validSound: 0, invalidSound: 0, duplicateSound: 2, colorWash: 35, preact: 1, preactRadius: 130, preactIntensity: 100 });
+  const [boardStyle, setBoardStyle] = useState({ base: 1, hover: 0, press: 3, sound: 0, validSound: 0, invalidSound: 0, duplicateSound: 2, colorWash: 35, preact: 1, preactRadius: 130, preactIntensity: 100, validAnim: 3 });
   const [showBoardStylePicker, setShowBoardStylePicker] = useState(false);
   const [muted, setMuted] = useState(loadMuted);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);

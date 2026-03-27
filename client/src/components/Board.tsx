@@ -17,6 +17,9 @@ export const PRESS_LABELS = ['Glow', 'Flat', 'Subtle', 'Inset'];
 export const PREACT_STYLES = ['preact-none', 'preact-depress', 'preact-shadow', 'preact-bleed', 'preact-dim', 'preact-combo'];
 export const PREACT_LABELS = ['None', 'Depress', 'Shadow', 'Color Bleed', 'Dim', 'Depress + Bleed'];
 
+export const VALID_ANIM_STYLES = ['valid-bounce', 'valid-pulse', 'valid-slide', 'valid-wave'];
+export const VALID_ANIM_LABELS = ['Bounce Up', 'Gentle Pulse', 'Slide Up', 'Letter Wave'];
+
 // Vivid HSL values: [hue, saturation, lightness]
 const COLOR_RANGES = {
   selected:  { vivid: [207, 90, 54], washed: [207, 25, 72] },
@@ -90,12 +93,14 @@ interface BoardProps {
   preactStyleIndex?: number;
   preactRadius?: number;
   preactIntensity?: number;
+  onCurrentWordChange?: (word: string) => void;
 }
 
-export const Board = ({ board, onSubmitWord, feedback, baseStyleIndex = 1, hoverStyleIndex = 0, pressStyleIndex = 3, soundIndex = 0, colorWash = 35, preactStyleIndex = 0, preactRadius = 130, preactIntensity = 100 }: BoardProps) => {
+export const Board = ({ board, onSubmitWord, feedback, baseStyleIndex = 1, hoverStyleIndex = 0, pressStyleIndex = 3, soundIndex = 0, colorWash = 35, preactStyleIndex = 0, preactRadius = 130, preactIntensity = 100, onCurrentWordChange }: BoardProps) => {
   const playThock = useThockSound(soundIndex);
   const {
     boardRef,
+    currentPath,
     clearPath,
     handleCellPointerDown,
     handleBoardPointerMove,
@@ -105,6 +110,12 @@ export const Board = ({ board, onSubmitWord, feedback, baseStyleIndex = 1, hover
     isInFeedbackPath,
     getCellProximity,
   } = useBoardInteraction({ onSubmitWord, feedback, onCellSelected: playThock, proximityRadius: preactRadius / 100 });
+
+  const currentWord = currentPath.map(p => board[p.row]?.[p.col] || '').join('');
+
+  useEffect(() => {
+    onCurrentWordChange?.(currentWord);
+  }, [currentWord, onCurrentWordChange]);
 
   useEffect(() => {
     if (feedback) {
