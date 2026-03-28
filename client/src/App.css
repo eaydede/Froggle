@@ -897,23 +897,48 @@ h1 {
 
 .results-content {
   display: flex;
-  gap: 20px;
+  gap: 16px;
   align-items: flex-start;
 }
 
 .results-board-section {
-  flex-grow: 1;
   min-width: 0;
+}
+
+.results-board-wrapper {
+  position: relative;
 }
 
 .results-list-section {
   flex: 1;
-  min-width: 200px;
+  min-width: 0;
 }
 
-.results-board-toggle-mobile {
-  display: none;
+/* Minimized: board is 50% width, word list beside it */
+.results-minimized .results-content {
+  flex-direction: row;
 }
+
+.results-minimized .results-board-section {
+  width: 50%;
+  flex-shrink: 0;
+}
+
+.results-minimized .results-cell {
+  border-radius: 5px;
+}
+
+/* Maximized: board full width, word list below */
+.results-maximized .results-content {
+  flex-direction: column;
+}
+
+.results-maximized .results-board-section {
+  width: 100%;
+  max-width: 500px;
+}
+
+
 
 /* Results Board */
 .results-board {
@@ -1011,6 +1036,53 @@ h1 {
   color: #333;
 }
 
+.results-visual-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.results-visual-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #bbb;
+  line-height: 8px;
+  flex-shrink: 0;
+  width: 14px;
+}
+
+.results-score-bar {
+  display: flex;
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.results-score-bar-segment {
+  height: 100%;
+  min-width: 2px;
+}
+
+.results-word-squares {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.results-word-square {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  transition: transform 0.2s ease;
+}
+
+.results-word-square.square-highlighted {
+  transform: scale(1.6);
+  z-index: 1;
+}
+
 .results-combined-list {
   display: flex;
   flex-direction: column;
@@ -1032,6 +1104,19 @@ h1 {
   background-color: #f0f0f0;
 }
 
+.results-word-left {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.results-score-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 .results-word-text {
   font-weight: 600;
   font-size: 13px;
@@ -1042,16 +1127,12 @@ h1 {
 .results-word-score {
   font-size: 12px;
   font-weight: 600;
-  min-width: 20px;
+  min-width: 14px;
   text-align: right;
 }
 
 .results-word-found .results-word-text {
-  color: hsl(122, 32%, 45%);
-}
-
-.results-word-found .results-word-score {
-  color: hsl(122, 32%, 55%);
+  color: #333;
 }
 
 .results-word-missed .results-word-text {
@@ -1074,7 +1155,7 @@ h1 {
 .results-word-right {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 3px;
 }
 
 .results-word-expand {
@@ -1165,30 +1246,9 @@ h1 {
     margin-top: 20px;
   }
 
-  .results-content {
-    flex-direction: column;
-  }
-
-  .results-board-section {
-    display: none;
-    width: 100%;
-  }
-
-  .results-board-section.results-board-visible {
-    display: block;
-  }
-
   .results-list-section {
     width: 100%;
   }
-
-  .results-board-toggle-mobile {
-    display: block;
-    margin-bottom: 12px;
-  }
-
-
-
 }
 
 /* Debug Overlay Styles */

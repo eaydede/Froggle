@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Position, Game } from 'models';
 import { GameResults } from '../api/gameApi';
 import { ResultsBoard } from '../components/ResultsBoard';
-import { ResultsWordList } from '../components/ResultsWordList';
+import { ResultsWordList, getScoreColor } from '../components/ResultsWordList';
 import { encodeBoard, encodeBoardOnly, formatCode } from '../utils/boardCode';
 
 interface ResultsPageProps {
@@ -13,8 +13,28 @@ interface ResultsPageProps {
 
 export const ResultsPage = ({ results, onPlayAgain, game }: ResultsPageProps) => {
   const [highlightPath, setHighlightPath] = useState<Position[] | null>(null);
-  const [boardVisible, setBoardVisible] = useState(false);
+  const [highlightedWordInfo, setHighlightedWordInfo] = useState<{ word: string; score: number } | null>(null);
+  const [boardMinimized, setBoardMinimized] = useState(true);
   const [copiedType, setCopiedType] = useState<'game' | 'board' | null>(null);
+
+  const scoreBreakdown = useMemo(() => {
+    if (!results) return [];
+    const tiers: Record<number, number> = {};
+    for (const w of results.foundWords) {
+      tiers[w.score] = (tiers[w.score] || 0) + w.score;
+    }
+    return Object.entries(tiers)
+      .map(([score, total]) => ({ score: Number(score), total }))
+      .sort((a, b) => a.score - b.score);
+  }, [results]);
+
+  const totalScore = results?.foundWords.reduce((sum, w) => sum + w.score, 0) || 0;
+
+  // Sort found words by score ascending to match the line graph order
+  const sortedFoundWords = useMemo(() => {
+    if (!results) return [];
+    return [...results.foundWords].sort((a, b) => a.score - b.score);
+  }, [results]);
 
   if (!results) {
     return <div className="results-loading">Loading results...</div>;
@@ -48,25 +68,55 @@ export const ResultsPage = ({ results, onPlayAgain, game }: ResultsPageProps) =>
   };
 
   return (
-    <div className="results-page">
-      <div className="results-board-toggle-mobile">
-        <button
-          className="results-section-toggle"
-          onClick={() => setBoardVisible(!boardVisible)}
-        >
-          <span>{boardVisible ? '▾ Hide Board' : '▸ Show Board'}</span>
-        </button>
-      </div>
-
+    <div className={`results-page ${boardMinimized ? 'results-minimized' : 'results-maximized'}`}>
       <div className="results-content">
-        <div className={`results-board-section ${boardVisible ? 'results-board-visible' : ''}`}>
-          <ResultsBoard board={results.board} highlightPath={highlightPath} />
+        <div className="results-board-section">
+          <div
+            className="results-board-wrapper"
+            onClick={() => setBoardMinimized(!boardMinimized)}
+            style={{ cursor: 'pointer' }}
+          >
+            <ResultsBoard board={results.board} highlightPath={highlightPath} />
+          </div>
+          {totalScore > 0 && (
+            <>
+              <div className="results-visual-row">
+                <span className="results-visual-label">P:</span>
+                <div className="results-score-bar">
+                  {scoreBreakdown.map(({ score, total }) => (
+                    <div
+                      key={score}
+                      className="results-score-bar-segment"
+                      style={{
+                        width: `${(total / totalScore) * 100}%`,
+                        backgroundColor: getScoreColor(score),
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="results-visual-row">
+                <span className="results-visual-label">W:</span>
+                <div className="results-word-squares">
+                  {sortedFoundWords.map((w, i) => (
+                    <div
+                      key={i}
+                      className={`results-word-square ${highlightedWordInfo?.word === w.word ? 'square-highlighted' : ''}`}
+                      style={{ backgroundColor: getScoreColor(w.score) }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </div>
         <div className="results-list-section">
           <ResultsWordList
             foundWords={results.foundWords}
             missedWords={results.missedWords}
             onHoverWord={setHighlightPath}
+            onWordSelect={setHighlightedWordInfo}
+            compact={boardMinimized}
           />
         </div>
       </div>

@@ -6,11 +6,25 @@ interface ResultsWordListProps {
   foundWords: ScoredWord[];
   missedWords: ScoredWord[];
   onHoverWord: (path: Position[] | null) => void;
+  onWordSelect?: (info: { word: string; score: number } | null) => void;
+  compact?: boolean;
 }
 
 interface CombinedWord extends ScoredWord {
   found: boolean;
 }
+
+export const SCORE_COLORS: Record<number, string> = {
+  1: '#8BA89B',
+  2: '#5A9E9E',
+  3: '#003dffa1',
+  5: '#bd65ffd9',
+  11: '#C4A24E',
+};
+
+export const getScoreColor = (score: number): string => {
+  return SCORE_COLORS[score] || '#8BA89B';
+};
 
 const WordRow = ({ word, path, score, found, isHighlighted, onTap }: {
   word: string;
@@ -26,7 +40,10 @@ const WordRow = ({ word, path, score, found, isHighlighted, onTap }: {
       onClick={onTap}
     >
       <span className="results-word-text">{word}</span>
-      <span className="results-word-score">{score}</span>
+      <div className="results-word-right">
+        {found && <span className="results-score-dot" style={{ backgroundColor: getScoreColor(score) }} />}
+        <span className="results-word-score" style={found ? { color: getScoreColor(score) } : undefined}>{score}</span>
+      </div>
     </div>
   );
 };
@@ -39,18 +56,20 @@ const findRelatedMissedWords = (foundWord: ScoredWord, missedWords: ScoredWord[]
   });
 };
 
-export const ResultsWordList = ({ foundWords, missedWords, onHoverWord }: ResultsWordListProps) => {
+export const ResultsWordList = ({ foundWords, missedWords, onHoverWord, onWordSelect, compact = false }: ResultsWordListProps) => {
   const [showAll, setShowAll] = useState(false);
   const [expandedWord, setExpandedWord] = useState<string | null>(null);
   const [highlightedWord, setHighlightedWord] = useState<string | null>(null);
 
-  const handleWordTap = (word: string, path: Position[]) => {
+  const handleWordTap = (word: string, path: Position[], score: number) => {
     if (highlightedWord === word) {
       setHighlightedWord(null);
       onHoverWord(null);
+      onWordSelect?.(null);
     } else {
       setHighlightedWord(word);
       onHoverWord(path);
+      onWordSelect?.({ word, score });
     }
   };
 
@@ -71,9 +90,14 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord }: Result
       <div className="results-summary-bar">
         <div className="results-summary-left">
           <span className="results-summary-count">
-            {showAll ? `${foundWords.length}/${foundWords.length + missedWords.length}` : `${foundWords.length} Words`}
+            {showAll 
+              ? `${foundWords.length}/${foundWords.length + missedWords.length}` 
+              : compact 
+                ? `${foundWords.length}W`
+                : `${foundWords.length} Words`
+            }
           </span>
-          <span className="results-summary-score">{totalScore} pts</span>
+          <span className="results-summary-score">{compact ? `${totalScore}pts` : `${totalScore} pts`}</span>
         </div>
         <button
           className={`results-show-all-btn ${showAll ? 'active' : ''}`}
@@ -105,7 +129,7 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord }: Result
               score={w.score}
               found={w.found}
               isHighlighted={highlightedWord === w.word}
-              onTap={() => handleWordTap(w.word, w.path)}
+              onTap={() => handleWordTap(w.word, w.path, w.score)}
             />
           ))
         ) : (
@@ -118,19 +142,22 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord }: Result
               <div key={fw.word} className="results-word-group">
                 <div
                   className={`results-word-row results-word-found ${highlightedWord === fw.word ? 'results-word-highlighted' : ''}`}
-                  onClick={() => handleWordTap(fw.word, fw.path)}
+                  onClick={() => handleWordTap(fw.word, fw.path, fw.score)}
                 >
-                  <span className="results-word-text">{fw.word}</span>
-                  <div className="results-word-right">
+                  <div className="results-word-left">
+                    <span className="results-word-text">{fw.word}</span>
                     {hasRelated && (
                       <button
                         className={`results-word-expand ${isExpanded ? 'expanded' : ''}`}
-                        onClick={() => setExpandedWord(isExpanded ? null : fw.word)}
+                        onClick={(e) => { e.stopPropagation(); setExpandedWord(isExpanded ? null : fw.word); }}
                       >
                         ▾
                       </button>
                     )}
-                    <span className="results-word-score">{fw.score}</span>
+                  </div>
+                  <div className="results-word-right">
+                    <span className="results-score-dot" style={{ backgroundColor: getScoreColor(fw.score) }} />
+                    <span className="results-word-score" style={{ color: getScoreColor(fw.score) }}>{fw.score}</span>
                   </div>
                 </div>
                 {isExpanded && (
@@ -143,7 +170,7 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord }: Result
                         score={rw.score}
                         found={false}
                         isHighlighted={highlightedWord === rw.word}
-                        onTap={() => handleWordTap(rw.word, rw.path)}
+                        onTap={() => handleWordTap(rw.word, rw.path, rw.score)}
                       />
                     ))}
                   </div>
