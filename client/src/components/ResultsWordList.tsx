@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Position } from 'models';
 import { ScoredWord } from '../api/gameApi';
 
@@ -8,6 +8,29 @@ interface ResultsWordListProps {
   onHoverWord: (path: Position[] | null) => void;
 }
 
+interface CombinedWord extends ScoredWord {
+  found: boolean;
+}
+
+const WordRow = ({ word, path, score, found, isHighlighted, onTap }: {
+  word: string;
+  path: Position[];
+  score: number;
+  found: boolean;
+  isHighlighted?: boolean;
+  onTap?: () => void;
+}) => {
+  return (
+    <div
+      className={`results-word-row ${found ? 'results-word-found' : 'results-word-missed'} ${isHighlighted ? 'results-word-highlighted' : ''}`}
+      onClick={onTap}
+    >
+      <span className="results-word-text">{word}</span>
+      <span className="results-word-score">{score}</span>
+    </div>
+  );
+};
+
 const findRelatedMissedWords = (foundWord: ScoredWord, missedWords: ScoredWord[]): ScoredWord[] => {
   const foundLower = foundWord.word.toLowerCase();
   return missedWords.filter(missed => {
@@ -16,109 +39,118 @@ const findRelatedMissedWords = (foundWord: ScoredWord, missedWords: ScoredWord[]
   });
 };
 
-const WordRow = ({ word, path, score, onHoverWord, className, children }: {
-  word: string;
-  path: Position[];
-  score: number;
-  onHoverWord: (path: Position[] | null) => void;
-  className?: string;
-  children?: React.ReactNode;
-}) => {
-  return (
-    <div
-      className={`results-word-row ${className || ''}`}
-      onMouseEnter={() => onHoverWord(path)}
-      onMouseLeave={() => onHoverWord(null)}
-    >
-      <span className="results-word-text">{word}</span>
-      <div className="results-word-right">
-        {children}
-        <span className="results-word-score">{score}</span>
-      </div>
-    </div>
-  );
-};
-
 export const ResultsWordList = ({ foundWords, missedWords, onHoverWord }: ResultsWordListProps) => {
+  const [showAll, setShowAll] = useState(false);
   const [expandedWord, setExpandedWord] = useState<string | null>(null);
-  const [foundExpanded, setFoundExpanded] = useState(true);
-  const [missedExpanded, setMissedExpanded] = useState(false);
+  const [highlightedWord, setHighlightedWord] = useState<string | null>(null);
+
+  const handleWordTap = (word: string, path: Position[]) => {
+    if (highlightedWord === word) {
+      setHighlightedWord(null);
+      onHoverWord(null);
+    } else {
+      setHighlightedWord(word);
+      onHoverWord(path);
+    }
+  };
 
   const totalScore = foundWords.reduce((sum, w) => sum + w.score, 0);
 
-  const toggleExpanded = (word: string) => {
-    setExpandedWord(prev => prev === word ? null : word);
-  };
+  // Expanded view: all words sorted by score desc
+  const allWords = useMemo(() => {
+    const combined: CombinedWord[] = [
+      ...foundWords.map(w => ({ ...w, found: true })),
+      ...missedWords.map(w => ({ ...w, found: false })),
+    ];
+    combined.sort((a, b) => b.score - a.score || a.word.localeCompare(b.word));
+    return combined;
+  }, [foundWords, missedWords]);
 
   return (
     <div className="results-word-list">
-      <div className="results-section">
+      <div className="results-summary-bar">
+        <div className="results-summary-left">
+          <span className="results-summary-count">
+            {showAll ? `${foundWords.length}/${foundWords.length + missedWords.length}` : `${foundWords.length} Words`}
+          </span>
+          <span className="results-summary-score">{totalScore} pts</span>
+        </div>
         <button
-          className="results-section-toggle"
-          onClick={() => setFoundExpanded(!foundExpanded)}
+          className={`results-show-all-btn ${showAll ? 'active' : ''}`}
+          onClick={() => setShowAll(!showAll)}
         >
-          <span>{foundExpanded ? '▾' : '▸'} {foundWords.length} word{foundWords.length !== 1 ? 's' : ''} found</span>
-          <span className="results-section-score">{totalScore} pts</span>
+          {showAll ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="4" y1="6" x2="20" y2="6" />
+              <line x1="4" y1="12" x2="14" y2="12" />
+              <line x1="4" y1="18" x2="10" y2="18" />
+            </svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="4" y1="6" x2="20" y2="6" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="18" x2="20" y2="18" />
+            </svg>
+          )}
         </button>
-        {foundExpanded && (
-          <div className="results-scrollable-list">
-            {foundWords.map((w) => {
-              const related = findRelatedMissedWords(w, missedWords);
-              const hasRelated = related.length > 0;
-              const isExpanded = expandedWord === w.word;
+      </div>
 
-              return (
-                <div key={w.word} className="results-word-group">
-                  <WordRow word={w.word} path={w.path} score={w.score} onHoverWord={onHoverWord}>
+      <div className="results-combined-list">
+        {showAll ? (
+          allWords.map((w) => (
+            <WordRow
+              key={`${w.word}-${w.found}`}
+              word={w.word}
+              path={w.path}
+              score={w.score}
+              found={w.found}
+              isHighlighted={highlightedWord === w.word}
+              onTap={() => handleWordTap(w.word, w.path)}
+            />
+          ))
+        ) : (
+          foundWords.map((fw) => {
+            const related = findRelatedMissedWords(fw, missedWords);
+            const hasRelated = related.length > 0;
+            const isExpanded = expandedWord === fw.word;
+
+            return (
+              <div key={fw.word} className="results-word-group">
+                <div
+                  className={`results-word-row results-word-found ${highlightedWord === fw.word ? 'results-word-highlighted' : ''}`}
+                  onClick={() => handleWordTap(fw.word, fw.path)}
+                >
+                  <span className="results-word-text">{fw.word}</span>
+                  <div className="results-word-right">
                     {hasRelated && (
                       <button
                         className={`results-word-expand ${isExpanded ? 'expanded' : ''}`}
-                        onClick={() => toggleExpanded(w.word)}
+                        onClick={() => setExpandedWord(isExpanded ? null : fw.word)}
                       >
                         ▾
                       </button>
                     )}
-                  </WordRow>
-                  {isExpanded && related.length > 0 && (
-                    <div className="results-related-words">
-                      {related.map(r => (
-                        <WordRow
-                          key={r.word}
-                          word={r.word}
-                          path={r.path}
-                          score={r.score}
-                          onHoverWord={onHoverWord}
-                          className="results-related-word-row"
-                        />
-                      ))}
-                    </div>
-                  )}
+                    <span className="results-word-score">{fw.score}</span>
+                  </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      <div className="results-section">
-        <button
-          className="results-section-toggle"
-          onClick={() => setMissedExpanded(!missedExpanded)}
-        >
-          <span>{missedExpanded ? '▾' : '▸'} Missed words ({missedWords.length})</span>
-        </button>
-        {missedExpanded && (
-          <div className="results-scrollable-list">
-            {missedWords.map((w) => (
-              <WordRow
-                key={w.word}
-                word={w.word}
-                path={w.path}
-                score={w.score}
-                onHoverWord={onHoverWord}
-              />
-            ))}
-          </div>
+                {isExpanded && (
+                  <div className="results-related-words">
+                    {related.map(rw => (
+                      <WordRow
+                        key={rw.word}
+                        word={rw.word}
+                        path={rw.path}
+                        score={rw.score}
+                        found={false}
+                        isHighlighted={highlightedWord === rw.word}
+                        onTap={() => handleWordTap(rw.word, rw.path)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
     </div>
