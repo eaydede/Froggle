@@ -4,6 +4,7 @@ import { GameResults } from '../api/gameApi';
 import { ResultsBoard } from '../components/ResultsBoard';
 import { ResultsWordList, getScoreColor } from '../components/ResultsWordList';
 import { encodeBoard, encodeBoardOnly, formatCode } from '../utils/boardCode';
+import { generateShareText } from '../utils/shareResults';
 
 interface ResultsPageProps {
   results: GameResults | null;
@@ -15,7 +16,7 @@ export const ResultsPage = ({ results, onPlayAgain, game }: ResultsPageProps) =>
   const [highlightPath, setHighlightPath] = useState<Position[] | null>(null);
   const [highlightedWordInfo, setHighlightedWordInfo] = useState<{ word: string; score: number } | null>(null);
   const [boardMinimized, setBoardMinimized] = useState(true);
-  const [copiedType, setCopiedType] = useState<'game' | 'board' | null>(null);
+  const [copiedType, setCopiedType] = useState<'game' | 'board' | 'results' | null>(null);
 
   const scoreBreakdown = useMemo(() => {
     if (!results) return [];
@@ -64,6 +65,23 @@ export const ResultsPage = ({ results, onPlayAgain, game }: ResultsPageProps) =>
       setTimeout(() => setCopiedType(null), 2000);
     }).catch(() => {
       prompt('Copy this link:', url);
+    });
+  };
+
+  const handleShareResults = () => {
+    const gameCode = encodeBoard({
+      board: results.board,
+      boardSize: game.config.boardSize,
+      timeLimit: game.config.durationSeconds,
+      minWordLength: game.config.minWordLength,
+    });
+    const gameLink = `${window.location.origin}/g/${formatCode(gameCode)}`;
+    const text = generateShareText(results.foundWords, { gameLink });
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedType('results');
+      setTimeout(() => setCopiedType(null), 2000);
+    }).catch(() => {
+      prompt('Copy your results:', text);
     });
   };
 
@@ -126,6 +144,23 @@ export const ResultsPage = ({ results, onPlayAgain, game }: ResultsPageProps) =>
           Play Again
         </button>
         <div className="share-buttons">
+          <button onClick={handleShareResults} className="share-button">
+            {copiedType === 'results' ? (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Copied!
+              </>
+            ) : (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+                Share Results
+              </>
+            )}
+          </button>
           <button onClick={handleShareGame} className="share-button">
             {copiedType === 'game' ? (
               <>

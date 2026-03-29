@@ -87,7 +87,10 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord, onWordSe
 
   return (
     <div className="results-word-list">
-      <div className="results-summary-bar">
+      <div
+        className={`results-summary-bar ${showAll ? 'active' : ''}`}
+        onClick={() => setShowAll(!showAll)}
+      >
         <div className="results-summary-left">
           <span className="results-summary-count">
             {showAll 
@@ -99,24 +102,6 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord, onWordSe
           </span>
           <span className="results-summary-score">{compact ? `${totalScore}pts` : `${totalScore} pts`}</span>
         </div>
-        <button
-          className={`results-show-all-btn ${showAll ? 'active' : ''}`}
-          onClick={() => setShowAll(!showAll)}
-        >
-          {showAll ? (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="4" y1="6" x2="20" y2="6" />
-              <line x1="4" y1="12" x2="14" y2="12" />
-              <line x1="4" y1="18" x2="10" y2="18" />
-            </svg>
-          ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="4" y1="6" x2="20" y2="6" />
-              <line x1="4" y1="12" x2="20" y2="12" />
-              <line x1="4" y1="18" x2="20" y2="18" />
-            </svg>
-          )}
-        </button>
       </div>
 
       <div className="results-combined-list">
