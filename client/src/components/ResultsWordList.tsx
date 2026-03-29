@@ -15,11 +15,11 @@ interface CombinedWord extends ScoredWord {
 }
 
 export const SCORE_COLORS: Record<number, string> = {
-  1: '#8BA89B',
-  2: '#5A9E9E',
-  3: '#003dffa1',
-  5: '#bd65ffd9',
-  11: '#C4A24E',
+  1: '#9BB5A6',
+  2: '#6AABAB',
+  3: '#4A7BF7',
+  5: '#A855F7',
+  11: '#D4A030',
 };
 
 export const getScoreColor = (score: number): string => {
@@ -41,7 +41,7 @@ const WordRow = ({ word, path, score, found, isHighlighted, onTap }: {
     >
       <span className="results-word-text">{word}</span>
       <div className="results-word-right">
-        {found && <span className="results-score-dot" style={{ backgroundColor: getScoreColor(score) }} />}
+        {found && <span className={`results-score-dot score-tier-${score}`} />}
         <span className="results-word-score" style={found ? { color: getScoreColor(score) } : undefined}>{score}</span>
       </div>
     </div>
@@ -141,7 +141,7 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord, onWordSe
                     )}
                   </div>
                   <div className="results-word-right">
-                    <span className="results-score-dot" style={{ backgroundColor: getScoreColor(fw.score) }} />
+                    <span className={`results-score-dot score-tier-${fw.score}`} />
                     <span className="results-word-score" style={{ color: getScoreColor(fw.score) }}>{fw.score}</span>
                   </div>
                 </div>

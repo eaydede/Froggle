@@ -122,8 +122,7 @@ export const ResultsPage = ({ results, onPlayAgain, game }: ResultsPageProps) =>
                   {sortedFoundWords.map((w, i) => (
                     <div
                       key={i}
-                      className={`results-word-square ${highlightedWordInfo?.word === w.word ? 'square-highlighted' : ''}`}
-                      style={{ backgroundColor: getScoreColor(w.score) }}
+                      className={`results-word-square score-tier-${w.score} ${highlightedWordInfo?.word === w.word ? 'square-highlighted' : ''}`}
                     />
                   ))}
                 </div>

@@ -1083,6 +1083,31 @@ h1 {
   transition: transform 0.2s ease;
 }
 
+.results-word-square.score-tier-1 {
+  background-color: #9BB5A6;
+}
+
+.results-word-square.score-tier-2 {
+  background-color: #6AABAB;
+}
+
+.results-word-square.score-tier-3 {
+  background: linear-gradient(135deg, #5B8AF7, #3A6BE8);
+}
+
+.results-word-square.score-tier-5 {
+  background: linear-gradient(135deg, #B96EF7, #9333EA);
+  box-shadow: 0 0 3px rgba(168, 85, 247, 0.35);
+}
+
+.results-word-square.score-tier-11 {
+  background: linear-gradient(135deg, #E8BD50, #C4900A);
+  box-shadow: 0 0 4px rgba(212, 160, 48, 0.45);
+  position: relative;
+  overflow: visible;
+  animation: gold-glow-square 3s ease-in-out infinite;
+}
+
 .results-word-square.square-highlighted {
   transform: scale(1.6);
   z-index: 1;
@@ -1199,6 +1224,45 @@ h1 {
   height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+.results-score-dot.score-tier-1 {
+  background-color: #9BB5A6;
+}
+
+.results-score-dot.score-tier-2 {
+  background-color: #6AABAB;
+}
+
+.results-score-dot.score-tier-3 {
+  background: linear-gradient(135deg, #5B8AF7, #3A6BE8);
+}
+
+.results-score-dot.score-tier-5 {
+  background: linear-gradient(135deg, #B96EF7, #9333EA);
+  box-shadow: 0 0 3px rgba(168, 85, 247, 0.3);
+}
+
+.results-score-dot.score-tier-11 {
+  background: linear-gradient(135deg, #E8BD50, #C4900A);
+  box-shadow: 0 0 3px rgba(212, 160, 48, 0.4);
+  animation: gold-glow-dot 3s ease-in-out infinite;
+}
+
+@keyframes gold-glow-square {
+  0%   { box-shadow: 2px 0 4px rgba(232, 189, 80, 0.5),  -1px 0 2px rgba(196, 144, 10, 0.15); }
+  25%  { box-shadow: 0 2px 4px rgba(232, 189, 80, 0.5),  0 -1px 2px rgba(196, 144, 10, 0.15); }
+  50%  { box-shadow: -2px 0 4px rgba(232, 189, 80, 0.5), 1px 0 2px rgba(196, 144, 10, 0.15); }
+  75%  { box-shadow: 0 -2px 4px rgba(232, 189, 80, 0.5), 0 1px 2px rgba(196, 144, 10, 0.15); }
+  100% { box-shadow: 2px 0 4px rgba(232, 189, 80, 0.5),  -1px 0 2px rgba(196, 144, 10, 0.15); }
+}
+
+@keyframes gold-glow-dot {
+  0%   { box-shadow: 2px 0 3px rgba(232, 189, 80, 0.45),  -1px 0 2px rgba(196, 144, 10, 0.1); }
+  25%  { box-shadow: 0 2px 3px rgba(232, 189, 80, 0.45),  0 -1px 2px rgba(196, 144, 10, 0.1); }
+  50%  { box-shadow: -2px 0 3px rgba(232, 189, 80, 0.45), 1px 0 2px rgba(196, 144, 10, 0.1); }
+  75%  { box-shadow: 0 -2px 3px rgba(232, 189, 80, 0.45), 0 1px 2px rgba(196, 144, 10, 0.1); }
+  100% { box-shadow: 2px 0 3px rgba(232, 189, 80, 0.45),  -1px 0 2px rgba(196, 144, 10, 0.1); }
 }
 
 .results-word-text {
