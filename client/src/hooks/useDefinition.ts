@@ -44,31 +44,43 @@ export const useDefinition = (word: string | null) => {
 
     setLoading(true);
 
-    fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${lower}`, {
+    fetch(`https://freedictionaryapi.com/api/v1/entries/en/${lower}`, {
       signal: controller.signal,
     })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (controller.signal.aborted) return;
 
-        if (!data || !Array.isArray(data) || data.length === 0) {
+        if (!data || !data.entries || data.entries.length === 0) {
           cache.set(lower, null);
           setDefinition(null);
           setLoading(false);
           return;
         }
 
-        const entry = data[0];
-        const result: WordDefinition = {
-          word: entry.word,
-          phonetic: entry.phonetic || entry.phonetics?.find((p: { text?: string }) => p.text)?.text,
-          meanings: entry.meanings.map((m: { partOfSpeech: string; definitions: { definition: string; example?: string }[] }) => ({
-            partOfSpeech: m.partOfSpeech,
-            definitions: m.definitions.slice(0, 2).map((d) => ({
-              definition: d.definition,
-              example: d.example,
+        const phonetic = data.entries[0]?.pronunciations?.find(
+          (p: { text?: string }) => p.text
+        )?.text;
+
+        // Group entries by part of speech, deduplicating
+        const seen = new Set<string>();
+        const meanings: Meaning[] = [];
+        for (const entry of data.entries) {
+          if (seen.has(entry.partOfSpeech)) continue;
+          seen.add(entry.partOfSpeech);
+          meanings.push({
+            partOfSpeech: entry.partOfSpeech,
+            definitions: entry.senses.slice(0, 2).map((s: { definition: string; examples?: string[] }) => ({
+              definition: s.definition,
+              example: s.examples?.[0],
             })),
-          })),
+          });
+        }
+
+        const result: WordDefinition = {
+          word: data.word,
+          phonetic,
+          meanings,
         };
 
         cache.set(lower, result);
