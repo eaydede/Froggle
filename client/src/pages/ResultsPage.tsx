@@ -5,6 +5,7 @@ import { ResultsBoard } from '../components/ResultsBoard';
 import { ResultsWordList, getScoreColor } from '../components/ResultsWordList';
 import { encodeBoard, encodeBoardOnly, formatCode } from '../utils/boardCode';
 import { generateShareText } from '../utils/shareResults';
+import { useDefinition } from '../hooks/useDefinition';
 
 interface ResultsPageProps {
   results: GameResults | null;
@@ -17,6 +18,8 @@ export const ResultsPage = ({ results, onPlayAgain, game }: ResultsPageProps) =>
   const [highlightedWordInfo, setHighlightedWordInfo] = useState<{ word: string; score: number } | null>(null);
   const [boardMinimized, setBoardMinimized] = useState(true);
   const [copiedType, setCopiedType] = useState<'game' | 'board' | 'results' | null>(null);
+
+  const { definition, loading: definitionLoading } = useDefinition(highlightedWordInfo?.word ?? null);
 
   const scoreBreakdown = useMemo(() => {
     if (!results) return [];
@@ -126,6 +129,42 @@ export const ResultsPage = ({ results, onPlayAgain, game }: ResultsPageProps) =>
                 </div>
               </div>
             </>
+          )}
+          {highlightedWordInfo && (
+            <div className="results-definition">
+              {definitionLoading ? (
+                <div className="results-definition-loading">...</div>
+              ) : definition ? (
+                <>
+                  <div className="results-definition-header">
+                    <span className="results-definition-word">{definition.word}</span>
+                    {definition.phonetic && (
+                      <span className="results-definition-phonetic">{definition.phonetic}</span>
+                    )}
+                  </div>
+                  {definition.meanings.map((meaning, i) => (
+                    <div key={i} className="results-definition-meaning">
+                      <span className="results-definition-pos">{meaning.partOfSpeech}</span>
+                      <ol className="results-definition-list">
+                        {meaning.definitions.map((def, j) => (
+                          <li key={j}>
+                            {def.definition}
+                            {def.example && (
+                              <span className="results-definition-example">"{def.example}"</span>
+                            )}
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <div className="results-definition-none">
+                  <span className="results-definition-word">{highlightedWordInfo.word.toLowerCase()}</span>
+                  <span className="results-definition-unavailable">Definition not available</span>
+                </div>
+              )}
+            </div>
           )}
         </div>
         <div className="results-list-section">

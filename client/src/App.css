@@ -899,10 +899,14 @@ h1 {
   display: flex;
   gap: 16px;
   align-items: flex-start;
+  height: 440px;
 }
 
 .results-board-section {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
 }
 
 .results-board-wrapper {
@@ -912,6 +916,9 @@ h1 {
 .results-list-section {
   flex: 1;
   min-width: 0;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Minimized: board is 50% width, word list beside it */
@@ -986,6 +993,8 @@ h1 {
 .results-word-list {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .results-summary-bar {
@@ -1079,10 +1088,89 @@ h1 {
   z-index: 1;
 }
 
+/* Definition Display */
+.results-definition {
+  margin-top: 16px;
+  padding: 12px;
+  font-family: 'Merriweather', Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #444;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.results-definition-loading {
+  color: #aaa;
+  font-style: italic;
+}
+
+.results-definition-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.results-definition-word {
+  font-weight: 900;
+  font-size: 16px;
+  color: #222;
+}
+
+.results-definition-phonetic {
+  font-size: 13px;
+  color: #888;
+  font-style: italic;
+}
+
+.results-definition-meaning {
+  margin-bottom: 8px;
+}
+
+.results-definition-pos {
+  font-style: italic;
+  color: #666;
+  font-size: 12px;
+}
+
+.results-definition-list {
+  margin: 2px 0 0 0;
+  padding-left: 18px;
+  font-weight: 400;
+}
+
+.results-definition-list li {
+  margin-bottom: 2px;
+}
+
+.results-definition-example {
+  display: block;
+  font-style: italic;
+  color: #888;
+  margin-top: 1px;
+  font-size: 12px;
+}
+
+.results-definition-none {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.results-definition-unavailable {
+  font-style: italic;
+  color: #aaa;
+  font-size: 12px;
+}
+
 .results-combined-list {
   display: flex;
   flex-direction: column;
-  max-height: 400px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
