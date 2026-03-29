@@ -17,18 +17,21 @@ export const useTimer = (game: Game | null, onTimeExpired: () => void) => {
       }
 
       // Record a client-local start time the first time we see this game in progress.
+      // Use performance.now() (monotonic clock) instead of Date.now() to avoid jumps
+      // caused by NTP clock synchronization on Android, which would make elapsed time
+      // spike and the timer display less time remaining than it should.
       if (localStartRef.current === null) {
-        localStartRef.current = Date.now();
+        localStartRef.current = performance.now();
       }
       const localStart = localStartRef.current;
 
       // Set initial value immediately to avoid stale flash
-      const elapsed = Date.now() - localStart;
+      const elapsed = performance.now() - localStart;
       const initialRemaining = Math.max(0, game.config.durationSeconds * 1000 - elapsed);
       setTimeRemaining(Math.ceil(initialRemaining / 1000));
 
       const interval = setInterval(() => {
-        const elapsed = Date.now() - localStart;
+        const elapsed = performance.now() - localStart;
         const remaining = Math.max(0, game.config.durationSeconds * 1000 - elapsed);
         setTimeRemaining(Math.ceil(remaining / 1000));
 

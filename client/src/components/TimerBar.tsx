@@ -9,7 +9,8 @@ export const TimerBar = ({ game }: TimerBarProps) => {
   const [remainingPercentage, setRemainingPercentage] = useState(100);
   // Record local client time when the bar first mounts for this game, to avoid
   // clock-skew issues on Android browsers where device clocks run ahead of the server.
-  const localStartRef = useRef<number>(Date.now());
+  // Use performance.now() (monotonic) to prevent NTP sync jumps from affecting the bar.
+  const localStartRef = useRef<number>(performance.now());
 
   useEffect(() => {
     if (game.config.durationSeconds <= 0) {
@@ -20,7 +21,7 @@ export const TimerBar = ({ game }: TimerBarProps) => {
     const localStart = localStartRef.current;
 
     const updateTimerBar = () => {
-      const elapsed = Date.now() - localStart;
+      const elapsed = performance.now() - localStart;
       const totalDuration = game.config.durationSeconds * 1000;
       const remaining = Math.max(0, totalDuration - elapsed);
       const percentage = (remaining / totalDuration) * 100;
