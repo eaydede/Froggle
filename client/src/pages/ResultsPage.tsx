@@ -148,7 +148,7 @@ export const ResultsPage = ({ results, onPlayAgain, game, gameSeed }: ResultsPag
               </div>
             </>
           )}
-          {highlightedWordInfo && (
+          {boardMinimized && highlightedWordInfo && (
             <div className="results-definition">
               {definitionLoading ? (
                 <div className="results-definition-loading">...</div>

@@ -191,7 +191,7 @@ h1 {
 .config-segmented {
   position: relative;
   z-index: 1;
-  margin-top: -100px;
+  margin-top: -130px;
 }
 
 .seed-input-row {
@@ -956,7 +956,6 @@ h1 {
   display: flex;
   gap: 16px;
   align-items: flex-start;
-  height: 440px;
 }
 
 .results-board-section {
@@ -1009,6 +1008,7 @@ h1 {
 /* Minimized: board is 50% width, word list beside it */
 .results-minimized .results-content {
   flex-direction: row;
+  height: 440px;
 }
 
 .results-minimized .results-board-section {
@@ -1023,11 +1023,16 @@ h1 {
 /* Maximized: board full width, word list below */
 .results-maximized .results-content {
   flex-direction: column;
+  height: auto;
 }
 
 .results-maximized .results-board-section {
   width: 100%;
   max-width: 500px;
+}
+
+.results-maximized .results-list-section {
+  max-height: 300px;
 }
 
 
