@@ -12,9 +12,10 @@ interface ResultsPageProps {
   onPlayAgain: () => void;
   game: Game;
   gameSeed?: number | null;
+  dailyNumber?: number;
 }
 
-export const ResultsPage = ({ results, onPlayAgain, game, gameSeed }: ResultsPageProps) => {
+export const ResultsPage = ({ results, onPlayAgain, game, gameSeed, dailyNumber }: ResultsPageProps) => {
   const [highlightPath, setHighlightPath] = useState<Position[] | null>(null);
   const [highlightedWordInfo, setHighlightedWordInfo] = useState<{ word: string; score: number } | null>(null);
   const [boardMinimized, setBoardMinimized] = useState(true);
@@ -59,9 +60,13 @@ export const ResultsPage = ({ results, onPlayAgain, game, gameSeed }: ResultsPag
     return <div className="results-loading">Loading results...</div>;
   }
 
-  const seedCode = gameSeed != null ? encodeSeedCode(game.config.boardSize, gameSeed) : null;
+  const isDaily = dailyNumber !== undefined;
+  const seedCode = !isDaily && gameSeed != null ? encodeSeedCode(game.config.boardSize, gameSeed) : null;
 
   const getResultsText = () => {
+    if (isDaily) {
+      return generateShareText(results.foundWords, { daily: { number: dailyNumber! } });
+    }
     return generateShareText(results.foundWords, { gameLink: seedCode || undefined });
   };
 
@@ -198,7 +203,7 @@ export const ResultsPage = ({ results, onPlayAgain, game, gameSeed }: ResultsPag
 
       <div className="results-actions">
         <button onClick={onPlayAgain} className="start-button results-play-again">
-          Play Again
+          {isDaily ? 'Home' : 'Play Again'}
         </button>
         <div className="share-wrapper" ref={shareRef}>
           <button onClick={() => setShareOpen(!shareOpen)} className="share-button">

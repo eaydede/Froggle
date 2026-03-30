@@ -9,6 +9,8 @@ import { GamePage } from './pages/GamePage';
 import { ResultsPage } from './pages/ResultsPage';
 import { FeedbackType } from './components/Board';
 import { decodeSeedCode } from 'models/seedCode';
+import { getDailyInfo, getDailyDatePST } from './utils/daily';
+import { recordDailyResult, loadDailyResult, hasPlayedDaily } from './utils/dailyStorage';
 import './App.css';
 
 const loadMuted = (): boolean => {
@@ -25,6 +27,8 @@ function App() {
   const [showBoardStylePicker, setShowBoardStylePicker] = useState(false);
   const [muted, setMuted] = useState(loadMuted);
   const [sharedSeed, setSharedSeed] = useState<{ boardSize: number; seed: number } | null>(null);
+  const [dailyInfo, setDailyInfo] = useState<{ date: string; number: number; seed: number } | null>(null);
+  const [viewingDailyResults, setViewingDailyResults] = useState(false);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const longPressTriggered = useRef(false);
 
@@ -40,12 +44,26 @@ function App() {
   const { playValid, playInvalid, playDuplicate } = useFeedbackSounds(boardStyle.validSound, boardStyle.invalidSound, boardStyle.duplicateSound);
 
   const handleSinglePlayer = async () => {
+    setDailyInfo(null);
+    setViewingDailyResults(false);
     await createGame();
   };
 
-  const handleHostGame = () => {
-    // Placeholder for multiplayer functionality
-    console.log('Host Game clicked - feature not yet implemented');
+  const handleDaily = async () => {
+    const info = getDailyInfo();
+    setDailyInfo({ date: info.date, number: info.number, seed: info.seed });
+    setViewingDailyResults(false);
+    await createGame();
+    // Skip config, start immediately
+    await startGame(info.timeLimit, info.boardSize, info.minWordLength, undefined, info.seed);
+    setFeedback(null);
+  };
+
+  const handleDailyResults = () => {
+    const date = getDailyDatePST();
+    const info = getDailyInfo(date);
+    setDailyInfo({ date: info.date, number: info.number, seed: info.seed });
+    setViewingDailyResults(true);
   };
 
   const handleBackToStart = async () => {
@@ -65,6 +83,11 @@ function App() {
 
   const handleTitleClick = () => {
     if (longPressTriggered.current) return;
+    if (viewingDailyResults) {
+      setViewingDailyResults(false);
+      setDailyInfo(null);
+      return;
+    }
     const isOnStartScreen = game === null;
     if (isOnStartScreen) return;
     setShowHomeConfirm(true);
@@ -88,6 +111,8 @@ function App() {
   const handleConfirmHome = async () => {
     setShowHomeConfirm(false);
     setSharedSeed(null);
+    setDailyInfo(null);
+    setViewingDailyResults(false);
     await cancelGame();
   };
 
@@ -95,8 +120,28 @@ function App() {
     await endGame();
   };
 
+  // Record daily results when they become available
+  useEffect(() => {
+    if (dailyInfo && results && !viewingDailyResults) {
+      recordDailyResult(
+        dailyInfo.date,
+        dailyInfo.number,
+        results.foundWords,
+        results.missedWords,
+        results.board,
+      );
+    }
+  }, [dailyInfo, results, viewingDailyResults]);
+
   const handlePlayAgain = async () => {
-    await createGame();
+    if (dailyInfo) {
+      // Daily: go back to start screen
+      setDailyInfo(null);
+      setViewingDailyResults(false);
+      await cancelGame();
+    } else {
+      await createGame();
+    }
   };
 
   const handleSubmitWord = async (path: Position[]) => {
@@ -124,10 +169,38 @@ function App() {
 
     switch (status) {
       case null:  // No game created yet - show start screen
+        if (viewingDailyResults && dailyInfo) {
+          const savedResult = loadDailyResult(dailyInfo.date);
+          if (savedResult) {
+            return (
+              <ResultsPage
+                results={{
+                  board: savedResult.board,
+                  foundWords: savedResult.foundWords,
+                  missedWords: savedResult.missedWords,
+                }}
+                onPlayAgain={handlePlayAgain}
+                game={{
+                  board: savedResult.board,
+                  startedAt: 0,
+                  status: GameState.Finished,
+                  config: {
+                    durationSeconds: 120,
+                    boardSize: 5,
+                    minWordLength: 4,
+                  },
+                }}
+                gameSeed={dailyInfo.seed}
+                dailyNumber={dailyInfo.number}
+              />
+            );
+          }
+        }
         return (
           <StartPage 
             onSinglePlayer={handleSinglePlayer}
-            onHostGame={handleHostGame}
+            onDaily={handleDaily}
+            onDailyResults={handleDailyResults}
           />
         );
 
@@ -161,7 +234,7 @@ function App() {
         );
 
       case GameState.Finished:
-        return <ResultsPage results={results} onPlayAgain={handlePlayAgain} game={game!} gameSeed={gameSeed} />;
+        return <ResultsPage results={results} onPlayAgain={handlePlayAgain} game={game!} gameSeed={gameSeed} dailyNumber={dailyInfo?.number} />;
 
       default:
         return null;
