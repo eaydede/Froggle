@@ -1588,3 +1588,336 @@ h1 {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ── Multiplayer: StartPage panels ──────────────────────────────────────── */
+
+.menu-button-active {
+  background-color: #e8e4df;
+  border-color: #bbb;
+}
+
+.mp-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  margin-top: 16px;
+  animation: fadeIn 0.15s ease;
+}
+
+.mp-input {
+  width: 220px;
+  padding: 10px 14px;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  font-size: 16px;
+  font-family: inherit;
+  font-weight: 400;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.mp-input:focus {
+  border-color: #888;
+}
+
+.mp-code-input {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 20px;
+  text-align: center;
+}
+
+.mp-error {
+  margin-top: 12px;
+  color: #c0392b;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* ── Lobby Page ─────────────────────────────────────────────────────────── */
+
+.lobby-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 8px 0 20px;
+}
+
+.lobby-code-section {
+  text-align: center;
+}
+
+.lobby-code-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #888;
+  margin-bottom: 6px;
+}
+
+.lobby-code {
+  font-size: 40px;
+  letter-spacing: 0.25em;
+  font-weight: 900;
+  color: #222;
+  background: #f0ede8;
+  border: 2px solid #ddd;
+  border-radius: 10px;
+  padding: 8px 20px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.15s;
+}
+
+.lobby-code:hover {
+  background: #e8e4df;
+}
+
+.lobby-code-copied {
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: #27ae60;
+  white-space: nowrap;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.lobby-code-hint {
+  font-size: 12px;
+  color: #aaa;
+  margin-top: 26px;
+  font-weight: 400;
+}
+
+.lobby-players {
+  width: 100%;
+  max-width: 280px;
+}
+
+.lobby-players-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #888;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.lobby-player-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lobby-player-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f0ede8;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+.lobby-player-item.me {
+  background: #e8f4ec;
+}
+
+.lobby-player-name {
+  flex: 1;
+}
+
+.lobby-host-badge,
+.lobby-you-badge {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.lobby-host-badge {
+  background: #fdebd0;
+  color: #c0392b;
+}
+
+.lobby-you-badge {
+  background: #d5f5e3;
+  color: #1e8449;
+}
+
+.lobby-config {
+  width: 100%;
+  max-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lobby-config-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.lobby-config-label {
+  font-size: 13px;
+  color: #666;
+  white-space: nowrap;
+  min-width: 70px;
+}
+
+.lobby-seg {
+  display: flex;
+  gap: 4px;
+}
+
+.lobby-seg-btn {
+  padding: 5px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: white;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.lobby-seg-btn.active {
+  background: #333;
+  color: white;
+  border-color: #333;
+}
+
+.lobby-waiting {
+  font-size: 14px;
+  color: #888;
+  font-style: italic;
+  font-weight: 400;
+}
+
+.lobby-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 280px;
+}
+
+.lobby-leave-btn {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  padding: 4px 12px;
+  transition: color 0.15s;
+}
+
+.lobby-leave-btn:hover {
+  color: #666;
+}
+
+/* ── In-game multiplayer scoreboard ─────────────────────────────────────── */
+
+.mp-scoreboard {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+  padding: 0 4px;
+}
+
+.mp-score-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #f0ede8;
+  font-size: 13px;
+}
+
+.mp-score-row.mp-score-me {
+  background: #d5f5e3;
+}
+
+.mp-score-name {
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mp-score-value {
+  font-weight: 900;
+}
+
+/* ── Results multiplayer leaderboard ─────────────────────────────────────── */
+
+.mp-leaderboard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.mp-leaderboard-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #f0ede8;
+  font-size: 14px;
+}
+
+.mp-leaderboard-row.mp-leaderboard-me {
+  background: #d5f5e3;
+}
+
+.mp-lb-rank {
+  font-size: 12px;
+  color: #888;
+  min-width: 24px;
+}
+
+.mp-lb-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mp-lb-score {
+  font-weight: 900;
+  color: #222;
+}
+
+.mp-lb-words {
+  font-size: 12px;
+  color: #888;
+  min-width: 24px;
+  text-align: right;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

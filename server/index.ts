@@ -1,14 +1,25 @@
+import http from 'http';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
+import { Server as SocketIOServer } from 'socket.io';
 import { GameController } from './GameController.js';
+import { RoomManager } from './RoomManager.js';
+import { setupSocketHandlers } from './socketHandler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+const httpServer = http.createServer(app);
+const io = new SocketIOServer(httpServer, {
+  cors: { origin: '*' },
+});
+const roomManager = new RoomManager();
+setupSocketHandlers(io, roomManager);
+
 const PORT = Number(process.env.PORT) || 3000;
 
 app.use(cors());
@@ -151,6 +162,6 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });

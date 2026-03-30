@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Position, Game } from 'models';
+import { Position, Game, MultiplayerResults } from 'models';
 import { GameResults } from '../api/gameApi';
 import { ResultsBoard } from '../components/ResultsBoard';
 import { ResultsWordList, getScoreColor } from '../components/ResultsWordList';
@@ -9,9 +9,12 @@ interface ResultsPageProps {
   results: GameResults | null;
   onPlayAgain: () => void;
   game: Game;
+  // Multiplayer-only (optional)
+  multiplayerResults?: MultiplayerResults;
+  myId?: string;
 }
 
-export const ResultsPage = ({ results, onPlayAgain, game }: ResultsPageProps) => {
+export const ResultsPage = ({ results, onPlayAgain, game, multiplayerResults, myId }: ResultsPageProps) => {
   const [highlightPath, setHighlightPath] = useState<Position[] | null>(null);
   const [highlightedWordInfo, setHighlightedWordInfo] = useState<{ word: string; score: number } | null>(null);
   const [boardMinimized, setBoardMinimized] = useState(true);
@@ -35,6 +38,55 @@ export const ResultsPage = ({ results, onPlayAgain, game }: ResultsPageProps) =>
     if (!results) return [];
     return [...results.foundWords].sort((a, b) => a.score - b.score);
   }, [results]);
+
+  // Multiplayer mode: show leaderboard + missed words
+  if (multiplayerResults) {
+    const myResult = multiplayerResults.players.find(p => p.id === myId);
+    return (
+      <div className="results-page results-minimized">
+        <div className="results-content">
+          <div className="results-board-section">
+            <div
+              className="results-board-wrapper"
+              onClick={() => setBoardMinimized(!boardMinimized)}
+              style={{ cursor: 'pointer' }}
+            >
+              <ResultsBoard board={multiplayerResults.board} highlightPath={highlightPath} />
+            </div>
+          </div>
+          <div className="results-list-section">
+            <div className="mp-leaderboard">
+              {multiplayerResults.players.map((p, i) => (
+                <div
+                  key={p.id}
+                  className={`mp-leaderboard-row ${p.id === myId ? 'mp-leaderboard-me' : ''}`}
+                >
+                  <span className="mp-lb-rank">#{i + 1}</span>
+                  <span className="mp-lb-name">{p.name}</span>
+                  <span className="mp-lb-score">{p.totalScore} pts</span>
+                  <span className="mp-lb-words">{p.foundWords.length}w</span>
+                </div>
+              ))}
+            </div>
+            {myResult && (
+              <ResultsWordList
+                foundWords={myResult.foundWords}
+                missedWords={multiplayerResults.missedWords}
+                onHoverWord={setHighlightPath}
+                onWordSelect={setHighlightedWordInfo}
+                compact={boardMinimized}
+              />
+            )}
+          </div>
+        </div>
+        <div className="results-actions">
+          <button onClick={onPlayAgain} className="start-button results-play-again">
+            Back to Menu
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!results) {
     return <div className="results-loading">Loading results...</div>;

@@ -36,6 +36,30 @@ export interface Room {
   game: Game | null;
 }
 
+// ── Multiplayer ──────────────────────────────────────────────────────────────
+
+export interface RoomPlayerInfo {
+  id: string;
+  name: string;
+  isHost: boolean;
+  wordCount: number;
+  score: number;
+  connected: boolean;
+}
+
+export interface MultiplayerPlayerResult {
+  id: string;
+  name: string;
+  foundWords: { word: string; path: Position[]; score: number }[];
+  totalScore: number;
+}
+
+export interface MultiplayerResults {
+  board: string[][];
+  players: MultiplayerPlayerResult[];
+  missedWords: { word: string; path: Position[]; score: number }[];
+}
+
 export enum GameState {
   Config = 'Config',
   InProgress = 'InProgress',

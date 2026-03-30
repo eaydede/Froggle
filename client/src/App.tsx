@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { GameState, Position } from 'models';
 import { useGameApi } from './hooks/useGameApi';
+import { useMultiplayer } from './hooks/useMultiplayer';
 import { useTimer } from './hooks/useTimer';
 import { useFeedbackSounds } from './hooks/useFeedbackSounds';
 import { StartPage } from './pages/StartPage';
 import { ConfigPage } from './pages/ConfigPage';
 import { GamePage } from './pages/GamePage';
 import { ResultsPage } from './pages/ResultsPage';
+import { LobbyPage } from './pages/LobbyPage';
 import { FeedbackType } from './components/Board';
 import { decodeBoard, decodeBoardOnly, parseCode, SharedBoard, SharedBoardOnly } from './utils/boardCode';
 import './App.css';
@@ -18,6 +20,7 @@ const loadMuted = (): boolean => {
 };
 
 function App() {
+  // ── Single-player state ──────────────────────────────────────────────────
   const { game, words, results, createGame, startGame, cancelGame, endGame, fetchGameState, submitWord } = useGameApi();
   const [feedback, setFeedback] = useState<{ type: FeedbackType; path: Position[] } | null>(null);
   const [showHomeConfirm, setShowHomeConfirm] = useState(false);
@@ -29,11 +32,14 @@ function App() {
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const longPressTriggered = useRef(false);
 
-  // Check URL for shared game/board code on mount
+  // ── Multiplayer state ────────────────────────────────────────────────────
+  const mp = useMultiplayer();
+  const isMultiplayer = mp.roomCode !== null;
+
+  // ── Shared board URL handling ────────────────────────────────────────────
   useEffect(() => {
     const path = window.location.pathname;
 
-    // /g/CODE = shared game (board + config locked)
     const gameMatch = path.match(/^\/g\/(.+)$/);
     if (gameMatch) {
       const code = parseCode(gameMatch[1]);
@@ -46,7 +52,6 @@ function App() {
       return;
     }
 
-    // /b/CODE = shared board only (board locked, config editable)
     const boardMatch = path.match(/^\/b\/(.+)$/);
     if (boardMatch) {
       const code = parseCode(boardMatch[1]);
@@ -67,16 +72,12 @@ function App() {
     });
   };
 
-  const timeRemaining = useTimer(game, fetchGameState);
+  const timeRemaining = useTimer(isMultiplayer ? mp.game : game, fetchGameState);
   const { playValid, playInvalid, playDuplicate } = useFeedbackSounds(boardStyle.validSound, boardStyle.invalidSound, boardStyle.duplicateSound);
 
+  // ── Single-player handlers ───────────────────────────────────────────────
   const handleSinglePlayer = async () => {
     await createGame();
-  };
-
-  const handleHostGame = () => {
-    // Placeholder for multiplayer functionality
-    console.log('Host Game clicked - feature not yet implemented');
   };
 
   const handleBackToStart = async () => {
@@ -95,9 +96,79 @@ function App() {
     await cancelGame();
   };
 
+  const handleEndGame = async () => {
+    await endGame();
+  };
+
+  const handlePlayAgain = async () => {
+    await createGame();
+  };
+
+  const handleSubmitWord = async (path: Position[]) => {
+    const result = await submitWord(path);
+
+    let feedbackType: FeedbackType;
+    if (result.valid) {
+      feedbackType = 'valid';
+      if (!muted) playValid();
+      fetchGameState();
+    } else if (result.reason === 'repeat') {
+      feedbackType = 'duplicate';
+      if (!muted) playDuplicate();
+    } else {
+      feedbackType = 'invalid';
+      if (!muted) playInvalid();
+    }
+
+    setFeedback({ type: feedbackType, path });
+    setTimeout(() => setFeedback(null), 200);
+  };
+
+  // ── Multiplayer handlers ─────────────────────────────────────────────────
+  const handleHostGame = (name: string) => {
+    mp.createRoom(name);
+  };
+
+  const handleJoinGame = (code: string, name: string) => {
+    mp.joinRoom(code, name);
+  };
+
+  const handleMpStartGame = (boardSize: number, durationSeconds: number, minWordLength: number) => {
+    mp.startGame(boardSize, durationSeconds, minWordLength);
+  };
+
+  const handleMpSubmitWord = (path: Position[]) => {
+    if (!mp.game) return;
+    const result = mp.submitWord(path, mp.game.board);
+
+    let feedbackType: FeedbackType;
+    if (result.valid) {
+      feedbackType = 'valid';
+      if (!muted) playValid();
+    } else if (result.reason === 'repeat') {
+      feedbackType = 'duplicate';
+      if (!muted) playDuplicate();
+    } else {
+      feedbackType = 'invalid';
+      if (!muted) playInvalid();
+    }
+
+    setFeedback({ type: feedbackType, path });
+    setTimeout(() => setFeedback(null), 200);
+  };
+
+  const handleMpEndGame = () => {
+    mp.endGame();
+  };
+
+  const handleMpPlayAgain = () => {
+    mp.leaveRoom();
+  };
+
+  // ── Title interaction ────────────────────────────────────────────────────
   const handleTitleClick = () => {
     if (longPressTriggered.current) return;
-    const isOnStartScreen = game === null;
+    const isOnStartScreen = !isMultiplayer && game === null;
     if (isOnStartScreen) return;
     setShowHomeConfirm(true);
   };
@@ -119,54 +190,86 @@ function App() {
 
   const handleConfirmHome = async () => {
     setShowHomeConfirm(false);
-    setSharedGame(null);
-    setSharedBoardOnly(null);
-    await cancelGame();
-  };
-
-  const handleEndGame = async () => {
-    await endGame();
-  };
-
-  const handlePlayAgain = async () => {
-    await createGame();
-  };
-
-  const handleSubmitWord = async (path: Position[]) => {
-    const result = await submitWord(path);
-    
-    let feedbackType: FeedbackType;
-    if (result.valid) {
-      feedbackType = 'valid';
-      if (!muted) playValid();
-      fetchGameState();
-    } else if (result.reason === 'repeat') {
-      feedbackType = 'duplicate';
-      if (!muted) playDuplicate();
+    if (isMultiplayer) {
+      mp.leaveRoom();
     } else {
-      feedbackType = 'invalid';
-      if (!muted) playInvalid();
+      setSharedGame(null);
+      setSharedBoardOnly(null);
+      await cancelGame();
     }
-    
-    setFeedback({ type: feedbackType, path });
-    setTimeout(() => setFeedback(null), 200);
   };
 
+  // ── Render ───────────────────────────────────────────────────────────────
   const renderPage = () => {
+    // ── Multiplayer flow ──
+    if (isMultiplayer) {
+      const mpStatus = mp.game?.status ?? null;
+
+      if (mpStatus === null || mpStatus === GameState.Config) {
+        return (
+          <LobbyPage
+            roomCode={mp.roomCode!}
+            players={mp.players}
+            myId={mp.myId!}
+            isHost={mp.isHost}
+            onStartGame={handleMpStartGame}
+            onLeave={() => mp.leaveRoom()}
+          />
+        );
+      }
+
+      if (mpStatus === GameState.InProgress) {
+        return (
+          <GamePage
+            game={mp.game!}
+            words={[]}
+            timeRemaining={timeRemaining}
+            feedback={feedback}
+            onSubmitWord={handleMpSubmitWord}
+            onCancelGame={() => mp.leaveRoom()}
+            onEndGame={handleMpEndGame}
+            boardStyle={boardStyle}
+            onBoardStyleChange={setBoardStyle}
+            showBoardStylePicker={showBoardStylePicker}
+            muted={muted}
+            onToggleMute={toggleMute}
+            multiplayerPlayers={mp.players}
+            myId={mp.myId ?? undefined}
+          />
+        );
+      }
+
+      if (mpStatus === GameState.Finished) {
+        return (
+          <ResultsPage
+            results={null}
+            onPlayAgain={handleMpPlayAgain}
+            game={mp.game!}
+            multiplayerResults={mp.results ?? undefined}
+            myId={mp.myId ?? undefined}
+          />
+        );
+      }
+    }
+
+    // ── Single-player flow ──
     const status = game?.status ?? null;
 
     switch (status) {
-      case null:  // No game created yet - show start screen
+      case null:
         return (
-          <StartPage 
+          <StartPage
             onSinglePlayer={handleSinglePlayer}
             onHostGame={handleHostGame}
+            onJoinGame={handleJoinGame}
+            error={mp.error}
+            onClearError={mp.clearError}
           />
         );
 
-      case GameState.Config:  // Game created, in config phase
+      case GameState.Config:
         return (
-          <ConfigPage 
+          <ConfigPage
             onStartGame={handleStartGame}
             onBack={handleBackToStart}
             sharedGame={sharedGame}
@@ -175,9 +278,9 @@ function App() {
           />
         );
 
-      case GameState.InProgress:  // Game is active
+      case GameState.InProgress:
         return (
-          <GamePage 
+          <GamePage
             game={game!}
             words={words}
             timeRemaining={timeRemaining}
@@ -203,7 +306,7 @@ function App() {
 
   return (
     <div className="app">
-      <h1 
+      <h1
         onClick={handleTitleClick}
         onPointerDown={handleTitlePointerDown}
         onPointerUp={handleTitlePointerUp}

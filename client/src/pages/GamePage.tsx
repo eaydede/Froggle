@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Game, Position, Word } from 'models';
+import { Game, Position, Word, RoomPlayerInfo } from 'models';
 import { Board, FeedbackType, BASE_LABELS, HOVER_LABELS, PRESS_LABELS, PREACT_LABELS, VALID_ANIM_LABELS, VALID_ANIM_STYLES, computeFeedbackColors } from '../components/Board';
 import { SOUND_LABELS } from '../hooks/useThockSound';
 import { VALID_SOUND_LABELS, INVALID_SOUND_LABELS, DUPLICATE_SOUND_LABELS } from '../hooks/useFeedbackSounds';
@@ -33,9 +33,12 @@ interface GamePageProps {
   showBoardStylePicker: boolean;
   muted: boolean;
   onToggleMute: () => void;
+  // Multiplayer-only (optional)
+  multiplayerPlayers?: RoomPlayerInfo[];
+  myId?: string;
 }
 
-export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGame, boardStyle, onBoardStyleChange, showBoardStylePicker, muted, onToggleMute }: GamePageProps) => {
+export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGame, boardStyle, onBoardStyleChange, showBoardStylePicker, muted, onToggleMute, multiplayerPlayers, myId }: GamePageProps) => {
   const boardSize = game.board.length;
   const [currentWord, setCurrentWord] = useState('');
   const [displayWord, setDisplayWord] = useState('');
@@ -107,6 +110,19 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
         </button>
       </div>
       
+      {multiplayerPlayers && multiplayerPlayers.length > 0 && (
+        <div className="mp-scoreboard">
+          {[...multiplayerPlayers]
+            .sort((a, b) => b.score - a.score || b.wordCount - a.wordCount)
+            .map(p => (
+              <div key={p.id} className={`mp-score-row ${p.id === myId ? 'mp-score-me' : ''}`}>
+                <span className="mp-score-name">{p.name}</span>
+                <span className="mp-score-value">{p.score}</span>
+              </div>
+            ))}
+        </div>
+      )}
+
       <div className="board-container">
         <div className="board-with-word">
           <Board
