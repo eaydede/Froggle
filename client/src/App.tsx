@@ -88,9 +88,12 @@ function App() {
       setDailyInfo(null);
       return;
     }
-    const isOnStartScreen = game === null;
-    if (isOnStartScreen) return;
-    setShowHomeConfirm(true);
+    if (game === null) return;
+    if (game.status === GameState.InProgress) {
+      setShowHomeConfirm(true);
+    } else {
+      handleConfirmHome();
+    }
   };
 
   const handleTitlePointerDown = () => {

@@ -21,12 +21,10 @@ export const StartPage = ({ onSinglePlayer, onDaily, onDailyResults }: StartPage
   return (
     <div className="start-screen">
       <div className="menu-buttons">
-        <button onClick={alreadyPlayed ? onDailyResults : onDaily} className="menu-button daily-button">
+        <button onClick={alreadyPlayed ? onDailyResults : onDaily} className={`menu-button daily-button ${alreadyPlayed ? 'daily-played' : ''}`}>
           <span className="daily-button-label">Daily #{dailyInfo.number}</span>
-          {alreadyPlayed ? (
+          {alreadyPlayed && (
             <span className="daily-button-status">View Results</span>
-          ) : (
-            <span className="daily-button-status">Play</span>
           )}
         </button>
 
