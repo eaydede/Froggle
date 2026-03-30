@@ -26,11 +26,12 @@ export function encodeBoard(data: SharedBoard): string {
   const configVal = sizeIdx * 9 + timeIdx * 3 + lenIdx;
   const configChar = configVal.toString(36).toUpperCase();
 
-  // Each letter A-Z maps to A-Z (already base26, represent as A-Z directly)
+  // Each letter A-Z maps to itself; 'Qu' maps to '2'
+  const cellToChar = (cell: string) => cell.toUpperCase() === 'QU' ? '2' : cell[0].toUpperCase();
   const letters: string[] = [];
   for (let r = 0; r < data.boardSize; r++) {
     for (let c = 0; c < data.boardSize; c++) {
-      letters.push(data.board[r][c].toUpperCase());
+      letters.push(cellToChar(data.board[r][c]));
     }
   }
 
@@ -57,15 +58,16 @@ export function decodeBoard(code: string): SharedBoard | null {
 
     if (letterStr.length !== totalCells) return null;
 
-    // Validate all A-Z
-    if (!/^[A-Z]+$/.test(letterStr)) return null;
+    // Validate: A-Z or '2' (Qu)
+    if (!/^[A-Z2]+$/.test(letterStr)) return null;
 
+    const charToCell = (ch: string) => ch === '2' ? 'Qu' : ch;
     const board: string[][] = [];
     let idx = 0;
     for (let r = 0; r < boardSize; r++) {
       const row: string[] = [];
       for (let c = 0; c < boardSize; c++) {
-        row.push(letterStr[idx++]);
+        row.push(charToCell(letterStr[idx++]));
       }
       board.push(row);
     }
@@ -97,10 +99,11 @@ export function parseCode(formatted: string): string {
 
 // Board-only encoding: just letters, size implied by count (16=4x4, 25=5x5, 36=6x6)
 export function encodeBoardOnly(board: string[][], boardSize: number): string {
+  const cellToChar = (cell: string) => cell.toUpperCase() === 'QU' ? '2' : cell[0].toUpperCase();
   const letters: string[] = [];
   for (let r = 0; r < boardSize; r++) {
     for (let c = 0; c < boardSize; c++) {
-      letters.push(board[r][c].toUpperCase());
+      letters.push(cellToChar(board[r][c]));
     }
   }
   return letters.join('');
@@ -109,18 +112,19 @@ export function encodeBoardOnly(board: string[][], boardSize: number): string {
 export function decodeBoardOnly(code: string): SharedBoardOnly | null {
   try {
     const letterStr = code.toUpperCase();
-    if (!/^[A-Z]+$/.test(letterStr)) return null;
+    if (!/^[A-Z2]+$/.test(letterStr)) return null;
 
     const totalCells = letterStr.length;
     const boardSize = BOARD_SIZES.find(s => s * s === totalCells);
     if (!boardSize) return null;
 
+    const charToCell = (ch: string) => ch === '2' ? 'Qu' : ch;
     const board: string[][] = [];
     let idx = 0;
     for (let r = 0; r < boardSize; r++) {
       const row: string[] = [];
       for (let c = 0; c < boardSize; c++) {
-        row.push(letterStr[idx++]);
+        row.push(charToCell(letterStr[idx++]));
       }
       board.push(row);
     }

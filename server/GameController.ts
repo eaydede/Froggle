@@ -119,13 +119,14 @@ export class GameController {
       return { valid: false, reason: 'invalid' };
     }
 
+    // Validate path structure and bounds before accessing board cells
+    const size = this.game.board.length;
+    if (!isValidPath(path) || path.some(p => p.row < 0 || p.row >= size || p.col < 0 || p.col >= size)) {
+      return { valid: false, reason: 'invalid' };
+    }
+
     // Derive word from path
     const word = path.map(pos => this.game!.board[pos.row][pos.col]).join('').toUpperCase();
-
-    // Validate path structure
-    if (!isValidPath(path)) {
-      return { valid: false, word, reason: 'invalid' };
-    }
 
     // Validate word length meets minimum requirement
     const minLength = this.game.config.minWordLength;
