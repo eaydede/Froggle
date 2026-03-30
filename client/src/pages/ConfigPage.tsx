@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { SharedBoard, SharedBoardOnly } from '../utils/boardCode';
+import { decodeSeedCode } from 'models/seedCode';
 
 interface ConfigPageProps {
   onStartGame: (boardSize: number, timeLimit: number, minWordLength: number) => void;
   onBack: () => void;
-  sharedGame?: SharedBoard | null;
-  sharedBoardOnly?: SharedBoardOnly | null;
+  sharedSeed?: { boardSize: number; seed: number } | null;
+  onSeedCode?: (decoded: { boardSize: number; seed: number } | null) => void;
   onClearShared?: () => void;
 }
 
@@ -138,20 +138,31 @@ const saveConfig = (boardSize: number, timeLimit: number, minWordLength: number)
   } catch { /* ignore */ }
 };
 
-export const ConfigPage = ({ onStartGame, sharedGame, sharedBoardOnly, onClearShared }: ConfigPageProps) => {
+export const ConfigPage = ({ onStartGame, sharedSeed, onSeedCode, onClearShared }: ConfigPageProps) => {
   const saved = loadSavedConfig();
-  const isSharedGame = !!sharedGame;
-  const isSharedBoard = !!sharedBoardOnly;
-  const isShared = isSharedGame || isSharedBoard;
-  const sharedBoardSize = sharedGame?.boardSize ?? sharedBoardOnly?.boardSize;
+  const isSharedSeed = !!sharedSeed;
+  const sharedBoardSize = sharedSeed?.boardSize;
+  const [seedInput, setSeedInput] = useState('');
   const [boardSize, setBoardSize] = useState<number>(sharedBoardSize ?? saved.boardSize);
-  const [timeLimit, setTimeLimit] = useState<number>(sharedGame?.timeLimit ?? saved.timeLimit);
-  const [minWordLength, setMinWordLength] = useState<number>(sharedGame?.minWordLength ?? saved.minWordLength);
+  const [timeLimit, setTimeLimit] = useState<number>(saved.timeLimit);
+  const [minWordLength, setMinWordLength] = useState<number>(saved.minWordLength);
   const [shakeLabel, setShakeLabel] = useState(false);
 
   const handleDisabledClick = () => {
     setShakeLabel(true);
     setTimeout(() => setShakeLabel(false), 300);
+  };
+
+  const handleSeedInput = (value: string) => {
+    setSeedInput(value);
+    // Try to decode as the user types (auto-detect when complete)
+    const decoded = decodeSeedCode(value.trim());
+    if (decoded) {
+      onSeedCode?.(decoded);
+      setBoardSize(decoded.boardSize);
+    } else if (sharedSeed && !value.trim()) {
+      onSeedCode?.(null);
+    }
   };
 
   const handleStartGame = () => {
@@ -183,17 +194,40 @@ export const ConfigPage = ({ onStartGame, sharedGame, sharedBoardOnly, onClearSh
         <div className="config-segmented">
           <div className="config-seg-row">
             <div className="config-seg-label">Board Size</div>
-            <SegmentedControl options={BOARD_SIZES} value={boardSize} onChange={setBoardSize} format={formatBoard} disabled={isShared} onDisabledClick={handleDisabledClick} />
+            <SegmentedControl options={BOARD_SIZES} value={boardSize} onChange={setBoardSize} format={formatBoard} disabled={isSharedSeed} onDisabledClick={isSharedSeed ? handleDisabledClick : undefined} />
           </div>
           <div className="config-seg-row">
             <div className="config-seg-label">Time Limit</div>
-            <SegmentedControl options={TIME_LIMITS} value={timeLimit} onChange={setTimeLimit} format={formatTime} disabled={isSharedGame} onDisabledClick={isSharedGame ? handleDisabledClick : undefined} />
+            <SegmentedControl options={TIME_LIMITS} value={timeLimit} onChange={setTimeLimit} format={formatTime} />
           </div>
           <div className="config-seg-row">
             <div className="config-seg-label">Min Letters</div>
-            <SegmentedControl options={MIN_WORD_LENGTHS} value={minWordLength} onChange={setMinWordLength} format={formatLength} disabled={isSharedGame} onDisabledClick={isSharedGame ? handleDisabledClick : undefined} />
+            <SegmentedControl options={MIN_WORD_LENGTHS} value={minWordLength} onChange={setMinWordLength} format={formatLength} />
           </div>
         </div>
+
+        {(
+          <div className="seed-input-row">
+            <input
+              type="text"
+              className="seed-input"
+              placeholder="Enter code (e.g. FROG-LAKE-DAWN)"
+              value={seedInput}
+              onChange={(e) => handleSeedInput(e.target.value)}
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
+            />
+            {isSharedSeed && (
+              <button className="seed-input-clear" onClick={() => { setSeedInput(''); onSeedCode?.(null); setBoardSize(saved.boardSize); }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="config-buttons">
           <button onClick={handleStartGame} className="start-button">
@@ -201,17 +235,7 @@ export const ConfigPage = ({ onStartGame, sharedGame, sharedBoardOnly, onClearSh
           </button>
         </div>
         
-        {isShared && (
-          <div className={`shared-board-label ${shakeLabel ? 'shake' : ''}`}>
-            <span>{isSharedGame ? 'Shared Game' : 'Shared Board'}</span>
-            <button className="shared-board-close" onClick={onClearShared} aria-label="Exit shared board">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          </div>
-        )}
+
       </div>
     </div>
   );

@@ -1,4 +1,6 @@
 import { Board } from 'models';
+import { mulberry32 } from 'models/seedCode';
+
 // The 16 standard Boggle dice for 4x4
 const DICE4x4 = [
   ['A', 'A', 'F', 'K', 'P', 'S'],
@@ -88,23 +90,18 @@ const DICE6x6 = [
   ['O', 'S', 'S', 'O', 'T', 'T'],
 ];
 
-export function generateBoard(size: number = 4): Board {
-    let dice: string[][];
-    
+function getDice(size: number): string[][] {
     switch (size) {
-        case 5:
-            dice = DICE5x5;
-            break;
-        case 6:
-            dice = DICE6x6;
-            break;
+        case 5: return DICE5x5;
+        case 6: return DICE6x6;
         case 4:
-        default:
-            dice = DICE4x4;
-            break;
+        default: return DICE4x4;
     }
+}
 
-    const letters = shuffle(dice.map(die => roll(die)));
+export function generateBoard(size: number = 4): Board {
+    const dice = getDice(size);
+    const letters = shuffle(dice.map(die => roll(die, Math.random)), Math.random);
     const board: Board = [];
     
     for (let i = 0; i < size; i++) {
@@ -114,15 +111,28 @@ export function generateBoard(size: number = 4): Board {
     return board;
 }
 
-function roll(die: string[]): string {
-    return die[Math.floor(Math.random()*die.length)]
+export function generateSeededBoard(size: number, seed: number): Board {
+    const rng = mulberry32(seed);
+    const dice = getDice(size);
+    const letters = shuffle(dice.map(die => roll(die, rng)), rng);
+    const board: Board = [];
+
+    for (let i = 0; i < size; i++) {
+        board.push(letters.slice(i * size, (i + 1) * size));
+    }
+
+    return board;
 }
 
-function shuffle(letters: string[]): string[] {
-    const shuffled = [...letters]
+function roll(die: string[], random: () => number): string {
+    return die[Math.floor(random() * die.length)];
+}
+
+function shuffle(letters: string[], random: () => number): string[] {
+    const shuffled = [...letters];
     for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
+        const j = Math.floor(random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
 }

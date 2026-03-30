@@ -7,6 +7,7 @@ export const useGameApi = () => {
   const [game, setGame] = useState<Game | null>(null);
   const [words, setWords] = useState<Word[]>([]);
   const [results, setResults] = useState<GameResults | null>(null);
+  const [gameSeed, setGameSeed] = useState<number | null>(null);
   const fetchingResults = useRef(false);
   const wordHashesRef = useRef<Set<string>>(new Set());
   const saltRef = useRef<string>('');
@@ -27,13 +28,13 @@ export const useGameApi = () => {
     durationSeconds: number = 180, 
     boardSize: number = 4, 
     minWordLength: number = 3,
-    predefinedBoard?: string[][]
+    predefinedBoard?: string[][],
+    seed?: number
   ) => {
-    console.log('[share] startGame called, predefinedBoard:', predefinedBoard ? 'exists, rows:' + predefinedBoard.length : 'undefined');
-    const data = await gameApi.startGame(durationSeconds, boardSize, minWordLength, predefinedBoard);
-    console.log('[share] server returned board:', data.game.board[0]);
+    const data = await gameApi.startGame(durationSeconds, boardSize, minWordLength, predefinedBoard, seed);
     setGame(data.game);
     setWords([]);
+    setGameSeed(data.seed);
     wordHashesRef.current = new Set(data.wordHashes);
     saltRef.current = data.salt;
     submittedWordsRef.current = new Set();
@@ -108,6 +109,7 @@ export const useGameApi = () => {
     game,
     words,
     results,
+    gameSeed,
     createGame,
     startGame,
     cancelGame,

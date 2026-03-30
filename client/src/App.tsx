@@ -8,7 +8,7 @@ import { ConfigPage } from './pages/ConfigPage';
 import { GamePage } from './pages/GamePage';
 import { ResultsPage } from './pages/ResultsPage';
 import { FeedbackType } from './components/Board';
-import { decodeBoard, decodeBoardOnly, parseCode, SharedBoard, SharedBoardOnly } from './utils/boardCode';
+import { decodeSeedCode } from 'models/seedCode';
 import './App.css';
 
 const loadMuted = (): boolean => {
@@ -18,46 +18,15 @@ const loadMuted = (): boolean => {
 };
 
 function App() {
-  const { game, words, results, createGame, startGame, cancelGame, endGame, fetchGameState, submitWord } = useGameApi();
+  const { game, words, results, gameSeed, createGame, startGame, cancelGame, endGame, fetchGameState, submitWord } = useGameApi();
   const [feedback, setFeedback] = useState<{ type: FeedbackType; path: Position[] } | null>(null);
   const [showHomeConfirm, setShowHomeConfirm] = useState(false);
   const [boardStyle, setBoardStyle] = useState({ base: 0, hover: 0, press: 3, sound: 0, validSound: 0, invalidSound: 0, duplicateSound: 2, colorWash: 35, preact: 1, preactRadius: 130, preactIntensity: 100, validAnim: 3 });
   const [showBoardStylePicker, setShowBoardStylePicker] = useState(false);
   const [muted, setMuted] = useState(loadMuted);
-  const [sharedGame, setSharedGame] = useState<SharedBoard | null>(null);
-  const [sharedBoardOnly, setSharedBoardOnly] = useState<SharedBoardOnly | null>(null);
+  const [sharedSeed, setSharedSeed] = useState<{ boardSize: number; seed: number } | null>(null);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const longPressTriggered = useRef(false);
-
-  // Check URL for shared game/board code on mount
-  useEffect(() => {
-    const path = window.location.pathname;
-
-    // /g/CODE = shared game (board + config locked)
-    const gameMatch = path.match(/^\/g\/(.+)$/);
-    if (gameMatch) {
-      const code = parseCode(gameMatch[1]);
-      const decoded = decodeBoard(code);
-      if (decoded) {
-        setSharedGame(decoded);
-        createGame();
-      }
-      window.history.replaceState({}, '', '/');
-      return;
-    }
-
-    // /b/CODE = shared board only (board locked, config editable)
-    const boardMatch = path.match(/^\/b\/(.+)$/);
-    if (boardMatch) {
-      const code = parseCode(boardMatch[1]);
-      const decoded = decodeBoardOnly(code);
-      if (decoded) {
-        setSharedBoardOnly(decoded);
-        createGame();
-      }
-      window.history.replaceState({}, '', '/');
-    }
-  }, []);
 
   const toggleMute = () => {
     setMuted(prev => {
@@ -84,11 +53,10 @@ function App() {
   };
 
   const handleStartGame = async (boardSize: number, timeLimit: number, minWordLength: number) => {
-    const predefinedBoard = sharedGame?.board || sharedBoardOnly?.board;
-    await startGame(timeLimit, boardSize, minWordLength, predefinedBoard);
+    const seed = sharedSeed?.seed;
+    await startGame(timeLimit, boardSize, minWordLength, undefined, seed);
     setFeedback(null);
-    setSharedGame(null);
-    setSharedBoardOnly(null);
+    setSharedSeed(null);
   };
 
   const handleCancelGame = async () => {
@@ -119,8 +87,7 @@ function App() {
 
   const handleConfirmHome = async () => {
     setShowHomeConfirm(false);
-    setSharedGame(null);
-    setSharedBoardOnly(null);
+    setSharedSeed(null);
     await cancelGame();
   };
 
@@ -169,9 +136,9 @@ function App() {
           <ConfigPage 
             onStartGame={handleStartGame}
             onBack={handleBackToStart}
-            sharedGame={sharedGame}
-            sharedBoardOnly={sharedBoardOnly}
-            onClearShared={() => { setSharedGame(null); setSharedBoardOnly(null); }}
+            sharedSeed={sharedSeed}
+            onSeedCode={(decoded) => setSharedSeed(decoded)}
+            onClearShared={() => setSharedSeed(null)}
           />
         );
 
@@ -194,7 +161,7 @@ function App() {
         );
 
       case GameState.Finished:
-        return <ResultsPage results={results} onPlayAgain={handlePlayAgain} game={game!} />;
+        return <ResultsPage results={results} onPlayAgain={handlePlayAgain} game={game!} gameSeed={gameSeed} />;
 
       default:
         return null;

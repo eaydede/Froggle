@@ -3,21 +3,23 @@ import { Position, Game } from 'models';
 import { GameResults } from '../api/gameApi';
 import { ResultsBoard } from '../components/ResultsBoard';
 import { ResultsWordList, getScoreColor } from '../components/ResultsWordList';
-import { encodeBoard, encodeBoardOnly, formatCode } from '../utils/boardCode';
 import { generateShareText } from '../utils/shareResults';
 import { useDefinition } from '../hooks/useDefinition';
+import { encodeSeedCode } from 'models/seedCode';
 
 interface ResultsPageProps {
   results: GameResults | null;
   onPlayAgain: () => void;
   game: Game;
+  gameSeed?: number | null;
 }
 
-export const ResultsPage = ({ results, onPlayAgain, game }: ResultsPageProps) => {
+export const ResultsPage = ({ results, onPlayAgain, game, gameSeed }: ResultsPageProps) => {
   const [highlightPath, setHighlightPath] = useState<Position[] | null>(null);
   const [highlightedWordInfo, setHighlightedWordInfo] = useState<{ word: string; score: number } | null>(null);
   const [boardMinimized, setBoardMinimized] = useState(true);
-  const [copiedType, setCopiedType] = useState<'game' | 'board' | 'results' | null>(null);
+  const [codeCopied, setCodeCopied] = useState(false);
+  const [resultsCopied, setResultsCopied] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const shareRef = useRef<HTMLDivElement>(null);
 
@@ -57,51 +59,58 @@ export const ResultsPage = ({ results, onPlayAgain, game }: ResultsPageProps) =>
     return <div className="results-loading">Loading results...</div>;
   }
 
-  const canNativeShare = !!navigator.share;
-
-  const getGameUrl = () => {
-    const code = encodeBoard({
-      board: results.board,
-      boardSize: game.config.boardSize,
-      timeLimit: game.config.durationSeconds,
-      minWordLength: game.config.minWordLength,
-    });
-    return `${window.location.origin}/g/${formatCode(code)}`;
-  };
-
-  const getBoardUrl = () => {
-    const code = encodeBoardOnly(results.board, game.config.boardSize);
-    return `${window.location.origin}/b/${formatCode(code)}`;
-  };
+  const seedCode = gameSeed != null ? encodeSeedCode(game.config.boardSize, gameSeed) : null;
 
   const getResultsText = () => {
-    return generateShareText(results.foundWords, { gameLink: getGameUrl() });
+    return generateShareText(results.foundWords, { gameLink: seedCode || undefined });
   };
 
-  const copyToClipboard = (text: string, type: 'game' | 'board' | 'results') => {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopiedType(type);
-      setTimeout(() => setCopiedType(null), 2000);
+  const handleCopyCode = () => {
+    if (!seedCode) return;
+    navigator.clipboard.writeText(seedCode).then(() => {
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
     }).catch(() => {
-      prompt('Copy:', text);
+      prompt('Copy code:', seedCode);
     });
   };
 
-  const nativeShare = async (text: string) => {
-    try {
-      await navigator.share({ text });
-    } catch (e) {
-      if ((e as Error).name !== 'AbortError') {
-        console.error('Share failed:', e);
-      }
-    }
+  const canNativeShare = !!navigator.share;
+
+  const handleNativeShare = () => {
+    navigator.share({ text: getResultsText() }).catch(() => {});
     setShareOpen(false);
+  };
+
+  const handleCopyResults = () => {
+    const text = getResultsText();
+    navigator.clipboard.writeText(text).then(() => {
+      setResultsCopied(true);
+      setTimeout(() => setResultsCopied(false), 2000);
+    }).catch(() => {
+      prompt('Copy results:', text);
+    });
   };
 
   return (
     <div className={`results-page ${boardMinimized ? 'results-minimized' : 'results-maximized'}`}>
       <div className="results-content">
         <div className="results-board-section">
+          {seedCode && (
+            <div className="results-seed-code" onClick={handleCopyCode}>
+              <span className="results-seed-code-text">{seedCode}</span>
+              {codeCopied ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+              )}
+            </div>
+          )}
           <div
             className="results-board-wrapper"
             onClick={() => setBoardMinimized(!boardMinimized)}
@@ -200,127 +209,40 @@ export const ResultsPage = ({ results, onPlayAgain, game }: ResultsPageProps) =>
               <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
               <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
             </svg>
-            Share
+            Share Results
           </button>
           {shareOpen && (
             <div className="share-popover">
-              <div className="share-popover-option">
-                <div className="share-popover-option-text">
-                  <span className="share-popover-option-label">Results</span>
-                  <span className="share-popover-option-desc">Emoji score summary</span>
-                </div>
-                <div className="share-popover-actions">
-                  {canNativeShare && (
-                    <button
-                      className="share-popover-action"
-                      onClick={() => nativeShare(getResultsText())}
-                      title="Share"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="18" cy="5" r="3" />
-                        <circle cx="6" cy="12" r="3" />
-                        <circle cx="18" cy="19" r="3" />
-                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-                      </svg>
-                    </button>
-                  )}
-                  <button
-                    className="share-popover-action"
-                    onClick={() => copyToClipboard(getResultsText(), 'results')}
-                    title="Copy"
-                  >
-                    {copiedType === 'results' ? (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    ) : (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-              </div>
-              <div className="share-popover-option">
-                <div className="share-popover-option-text">
-                  <span className="share-popover-option-label">Game</span>
-                  <span className="share-popover-option-desc">Link with board & settings</span>
-                </div>
-                <div className="share-popover-actions">
-                  {canNativeShare && (
-                    <button
-                      className="share-popover-action"
-                      onClick={() => nativeShare(getGameUrl())}
-                      title="Share"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="18" cy="5" r="3" />
-                        <circle cx="6" cy="12" r="3" />
-                        <circle cx="18" cy="19" r="3" />
-                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-                      </svg>
-                    </button>
-                  )}
-                  <button
-                    className="share-popover-action"
-                    onClick={() => copyToClipboard(getGameUrl(), 'game')}
-                    title="Copy"
-                  >
-                    {copiedType === 'game' ? (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    ) : (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-              </div>
-              <div className="share-popover-option">
-                <div className="share-popover-option-text">
-                  <span className="share-popover-option-label">Board</span>
-                  <span className="share-popover-option-desc">Link with board only</span>
-                </div>
-                <div className="share-popover-actions">
-                  {canNativeShare && (
-                    <button
-                      className="share-popover-action"
-                      onClick={() => nativeShare(getBoardUrl())}
-                      title="Share"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="18" cy="5" r="3" />
-                        <circle cx="6" cy="12" r="3" />
-                        <circle cx="18" cy="19" r="3" />
-                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-                      </svg>
-                    </button>
-                  )}
-                  <button
-                    className="share-popover-action"
-                    onClick={() => copyToClipboard(getBoardUrl(), 'board')}
-                    title="Copy"
-                  >
-                    {copiedType === 'board' ? (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    ) : (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-              </div>
+              {canNativeShare && (
+                <button className="share-popover-option" onClick={handleNativeShare}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="18" cy="5" r="3" />
+                    <circle cx="6" cy="12" r="3" />
+                    <circle cx="18" cy="19" r="3" />
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                  </svg>
+                  Share to...
+                </button>
+              )}
+              <button className="share-popover-option" onClick={handleCopyResults}>
+                {resultsCopied ? (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                    Copy to clipboard
+                  </>
+                )}
+              </button>
             </div>
           )}
         </div>

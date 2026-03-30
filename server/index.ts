@@ -69,17 +69,16 @@ app.post('/api/game/start', (req, res) => {
   const session = getSession((req as any).sessionId);
   if (!session) return res.status(401).json({ error: 'Invalid session' });
 
-  const { durationSeconds, boardSize, minWordLength, board } = req.body;
+  const { durationSeconds, boardSize, minWordLength, board, seed } = req.body;
   const resolvedBoardSize = boardSize || 4;
-  console.log('[share] /api/game/start - board received:', board ? 'exists, rows:' + board.length : 'undefined', 'boardSize:', boardSize, 'resolvedBoardSize:', resolvedBoardSize, 'match:', board ? board.length === resolvedBoardSize : 'n/a');
   try {
     const result = session.controller.startGame(
       durationSeconds || 180, 
       resolvedBoardSize, 
       minWordLength || 3,
-      board
+      board,
+      seed
     );
-    console.log('[share] game started with board:', result.game.board[0]);
     res.json(result);
   } catch (error) {
     res.status(400).json({ error: (error as Error).message });

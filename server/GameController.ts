@@ -1,5 +1,6 @@
 import { Game, GameState, Word, Position, hashWord, generateSalt } from 'models';
-import { generateBoard } from 'engine/board.js';
+import { generateBoard, generateSeededBoard } from 'engine/board.js';
+import { randomSeed } from 'models/seedCode';
 import { isValidPath } from 'engine/adjacency.js';
 import { loadDictionary, isValidWord } from 'engine/dictionary.js';
 import { findAllWords, FoundWord } from 'engine/solver.js';
@@ -46,12 +47,16 @@ export class GameController {
     return this.game;
   }
 
-  startGame(durationSeconds: number, boardSize: number = 4, minWordLength: number = 3, predefinedBoard?: string[][]): { game: Game; wordHashes: string[]; salt: string } {
+  startGame(durationSeconds: number, boardSize: number = 4, minWordLength: number = 3, predefinedBoard?: string[][], seed?: number): { game: Game; wordHashes: string[]; salt: string; seed: number } {
     if (!this.game || this.game.status !== GameState.Config) {
       throw new Error('Cannot start game: game not in Config state');
     }
 
-    const board = predefinedBoard && predefinedBoard.length === boardSize ? predefinedBoard : generateBoard(boardSize);
+    // Always have a seed — use provided one or generate a new one
+    const gameSeed = seed ?? randomSeed();
+    const board = predefinedBoard && predefinedBoard.length === boardSize
+      ? predefinedBoard
+      : generateSeededBoard(boardSize, gameSeed);
     this.game = {
       board,
       startedAt: Date.now(),
@@ -80,6 +85,7 @@ export class GameController {
       game: this.game,
       wordHashes: Array.from(this.validWordHashes),
       salt: this.wordSalt,
+      seed: gameSeed,
     };
   }
 

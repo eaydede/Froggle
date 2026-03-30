@@ -33,16 +33,18 @@ export const startGame = async (
   durationSeconds: number = 180, 
   boardSize: number = 4, 
   minWordLength: number = 3,
-  predefinedBoard?: string[][]
+  predefinedBoard?: string[][],
+  seed?: number
 ): Promise<{
   game: Game;
   wordHashes: string[];
   salt: string;
+  seed: number;
 }> => {
   const response = await fetch(`${API_URL}/game/start`, {
     method: 'POST',
     headers: sessionHeaders(),
-    body: JSON.stringify({ durationSeconds, boardSize, minWordLength, board: predefinedBoard }),
+    body: JSON.stringify({ durationSeconds, boardSize, minWordLength, board: predefinedBoard, seed }),
   });
   return response.json();
 };
