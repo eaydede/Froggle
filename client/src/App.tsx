@@ -72,7 +72,9 @@ function App() {
     });
   };
 
-  const timeRemaining = useTimer(isMultiplayer ? mp.game : game, fetchGameState);
+  // In multiplayer the server controls the clock; pass a no-op so we don't fire
+  // the single-player HTTP fetchGameState when the client-side timer hits 0.
+  const timeRemaining = useTimer(isMultiplayer ? mp.game : game, isMultiplayer ? () => {} : fetchGameState);
   const { playValid, playInvalid, playDuplicate } = useFeedbackSounds(boardStyle.validSound, boardStyle.invalidSound, boardStyle.duplicateSound);
 
   // ── Single-player handlers ───────────────────────────────────────────────
@@ -227,7 +229,7 @@ function App() {
             feedback={feedback}
             onSubmitWord={handleMpSubmitWord}
             onCancelGame={() => mp.leaveRoom()}
-            onEndGame={handleMpEndGame}
+            onEndGame={mp.isHost ? handleMpEndGame : () => mp.leaveRoom()}
             boardStyle={boardStyle}
             onBoardStyleChange={setBoardStyle}
             showBoardStylePicker={showBoardStylePicker}

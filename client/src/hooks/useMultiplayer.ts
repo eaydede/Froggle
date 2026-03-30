@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { Game, Position, RoomPlayerInfo, MultiplayerResults, hashWord } from 'models';
+import { Game, GameState, Position, RoomPlayerInfo, MultiplayerResults, hashWord } from 'models';
 
 export interface MultiplayerState {
   roomCode: string | null;
@@ -103,7 +103,7 @@ export function useMultiplayer() {
     socket.on('game:ended', ({ results }: { results: MultiplayerResults }) => {
       setState(prev => ({
         ...prev,
-        game: prev.game ? { ...prev.game, status: 'Finished' as any } : null,
+        game: prev.game ? { ...prev.game, status: GameState.Finished } : null,
         results,
       }));
     });

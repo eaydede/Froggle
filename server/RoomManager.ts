@@ -201,11 +201,17 @@ export class RoomManager {
     return { valid: true, word };
   }
 
-  endGame(code: string): void {
+  // Returns true if the game was actually ended (was InProgress), false otherwise.
+  endGame(code: string): boolean {
     const room = this.rooms.get(code);
-    if (!room || !room.game || room.game.status !== GameState.InProgress) return;
+    if (!room || !room.game || room.game.status !== GameState.InProgress) return false;
     if (room.timer) { clearTimeout(room.timer); room.timer = null; }
     room.game.status = GameState.Finished;
+    return true;
+  }
+
+  isPlayerHost(code: string, playerId: string): boolean {
+    return this.rooms.get(code)?.players.get(playerId)?.isHost ?? false;
   }
 
   getPlayerInfos(code: string): RoomPlayerInfo[] {

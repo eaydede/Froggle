@@ -111,8 +111,10 @@ export function setupSocketHandlers(io: Server, roomManager: RoomManager): void 
     socket.on('game:end', () => {
       const code = socketRooms.get(socket.id);
       if (!code) return;
+      if (!roomManager.isPlayerHost(code, socket.id)) return; // only host may end
 
-      roomManager.endGame(code);
+      const ended = roomManager.endGame(code);
+      if (!ended) return; // already ended (race condition guard)
       const results = roomManager.getResults(code);
       io.to(code).emit('game:ended', { results });
     });
