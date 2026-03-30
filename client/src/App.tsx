@@ -116,7 +116,7 @@ function App() {
     setSharedSeed(null);
     setDailyInfo(null);
     setViewingDailyResults(false);
-    await cancelGame();
+    if (game) await cancelGame();
   };
 
   const handleEndGame = async () => {
@@ -141,7 +141,7 @@ function App() {
       // Daily: go back to start screen
       setDailyInfo(null);
       setViewingDailyResults(false);
-      await cancelGame();
+      if (game) await cancelGame();
     } else {
       await createGame();
     }
