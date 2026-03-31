@@ -16,24 +16,23 @@ for (let i = 0; i < WORD_LIST.length; i++) {
 // Board sizes: 0 = 4x4, 1 = 5x5, 2 = 6x6
 const BOARD_SIZES = [4, 5, 6];
 
+const MAX_SEED = Math.floor(WORD_COUNT * WORD_COUNT * WORD_COUNT / 3); // ~725 million seeds per board size
+
 /**
  * Encode a board size + seed into a word triplet code.
- * The numeric value encodes: boardSizeIndex * (1296^3 / 3) + seed
- * But since 1296^3 = 2,176,782,336 and we want 3 board sizes,
- * we use: value = boardSizeIndex + 3 * seed
- * This gives us ~725 million unique seeds per board size.
+ * value = sizeIndex + 3 * (seed % MAX_SEED)
+ * This gives ~725 million unique seeds per board size.
  */
 export function encodeSeedCode(boardSize: number, seed: number): string {
   const sizeIndex = BOARD_SIZES.indexOf(boardSize);
   if (sizeIndex === -1) throw new Error(`Invalid board size: ${boardSize}`);
 
-  const value = sizeIndex + 3 * (seed >>> 0);
-  const maxValue = WORD_COUNT * WORD_COUNT * WORD_COUNT;
-  const bounded = value % maxValue;
+  const boundedSeed = (seed >>> 0) % MAX_SEED;
+  const value = sizeIndex + 3 * boundedSeed;
 
-  const w3 = bounded % WORD_COUNT;
-  const w2 = Math.floor(bounded / WORD_COUNT) % WORD_COUNT;
-  const w1 = Math.floor(bounded / (WORD_COUNT * WORD_COUNT)) % WORD_COUNT;
+  const w3 = value % WORD_COUNT;
+  const w2 = Math.floor(value / WORD_COUNT) % WORD_COUNT;
+  const w1 = Math.floor(value / (WORD_COUNT * WORD_COUNT)) % WORD_COUNT;
 
   return `${WORD_LIST[w1]}-${WORD_LIST[w2]}-${WORD_LIST[w3]}`;
 }
@@ -77,10 +76,10 @@ export function getDailySeed(dateStr: string): number {
 }
 
 /**
- * Generate a random seed (30-bit unsigned integer to stay within safe range).
+ * Generate a random seed within the encodable range.
  */
 export function randomSeed(): number {
-  return Math.floor(Math.random() * 0x40000000); // 2^30
+  return Math.floor(Math.random() * MAX_SEED);
 }
 
 /**
