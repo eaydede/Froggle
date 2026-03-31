@@ -60,7 +60,7 @@ export const useGameApi = () => {
     }
   };
 
-  const fetchGameState = async () => {
+  const fetchGameState = useCallback(async () => {
     const data = await gameApi.fetchGameState();
     setGame(data.game);
     setWords(data.words);
@@ -70,7 +70,7 @@ export const useGameApi = () => {
       setResults(resultsData);
       fetchingResults.current = false;
     }
-  };
+  }, []);
 
   const validateWordLocally = useCallback((word: string): { valid: boolean; reason?: string } => {
     const upperWord = word.toUpperCase();
