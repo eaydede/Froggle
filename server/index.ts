@@ -4,6 +4,8 @@ import path from 'path';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { GameController } from './GameController.js';
+import { getDailySeed } from 'models/seedCode';
+import { generateSeededBoard } from 'engine/board.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -143,6 +145,17 @@ app.get('/api/game/results', (req, res) => {
   } else {
     res.status(400).json({ error: 'No finished game' });
   }
+});
+
+// Get expected daily board for a given date
+app.get('/api/daily/board', (req, res) => {
+  const date = req.query.date as string;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
+  }
+  const seed = getDailySeed(date);
+  const board = generateSeededBoard(5, seed);
+  res.json({ date, seed, board });
 });
 
 // Serve client for all non-API routes (SPA fallback)

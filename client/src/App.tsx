@@ -10,7 +10,8 @@ import { ResultsPage } from './pages/ResultsPage';
 import { FeedbackType } from './components/Board';
 import { decodeSeedCode } from 'models/seedCode';
 import { getDailyInfo, getDailyDatePST } from './utils/daily';
-import { recordDailyResult, loadDailyResult, hasPlayedDaily } from './utils/dailyStorage';
+import { recordDailyResult, loadDailyResult, hasPlayedDaily, clearDailyResult } from './utils/dailyStorage';
+import { fetchDailyBoard } from './api/gameApi';
 import './App.css';
 
 const loadMuted = (): boolean => {
@@ -29,6 +30,7 @@ function App() {
   const [sharedSeed, setSharedSeed] = useState<{ boardSize: number; seed: number } | null>(null);
   const [dailyInfo, setDailyInfo] = useState<{ date: string; number: number; seed: number } | null>(null);
   const [viewingDailyResults, setViewingDailyResults] = useState(false);
+  const [dailyLoading, setDailyLoading] = useState(false);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const longPressTriggered = useRef(false);
 
@@ -53,15 +55,35 @@ function App() {
     const info = getDailyInfo();
     setDailyInfo({ date: info.date, number: info.number, seed: info.seed });
     setViewingDailyResults(false);
+    setDailyLoading(true);
     await createGame();
-    // Skip config, start immediately
     await startGame(info.timeLimit, info.boardSize, info.minWordLength, undefined, info.seed);
+    setDailyLoading(false);
     setFeedback(null);
   };
 
-  const handleDailyResults = () => {
+  const handleDailyResults = async () => {
     const date = getDailyDatePST();
     const info = getDailyInfo(date);
+    const savedResult = loadDailyResult(date);
+
+    if (savedResult) {
+      try {
+        const { board: expectedBoard } = await fetchDailyBoard(date);
+        const savedFlat = savedResult.board.flat().join(',');
+        const expectedFlat = expectedBoard.flat().join(',');
+        if (savedFlat !== expectedFlat) {
+          // Board mismatch — clear invalid result so user can replay
+          clearDailyResult(date);
+          setDailyInfo({ date: info.date, number: info.number, seed: info.seed });
+          setViewingDailyResults(false);
+          return;
+        }
+      } catch {
+        // If validation request fails, still show results
+      }
+    }
+
     setDailyInfo({ date: info.date, number: info.number, seed: info.seed });
     setViewingDailyResults(true);
   };
@@ -123,9 +145,22 @@ function App() {
     await endGame();
   };
 
-  // Record daily results when they become available
+  // Record daily results when they become available, after validating the board
   useEffect(() => {
-    if (dailyInfo && results && !viewingDailyResults) {
+    if (!dailyInfo || !results || viewingDailyResults) return;
+
+    const validate = async () => {
+      try {
+        const { board: expectedBoard } = await fetchDailyBoard(dailyInfo.date);
+        const resultsFlat = results.board.flat().join(',');
+        const expectedFlat = expectedBoard.flat().join(',');
+        if (resultsFlat !== expectedFlat) {
+          console.warn('Daily board mismatch — results not recorded');
+          return;
+        }
+      } catch {
+        // If validation fails, still record (don't penalize for network issues)
+      }
       recordDailyResult(
         dailyInfo.date,
         dailyInfo.number,
@@ -133,7 +168,8 @@ function App() {
         results.missedWords,
         results.board,
       );
-    }
+    };
+    validate();
   }, [dailyInfo, results, viewingDailyResults]);
 
   const handlePlayAgain = async () => {
@@ -208,6 +244,7 @@ function App() {
         );
 
       case GameState.Config:  // Game created, in config phase
+        if (dailyLoading) return null;
         return (
           <ConfigPage 
             onStartGame={handleStartGame}

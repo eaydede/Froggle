@@ -169,6 +169,16 @@ h1 {
   background-color: #5a7fa0;
 }
 
+.daily-button.daily-primed {
+  background-color: #4a7a9e;
+  animation: daily-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes daily-pulse {
+  0%, 100% { background-color: #4a7a9e; }
+  50% { background-color: #6890b1; }
+}
+
 .daily-button.daily-played {
   background-color: white;
   color: #6890b1;
@@ -179,15 +189,35 @@ h1 {
   background-color: #f0f5f9;
 }
 
-.daily-button-label {
-  font-size: 24px;
-  font-weight: 700;
+.daily-large {
+  padding: 24px 32px;
+  gap: 4px;
+}
+
+.daily-number {
+  font-size: 40px;
+  font-weight: 900;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+.daily-title {
+  font-size: 16px;
+  font-weight: 600;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 2px;
 }
 
 .daily-button-status {
   font-size: 13px;
   font-weight: 400;
   opacity: 0.85;
+}
+
+.play-button {
+  font-size: 18px;
+  padding: 12px 24px;
 }
 
 /* Daily Today Summary */

@@ -108,3 +108,8 @@ export const fetchResults = async (): Promise<GameResults> => {
   });
   return response.json();
 };
+
+export const fetchDailyBoard = async (date: string): Promise<{ date: string; seed: number; board: string[][] }> => {
+  const response = await fetch(`${API_URL}/daily/board?date=${encodeURIComponent(date)}`);
+  return response.json();
+};

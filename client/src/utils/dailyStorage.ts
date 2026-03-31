@@ -140,6 +140,12 @@ export function hasPlayedDaily(date: string): boolean {
   return !!loadDailyResult(date);
 }
 
+export function clearDailyResult(date: string): void {
+  const all = loadAllResults();
+  delete all[date];
+  saveAllResults(all);
+}
+
 export function getRecentResults(): DailyResult[] {
   const all = loadAllResults();
   return Object.values(all).sort((a, b) => b.date.localeCompare(a.date));

@@ -63,6 +63,20 @@ export function decodeSeedCode(code: string): { boardSize: number; seed: number 
 }
 
 /**
+ * Generate a deterministic seed from a daily date string.
+ * Uses FNV-1a hash of the date string.
+ */
+export function getDailySeed(dateStr: string): number {
+  const str = `froggle-daily-${dateStr}`;
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash = (hash * 0x01000193) >>> 0;
+  }
+  return hash;
+}
+
+/**
  * Generate a random seed (30-bit unsigned integer to stay within safe range).
  */
 export function randomSeed(): number {
