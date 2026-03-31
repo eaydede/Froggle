@@ -1,7 +1,11 @@
 import { Position } from 'models';
 
-export function isValidPath(path: Position[]): boolean {
-  return hasNoRepeatedPositions(path) && isConnectedPath(path);
+export function isValidPath(path: Position[], boardSize: number): boolean {
+  return arePositionsInBounds(path, boardSize) && hasNoRepeatedPositions(path) && isConnectedPath(path);
+}
+
+function arePositionsInBounds(path: Position[], boardSize: number): boolean {
+  return path.every(pos => pos.row >= 0 && pos.row < boardSize && pos.col >= 0 && pos.col < boardSize);
 }
 
 function hasNoRepeatedPositions(path: Position[]): boolean {
