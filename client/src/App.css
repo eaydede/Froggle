@@ -299,7 +299,7 @@ h1 {
   flex: 1;
   padding: 10px 14px;
   font-family: 'Roboto Mono', monospace;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -314,7 +314,7 @@ h1 {
 
 .seed-input::placeholder {
   font-family: 'Merriweather', Georgia, serif;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
   letter-spacing: 0;
   text-transform: none;
