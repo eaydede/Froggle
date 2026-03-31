@@ -52,13 +52,32 @@ export class GameController {
       throw new Error('Cannot start game: game not in Config state');
     }
 
-    // Always have a seed — use provided one or generate a new one
-    const gameSeed = seed ?? randomSeed();
-    const board = predefinedBoard && predefinedBoard.length === boardSize
-      ? predefinedBoard
-      : generateSeededBoard(boardSize, gameSeed);
+    // Minimum word counts by board size — below these thresholds the game is no fun
+    const MIN_WORDS: Record<number, number> = { 4: 15, 5: 30, 6: 50 };
+    const minWords = MIN_WORDS[boardSize] ?? 15;
+    const MAX_RETRIES = 10;
+
+    // Always have a seed — use provided one or generate a new one.
+    // If the generated board has too few words, retry with a fresh seed.
+    let usedSeed = seed ?? randomSeed();
+    let board: string[][];
+    let allWords: FoundWord[];
+
+    if (predefinedBoard && predefinedBoard.length === boardSize) {
+      // Shared/predefined board — use as-is regardless of word count
+      board = predefinedBoard;
+      allWords = findAllWords(board, this.dictionary, minWordLength);
+    } else {
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        board = generateSeededBoard(boardSize, usedSeed);
+        allWords = findAllWords(board, this.dictionary, minWordLength);
+        if (allWords.length >= minWords) break;
+        if (attempt < MAX_RETRIES - 1) usedSeed = randomSeed();
+      }
+    }
+
     this.game = {
-      board,
+      board: board!,
       startedAt: Date.now(),
       status: GameState.InProgress,
       config: {
@@ -69,10 +88,9 @@ export class GameController {
     };
     this.words = [];
 
-    // Find all valid words and hash them
+    // Hash all valid words for client-side cheat prevention
     this.wordSalt = generateSalt();
-    const allWords = findAllWords(board, this.dictionary, minWordLength);
-    this.validWordHashes = new Set(allWords.map(w => hashWord(w.word, this.wordSalt)));
+    this.validWordHashes = new Set(allWords!.map(w => hashWord(w.word, this.wordSalt)));
 
     // Start timer (only if not unlimited)
     if (durationSeconds > 0) {
@@ -85,7 +103,7 @@ export class GameController {
       game: this.game,
       wordHashes: Array.from(this.validWordHashes),
       salt: this.wordSalt,
-      seed: gameSeed,
+      seed: usedSeed,
     };
   }
 
