@@ -8,7 +8,8 @@ interface ScoreTier {
 }
 
 const SCORE_TIERS: ScoreTier[] = [
-  { scores: [1, 2], emoji: '🟩' },
+  { scores: [1], emoji: '⬜' },
+  { scores: [2], emoji: '🟩' },
   { scores: [3], emoji: '🟦' },
   { scores: [5], emoji: '🟪' },
   { scores: [11], emoji: '🟧' },

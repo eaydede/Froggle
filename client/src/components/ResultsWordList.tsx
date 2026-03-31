@@ -15,9 +15,9 @@ interface CombinedWord extends ScoredWord {
 }
 
 export const SCORE_COLORS: Record<number, string> = {
-  1: '#9BB5A6',
-  2: '#6AABAB',
-  3: '#4A7BF7',
+  1: '#B0B0B0',
+  2: '#6AAB6A',
+  3: '#6B9BF7',
   5: '#A855F7',
   11: '#D4A030',
 };

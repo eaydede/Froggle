@@ -1269,15 +1269,15 @@ h1 {
 }
 
 .results-word-square.score-tier-1 {
-  background-color: #9BB5A6;
+  background-color: #B0B0B0;
 }
 
 .results-word-square.score-tier-2 {
-  background-color: #6AABAB;
+  background-color: #6AAB6A;
 }
 
 .results-word-square.score-tier-3 {
-  background: linear-gradient(135deg, #5B8AF7, #3A6BE8);
+  background: linear-gradient(135deg, #7DA8F7, #5B8AF7);
 }
 
 .results-word-square.score-tier-5 {
@@ -1412,15 +1412,15 @@ h1 {
 }
 
 .results-score-dot.score-tier-1 {
-  background-color: #9BB5A6;
+  background-color: #B0B0B0;
 }
 
 .results-score-dot.score-tier-2 {
-  background-color: #6AABAB;
+  background-color: #6AAB6A;
 }
 
 .results-score-dot.score-tier-3 {
-  background: linear-gradient(135deg, #5B8AF7, #3A6BE8);
+  background: linear-gradient(135deg, #7DA8F7, #5B8AF7);
 }
 
 .results-score-dot.score-tier-5 {
