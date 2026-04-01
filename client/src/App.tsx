@@ -318,6 +318,7 @@ function App() {
             onEndGame={handleEndGame}
             muted={muted}
             onToggleMute={toggleMute}
+            dailyNumber={dailyInfo?.number}
           />
         );
 
