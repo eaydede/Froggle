@@ -28,7 +28,9 @@ h1 {
   text-align: center;
   color: #333;
   margin: 0 0 10px 0;
+  font-size: 1.35rem;
   font-weight: 900;
+  letter-spacing: -0.025em;
 }
 
 .app-title {

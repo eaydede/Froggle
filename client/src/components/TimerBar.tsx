@@ -35,7 +35,7 @@ export const TimerBar = ({ game }: TimerBarProps) => {
     <div className="h-2 bg-[#e0e0e0] rounded overflow-hidden w-full min-w-[100px]">
       <div
         className={`h-full rounded transition-[width] duration-100 ease-linear ${
-          isUnlimited ? 'bg-[#9e9e9e]' : 'bg-[hsl(122,32%,55%)]'
+          isUnlimited ? 'bg-[#9e9e9e]' : 'bg-[var(--accent)]'
         }`}
         style={{ width: `${remainingPercentage}%` }}
       />

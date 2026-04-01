@@ -23,16 +23,24 @@ export function DailyCard({ config, results, onClick }: DailyCardProps) {
         daily-card
         rounded-2xl relative overflow-hidden select-none
         transition-all duration-200
-        ${
-          completed
-            ? "bg-[var(--card)] text-[var(--text)] shadow-[0_0_0_1px_rgba(0,0,0,0.04),0_4px_24px_rgba(0,0,0,0.06)] cursor-pointer"
-            : "bg-[var(--text)] text-white shadow-[0_4px_24px_rgba(0,0,0,0.12)] cursor-pointer"
+        ${completed
+          ? "bg-[var(--card)] text-[var(--text)] cursor-pointer"
+          : "bg-[var(--accent)] text-white cursor-pointer"
         }
         sm:p-6
       `}
       style={{
         padding: "1.35rem",
         WebkitTapHighlightColor: "transparent",
+        ...(completed
+          ? {
+              borderLeft: '3px solid var(--accent)',
+              boxShadow: '0 0 0 1px rgba(0,0,0,0.04), 0 4px 24px rgba(107,155,125,0.18)',
+            }
+          : {
+              boxShadow: '0 4px 24px rgba(107,155,125,0.30)',
+            }
+        ),
       }}
     >
       {/* Watermark puzzle number */}

@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { Position, Game } from 'models';
 import { GameResults } from '../api/gameApi';
 import { ResultsBoard } from '../components/ResultsBoard';
-import { ResultsWordList, getScoreColor } from '../components/ResultsWordList';
+import { ResultsWordList } from '../components/ResultsWordList';
 import { generateShareText } from '../utils/shareResults';
 import { useDefinition } from '../hooks/useDefinition';
 import { encodeSeedCode } from 'models/seedCode';
@@ -44,17 +44,6 @@ export const ResultsPage = ({ results, onPlayAgain, game, gameSeed, dailyNumber 
   }, [shareOpen]);
 
   const { definition, loading: definitionLoading } = useDefinition(highlightedWordInfo?.word ?? null);
-
-  const scoreBreakdown = useMemo(() => {
-    if (!results) return [];
-    const tiers: Record<number, number> = {};
-    for (const w of results.foundWords) {
-      tiers[w.score] = (tiers[w.score] || 0) + w.score;
-    }
-    return Object.entries(tiers)
-      .map(([score, total]) => ({ score: Number(score), total }))
-      .sort((a, b) => a.score - b.score);
-  }, [results]);
 
   const totalScore = results?.foundWords.reduce((sum, w) => sum + w.score, 0) || 0;
 
@@ -136,14 +125,6 @@ export const ResultsPage = ({ results, onPlayAgain, game, gameSeed, dailyNumber 
           {totalScore > 0 && (
             <>
               <div className="flex items-start gap-1.5 mt-4">
-                <span className="text-[10px] font-bold text-[#bbb] leading-[8px] shrink-0 w-3.5">P:</span>
-                <div className="flex flex-1 h-2 rounded overflow-hidden">
-                  {scoreBreakdown.map(({ score, total }) => (
-                    <div key={score} style={{ width: `${(total / totalScore) * 100}%`, backgroundColor: getScoreColor(score), minWidth: '2px', height: '100%' }} />
-                  ))}
-                </div>
-              </div>
-              <div className="flex items-start gap-1.5 mt-4">
                 <span className="text-[10px] font-bold text-[#bbb] leading-[8px] shrink-0 w-3.5">W:</span>
                 <div className="flex flex-wrap gap-1">
                   {sortedFoundWords.map((w, i) => (
@@ -216,8 +197,8 @@ export const ResultsPage = ({ results, onPlayAgain, game, gameSeed, dailyNumber 
       <div className="flex flex-col items-center gap-2.5 mt-5">
         <button
           onClick={onPlayAgain}
-          className="text-xl py-3.5 px-7 bg-[hsl(122,32%,55%)] text-white border-none rounded-lg cursor-pointer transition-colors duration-300 hover:bg-[hsl(122,32%,48%)] w-[200px]"
-          style={{ fontFamily: "'Merriweather', Georgia, serif", fontWeight: 900 }}
+          className="w-full max-w-[400px] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white border-none rounded-xl py-3.5 text-[0.85rem] cursor-pointer select-none transition-all duration-200"
+          style={{ WebkitTapHighlightColor: "transparent", fontFamily: "'Outfit', sans-serif", fontWeight: 700 }}
         >
           {isDaily ? 'Home' : 'Play Again'}
         </button>
@@ -225,6 +206,7 @@ export const ResultsPage = ({ results, onPlayAgain, game, gameSeed, dailyNumber 
           <button
             onClick={() => setShareOpen(!shareOpen)}
             className="flex items-center gap-1.5 py-2 px-4 text-[13px] bg-transparent border border-[#ddd] rounded-md text-[#888] cursor-pointer transition-all duration-150 hover:border-[#aaa] hover:text-[#555]"
+            style={{ fontFamily: "'Merriweather', Georgia, serif", fontWeight: 600 }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />

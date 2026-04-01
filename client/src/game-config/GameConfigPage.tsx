@@ -84,17 +84,15 @@ export function GameConfigPage({ title, subtitle, card = true, disabled = false,
         onClick={handleStart}
         className="
           start-btn
-          w-full bg-[var(--text)] text-white border-none rounded-xl
+          w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white border-none rounded-xl
           py-3.5 mt-8
           text-[0.85rem]
           cursor-pointer select-none
           transition-all duration-200
-          hover:bg-[#333]
-          active:bg-[#222]
         "
-        style={{ WebkitTapHighlightColor: "transparent", fontFamily: 'var(--font-heading)', fontWeight: 'var(--font-heading-weight)' as any }}
+        style={{ WebkitTapHighlightColor: "transparent", fontFamily: "'Outfit', sans-serif", fontWeight: 700 }}
       >
-        Start Game
+        {disabled ? 'Start Daily' : 'Start Game'}
       </button>
     </div>
   );
