@@ -7,11 +7,11 @@ interface FoundWordsProps {
 
 export const FoundWords = ({ words, title = 'Words Found' }: FoundWordsProps) => {
   return (
-    <div className="words-found">
-      <h3>{title} ({words.length})</h3>
-      <div className="words-list">
+    <div className="mt-8">
+      <h3 className="mb-2.5">{title} ({words.length})</h3>
+      <div className="flex flex-wrap gap-2">
         {words.map((w, i) => (
-          <div key={i} className="word-item">{w.word}</div>
+          <div key={i} className="py-1.5 px-3 bg-[#e3f2fd] rounded font-medium">{w.word}</div>
         ))}
       </div>
     </div>

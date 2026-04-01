@@ -64,3 +64,19 @@
   80% { transform: translateX(3px); }
   100% { transform: translateX(0); }
 }
+
+/* Results page gold glow animations */
+@keyframes gold-glow-square {
+  0%   { box-shadow: 2px 0 4px rgba(232,189,80,0.5), -1px 0 2px rgba(196,144,10,0.15); }
+  25%  { box-shadow: 0 2px 4px rgba(232,189,80,0.5), 0 -1px 2px rgba(196,144,10,0.15); }
+  50%  { box-shadow: -2px 0 4px rgba(232,189,80,0.5), 1px 0 2px rgba(196,144,10,0.15); }
+  75%  { box-shadow: 0 -2px 4px rgba(232,189,80,0.5), 0 1px 2px rgba(196,144,10,0.15); }
+  100% { box-shadow: 2px 0 4px rgba(232,189,80,0.5), -1px 0 2px rgba(196,144,10,0.15); }
+}
+@keyframes gold-glow-dot {
+  0%   { box-shadow: 2px 0 3px rgba(232,189,80,0.45), -1px 0 2px rgba(196,144,10,0.1); }
+  25%  { box-shadow: 0 2px 3px rgba(232,189,80,0.45), 0 -1px 2px rgba(196,144,10,0.1); }
+  50%  { box-shadow: -2px 0 3px rgba(232,189,80,0.45), 1px 0 2px rgba(196,144,10,0.1); }
+  75%  { box-shadow: 0 -2px 3px rgba(232,189,80,0.45), 0 1px 2px rgba(196,144,10,0.1); }
+  100% { box-shadow: 2px 0 3px rgba(232,189,80,0.45), -1px 0 2px rgba(196,144,10,0.1); }
+}

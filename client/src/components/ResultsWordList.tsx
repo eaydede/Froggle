@@ -26,6 +26,19 @@ export const getScoreColor = (score: number): string => {
   return SCORE_COLORS[score] || '#8BA89B';
 };
 
+const WORD_FONT: React.CSSProperties = {
+  fontFamily: "'Merriweather', Georgia, serif",
+  fontWeight: 800,
+};
+
+const SCORE_DOT_STYLES: Record<number, React.CSSProperties> = {
+  1: { backgroundColor: '#B0B0B0' },
+  2: { backgroundColor: '#6AAB6A' },
+  3: { background: 'linear-gradient(135deg, #7DA8F7, #5B8AF7)' },
+  5: { background: 'linear-gradient(135deg, #B96EF7, #9333EA)', boxShadow: '0 0 3px rgba(168,85,247,0.3)' },
+  11: { background: 'linear-gradient(135deg, #E8BD50, #C4900A)', boxShadow: '0 0 3px rgba(212,160,48,0.4)', animation: 'gold-glow-dot 3s ease-in-out infinite' },
+};
+
 const WordRow = ({ word, path, score, found, isHighlighted, onTap }: {
   word: string;
   path: Position[];
@@ -36,13 +49,28 @@ const WordRow = ({ word, path, score, found, isHighlighted, onTap }: {
 }) => {
   return (
     <div
-      className={`results-word-row ${found ? 'results-word-found' : 'results-word-missed'} ${isHighlighted ? 'results-word-highlighted' : ''}`}
+      className={`flex justify-between items-center py-1.5 px-3 rounded cursor-default transition-colors duration-150 hover:bg-[#f0f0f0] ${isHighlighted ? 'bg-[#f0f0f0]' : ''}`}
       onClick={onTap}
     >
-      <span className="results-word-text">{word}</span>
-      <div className="results-word-right">
-        {found && <span className={`results-score-dot score-tier-${score}`} />}
-        <span className="results-word-score" style={found ? { color: getScoreColor(score) } : undefined}>{score}</span>
+      <span
+        className="text-[13px] uppercase tracking-wide"
+        style={{ ...WORD_FONT, color: found ? '#333' : '#ccc' }}
+      >
+        {word}
+      </span>
+      <div className="flex items-center gap-[3px]">
+        {found && (
+          <span
+            className="w-[7px] h-[7px] rounded-full shrink-0"
+            style={SCORE_DOT_STYLES[score] || { backgroundColor: '#8BA89B' }}
+          />
+        )}
+        <span
+          className="text-xs min-w-[14px] text-right"
+          style={{ ...WORD_FONT, color: found ? getScoreColor(score) : '#ddd' }}
+        >
+          {score}
+        </span>
       </div>
     </div>
   );
@@ -75,7 +103,6 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord, onWordSe
 
   const totalScore = foundWords.reduce((sum, w) => sum + w.score, 0);
 
-  // Expanded view: all words sorted by score desc
   const allWords = useMemo(() => {
     const combined: CombinedWord[] = [
       ...foundWords.map(w => ({ ...w, found: true })),
@@ -86,25 +113,30 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord, onWordSe
   }, [foundWords, missedWords]);
 
   return (
-    <div className="results-word-list">
+    <div className="flex flex-col flex-1 min-h-0">
+      {/* Summary bar */}
       <div
-        className={`results-summary-bar ${showAll ? 'active' : ''}`}
+        className={`flex justify-between items-center py-2 px-3 rounded-lg mb-1.5 cursor-pointer select-none transition-colors duration-150 hover:bg-[#eee] active:bg-[#e8e8e8] ${showAll ? 'bg-[#eaeaea]' : 'bg-[#f5f5f5]'}`}
+        style={{ WebkitTapHighlightColor: 'transparent' }}
         onClick={() => setShowAll(!showAll)}
       >
-        <div className="results-summary-left">
-          <span className="results-summary-count">
-            {showAll 
-              ? `${foundWords.length}/${foundWords.length + missedWords.length}` 
-              : compact 
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-[#333]" style={WORD_FONT}>
+            {showAll
+              ? `${foundWords.length}/${foundWords.length + missedWords.length}`
+              : compact
                 ? `${foundWords.length}W`
                 : `${foundWords.length} Words`
             }
           </span>
-          <span className="results-summary-score">{compact ? `${totalScore}pts` : `${totalScore} pts`}</span>
+          <span className="text-sm text-[hsl(122,32%,55%)]" style={WORD_FONT}>
+            {compact ? `${totalScore}pts` : `${totalScore} pts`}
+          </span>
         </div>
       </div>
 
-      <div className="results-combined-list">
+      {/* Word list */}
+      <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
         {showAll ? (
           allWords.map((w) => (
             <WordRow
@@ -124,29 +156,36 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord, onWordSe
             const isExpanded = expandedWord === fw.word;
 
             return (
-              <div key={fw.word} className="results-word-group">
+              <div key={fw.word} className="flex flex-col">
                 <div
-                  className={`results-word-row results-word-found ${highlightedWord === fw.word ? 'results-word-highlighted' : ''}`}
+                  className={`flex justify-between items-center py-1.5 px-3 rounded cursor-default transition-colors duration-150 hover:bg-[#f0f0f0] ${highlightedWord === fw.word ? 'bg-[#f0f0f0]' : ''}`}
                   onClick={() => handleWordTap(fw.word, fw.path, fw.score)}
                 >
-                  <div className="results-word-left">
-                    <span className="results-word-text">{fw.word}</span>
+                  <div className="flex items-center">
+                    <span className="text-[13px] uppercase tracking-wide text-[#333]" style={WORD_FONT}>
+                      {fw.word}
+                    </span>
                     {hasRelated && (
                       <button
-                        className={`results-word-expand ${isExpanded ? 'expanded' : ''}`}
+                        className={`bg-transparent border-none cursor-pointer text-xs text-[#999] py-0.5 px-1 leading-none transition-all duration-200 hover:text-[#666] ${isExpanded ? 'rotate-180' : ''}`}
                         onClick={(e) => { e.stopPropagation(); setExpandedWord(isExpanded ? null : fw.word); }}
                       >
                         ▾
                       </button>
                     )}
                   </div>
-                  <div className="results-word-right">
-                    <span className={`results-score-dot score-tier-${fw.score}`} />
-                    <span className="results-word-score" style={{ color: getScoreColor(fw.score) }}>{fw.score}</span>
+                  <div className="flex items-center gap-[3px]">
+                    <span
+                      className="w-[7px] h-[7px] rounded-full shrink-0"
+                      style={SCORE_DOT_STYLES[fw.score] || { backgroundColor: '#8BA89B' }}
+                    />
+                    <span className="text-xs min-w-[14px] text-right" style={{ ...WORD_FONT, color: getScoreColor(fw.score) }}>
+                      {fw.score}
+                    </span>
                   </div>
                 </div>
                 {isExpanded && (
-                  <div className="results-related-words">
+                  <div className="py-0.5 pl-6 pr-3 flex flex-col">
                     {related.map(rw => (
                       <WordRow
                         key={rw.word}
