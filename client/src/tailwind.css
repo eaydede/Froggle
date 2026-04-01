@@ -1,0 +1,8 @@
+/*
+ * Tailwind CSS — utilities only (no preflight/reset).
+ *
+ * This avoids Tailwind's base reset from overriding existing App.css styles.
+ * Import this AFTER App.css so utilities are available but nothing breaks.
+ */
+@import "tailwindcss/theme";
+@import "tailwindcss/utilities";

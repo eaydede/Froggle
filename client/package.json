@@ -8,15 +8,25 @@
     "build": "tsc && vite build"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.2.2",
     "models": "1.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "socket.io-client": "^4.7.4"
+    "socket.io-client": "^4.7.4",
+    "tailwindcss": "^4.2.2"
   },
   "devDependencies": {
+    "@storybook/addon-essentials": "^8.6.14",
+    "@storybook/addon-interactions": "^8.6.14",
+    "@storybook/addon-links": "^8.6.18",
+    "@storybook/blocks": "^8.6.14",
+    "@storybook/react": "^8.6.18",
+    "@storybook/react-vite": "^8.6.18",
+    "@storybook/test": "^8.6.18",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.52",
     "@vitejs/plugin-react": "^4.2.1",
+    "storybook": "^8.6.18",
     "typescript": "^5.3.3",
     "vite": "^5.1.0"
   }

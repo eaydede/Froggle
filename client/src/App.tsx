@@ -13,6 +13,7 @@ import { getDailyInfo, getDailyDatePST } from './utils/daily';
 import { recordDailyResult, loadDailyResult, hasPlayedDaily, clearDailyResult } from './utils/dailyStorage';
 import { fetchDailyBoard } from './api/gameApi';
 import './App.css';
+import './tailwind.css';
 
 const loadMuted = (): boolean => {
   try {
