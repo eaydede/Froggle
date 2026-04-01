@@ -7,9 +7,6 @@ interface TimerBarProps {
 
 export const TimerBar = ({ game }: TimerBarProps) => {
   const [remainingPercentage, setRemainingPercentage] = useState(100);
-  // Record local client time when the bar first mounts for this game, to avoid
-  // clock-skew issues on Android browsers where device clocks run ahead of the server.
-  // Use performance.now() (monotonic) to prevent NTP sync jumps from affecting the bar.
   const localStartRef = useRef<number>(performance.now());
 
   useEffect(() => {
@@ -24,25 +21,22 @@ export const TimerBar = ({ game }: TimerBarProps) => {
       const elapsed = performance.now() - localStart;
       const totalDuration = game.config.durationSeconds * 1000;
       const remaining = Math.max(0, totalDuration - elapsed);
-      const percentage = (remaining / totalDuration) * 100;
-      setRemainingPercentage(Math.min(100, Math.max(0, percentage)));
+      setRemainingPercentage(Math.min(100, Math.max(0, (remaining / totalDuration) * 100)));
     };
 
-    // Initial update
     updateTimerBar();
-
-    // Update every 100ms for smooth animation
     const interval = setInterval(updateTimerBar, 100);
-
     return () => clearInterval(interval);
   }, [game.config.durationSeconds]);
 
   const isUnlimited = game.config.durationSeconds <= 0;
 
   return (
-    <div className="timer-bar-container">
-      <div 
-        className={isUnlimited ? "timer-bar-fill-unlimited" : "timer-bar-fill"}
+    <div className="h-2 bg-[#e0e0e0] rounded overflow-hidden w-full min-w-[100px]">
+      <div
+        className={`h-full rounded transition-[width] duration-100 ease-linear ${
+          isUnlimited ? 'bg-[#9e9e9e]' : 'bg-[hsl(122,32%,55%)]'
+        }`}
         style={{ width: `${remainingPercentage}%` }}
       />
     </div>
