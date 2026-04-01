@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BoardConfigCards, TimerConfig, LetterConfig } from "./components";
 import type { GameConfig, BoardSize, TimerOption, MinWordLength } from "./types";
+import { decodeSeedCode } from "models/seedCode";
 import "./game-config.css";
 
 interface GameConfigPageProps {
@@ -13,14 +14,33 @@ interface GameConfigPageProps {
     timer: TimerOption;
     minWordLength: MinWordLength;
   };
+  code?: string;
+  onCodeChange?: (code: string) => void;
+  onBoardSizeOverride?: (size: BoardSize) => void;
   onBack?: () => void;
   onStart?: (config: GameConfig) => void;
 }
 
-export function GameConfigPage({ title, subtitle, card = true, disabled = false, defaultValues, onBack, onStart }: GameConfigPageProps) {
+export function GameConfigPage({ title, subtitle, card = true, disabled = false, defaultValues, code, onCodeChange, onBack, onStart }: GameConfigPageProps) {
   const [boardSize, setBoardSize] = useState<BoardSize>(defaultValues?.boardSize ?? 4);
   const [timer, setTimer] = useState<TimerOption>(defaultValues?.timer ?? 60);
   const [minWordLength, setMinWordLength] = useState<MinWordLength>(defaultValues?.minWordLength ?? 3);
+
+  // Auto-select board size when a valid code is entered
+  const hasValidCode = !!(code && code.length === 14 && decodeSeedCode(code));
+
+  useEffect(() => {
+    if (code && code.length === 14) {
+      const decoded = decodeSeedCode(code);
+      if (decoded && [4, 5, 6].includes(decoded.boardSize)) {
+        setBoardSize(decoded.boardSize as BoardSize);
+      }
+    }
+  }, [code]);
+
+  function handleBoardSizeChange(size: BoardSize) {
+    setBoardSize(size);
+  }
 
   function handleStart() {
     onStart?.({ boardSize, timer, minWordLength });
@@ -73,7 +93,7 @@ export function GameConfigPage({ title, subtitle, card = true, disabled = false,
 
       {/* Config sections */}
       <div className="flex flex-col gap-6">
-        <BoardConfigCards value={boardSize} onChange={setBoardSize} disabled={disabled} />
+        <BoardConfigCards value={boardSize} onChange={handleBoardSizeChange} disabled={disabled || hasValidCode} code={code} onCodeChange={onCodeChange} />
         <TimerConfig value={timer} onChange={setTimer} disabled={disabled} />
         <LetterConfig value={minWordLength} onChange={setMinWordLength} disabled={disabled} />
       </div>

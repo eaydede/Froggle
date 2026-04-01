@@ -195,8 +195,10 @@ export const Board = ({
           {row.map((letter, colIndex) => (
             <div
               key={`${rowIndex}-${colIndex}`}
-              className="flex-1 flex items-center justify-center font-mono font-black cursor-pointer select-none border-none transition-all duration-[50ms]"
+              className="flex-1 flex items-center justify-center cursor-pointer select-none border-none transition-all duration-[50ms]"
               style={{
+                fontFamily: "'Outfit', sans-serif",
+                fontWeight: 800,
                 fontSize: `calc(min(32px, (100vw - 100px) / var(--board-size, 4) * 0.4))`,
                 ...getCellStyle(rowIndex, colIndex),
               }}

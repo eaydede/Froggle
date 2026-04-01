@@ -14,7 +14,6 @@ import { decodeSeedCode } from 'models/seedCode';
 import { getDailyInfo, getDailyDatePST } from './utils/daily';
 import { recordDailyResult, loadDailyResult, hasPlayedDaily, clearDailyResult } from './utils/dailyStorage';
 import { fetchDailyBoard } from './api/gameApi';
-import './App.css';
 import './tailwind.css';
 
 const loadMuted = (): boolean => {
@@ -29,6 +28,7 @@ function App() {
   const [showHomeConfirm, setShowHomeConfirm] = useState(false);
 
   const [lastConfig, setLastConfig] = useState<GameConfig | null>(null);
+  const [boardCode, setBoardCode] = useState('');
   const [muted, setMuted] = useState(loadMuted);
   const [sharedSeed, setSharedSeed] = useState<{ boardSize: number; seed: number } | null>(null);
   const [dailyInfo, setDailyInfo] = useState<{ date: string; number: number; seed: number } | null>(null);
@@ -87,6 +87,21 @@ function App() {
 
   const handleBackToStart = async () => {
     await cancelGame();
+  };
+
+  const handleCodeChange = (code: string) => {
+    setBoardCode(code);
+    // Try to decode when we have a full code (XXXX-XXXX-XXXX = 14 chars)
+    if (code.length === 14) {
+      const decoded = decodeSeedCode(code);
+      if (decoded) {
+        setSharedSeed(decoded);
+      } else {
+        setSharedSeed(null);
+      }
+    } else {
+      setSharedSeed(null);
+    }
   };
 
   const handleStartGame = async (boardSize: number, timeLimit: number, minWordLength: number) => {
@@ -271,13 +286,21 @@ function App() {
               title={isDaily ? 'Daily Puzzle' : 'Free Play'}
               subtitle="Choose your settings"
               card={false}
-              onBack={handleBackToStart}
+              onBack={() => { setBoardCode(''); setSharedSeed(null); handleBackToStart(); }}
               onStart={isDaily
                 ? () => handleDailyStart()
-                : (config: GameConfig) => { setLastConfig(config); handleStartGame(config.boardSize, config.timer, config.minWordLength); }
+                : (config: GameConfig) => {
+                    setLastConfig(config);
+                    // Use decoded board size if a valid code was entered
+                    const effectiveBoardSize = sharedSeed ? sharedSeed.boardSize : config.boardSize;
+                    handleStartGame(effectiveBoardSize, config.timer, config.minWordLength);
+                    setBoardCode('');
+                  }
               }
               disabled={isDaily}
               defaultValues={isDaily ? dailyDefaults : lastConfig ?? undefined}
+              code={isDaily ? undefined : boardCode}
+              onCodeChange={isDaily ? undefined : handleCodeChange}
             />
           </div>
         );
@@ -311,22 +334,41 @@ function App() {
   const hideAppTitle = isLandingPage || isConfigPage;
 
   return (
-    <div className="app">
+    <div className="max-w-[800px] mx-auto p-5 bg-[#FAFAF8] h-dvh box-border overflow-y-auto flex flex-col" style={{ fontFamily: "'Inter', system-ui, sans-serif", WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
       {!hideAppTitle && (
-        <h1 
+        <h1
           onClick={handleTitleClick}
-          className="app-title"
+          className="text-center text-[1.35rem] tracking-[-0.025em] m-0 mb-2.5 cursor-pointer select-none transition-all duration-200 hover:scale-105"
+          style={{ fontFamily: "'Merriweather', Georgia, serif", fontWeight: 900 }}
         >
           Froggle
         </h1>
       )}
       {showHomeConfirm && (
-        <div className="confirm-overlay" onClick={() => setShowHomeConfirm(false)}>
-          <div className="confirm-modal" onClick={e => e.stopPropagation()}>
-            <p>Return to the home screen?</p>
-            <div className="confirm-buttons">
-              <button className="confirm-yes" onClick={handleConfirmHome}>Yes</button>
-              <button className="confirm-no" onClick={() => setShowHomeConfirm(false)}>Cancel</button>
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100]"
+          onClick={() => setShowHomeConfirm(false)}
+        >
+          <div
+            className="bg-white rounded-xl py-6 px-8 shadow-[0_4px_20px_rgba(0,0,0,0.15)] text-center max-w-[300px]"
+            onClick={e => e.stopPropagation()}
+          >
+            <p className="text-base text-[var(--text)] m-0 mb-5">Return to the home screen?</p>
+            <div className="flex gap-3 justify-center">
+              <button
+                className="py-2 px-6 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white border-none rounded-lg cursor-pointer text-sm transition-colors duration-200"
+                style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 700 }}
+                onClick={handleConfirmHome}
+              >
+                Yes
+              </button>
+              <button
+                className="py-2 px-6 bg-[var(--track)] hover:bg-[#ddd] text-[var(--text)] border-none rounded-lg cursor-pointer text-sm transition-colors duration-200"
+                style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 700 }}
+                onClick={() => setShowHomeConfirm(false)}
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>

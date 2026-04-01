@@ -159,7 +159,7 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
         style={{
           color: getWordColor(),
           animation: getWordAnimation(),
-          fontFamily: "'Merriweather', Georgia, serif",
+          fontFamily: "'Outfit', sans-serif",
         }}
       >
         {wordFeedback === 'valid' && BOARD_STYLE.validAnim === 3

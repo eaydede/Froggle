@@ -1,11 +1,16 @@
-/*
- * Tailwind CSS — utilities only (no preflight/reset).
- *
- * This avoids Tailwind's base reset from overriding existing App.css styles.
- * Import this AFTER App.css so utilities are available but nothing breaks.
- */
 @import "tailwindcss/theme";
 @import "tailwindcss/utilities";
+
+/* Base resets */
+body {
+  background-color: #FAFAF8;
+  margin: 0;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-weight: inherit;
+}
 
 /*
  * Design tokens used by Tailwind-based components.

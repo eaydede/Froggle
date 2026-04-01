@@ -48,8 +48,10 @@ export const ResultsBoard = ({ board, highlightPath, minimized = false }: Result
             return (
               <div
                 key={`${rowIndex}-${colIndex}`}
-                className="flex-1 flex items-center justify-center font-mono font-black select-none transition-all duration-150"
+                className="flex-1 flex items-center justify-center select-none transition-all duration-150"
                 style={{
+                  fontFamily: "'Outfit', sans-serif",
+                  fontWeight: 800,
                   fontSize: `calc(min(32px, (100vw - 100px) / var(--board-size, 4) * 0.4))`,
                   backgroundColor: highlighted ? 'var(--color-selected, #7BA7C9)' : 'white',
                   color: highlighted ? 'white' : '#333',

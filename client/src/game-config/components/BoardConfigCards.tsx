@@ -103,7 +103,7 @@ export function BoardConfigCards({ value, onChange, disabled, code, onCodeChange
             onClick={toggleCode}
             className="
               flex items-center justify-center
-              size-[1.1rem] rounded-full
+              size-[1.5rem] rounded-full
               bg-transparent border-none cursor-pointer
               text-[var(--text-muted)] hover:text-[var(--text)]
               transition-all duration-200
@@ -113,8 +113,8 @@ export function BoardConfigCards({ value, onChange, disabled, code, onCodeChange
             aria-label={codeOpen ? "Close code input" : "Enter board code"}
           >
             <svg
-              width="12"
-              height="12"
+              width="14"
+              height="14"
               viewBox="0 0 12 12"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
