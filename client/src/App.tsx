@@ -28,6 +28,7 @@ function App() {
   const [feedback, setFeedback] = useState<{ type: FeedbackType; path: Position[] } | null>(null);
   const [showHomeConfirm, setShowHomeConfirm] = useState(false);
 
+  const [lastConfig, setLastConfig] = useState<GameConfig | null>(null);
   const [muted, setMuted] = useState(loadMuted);
   const [sharedSeed, setSharedSeed] = useState<{ boardSize: number; seed: number } | null>(null);
   const [dailyInfo, setDailyInfo] = useState<{ date: string; number: number; seed: number } | null>(null);
@@ -273,10 +274,10 @@ function App() {
               onBack={handleBackToStart}
               onStart={isDaily
                 ? () => handleDailyStart()
-                : (config: GameConfig) => handleStartGame(config.boardSize, config.timer, config.minWordLength)
+                : (config: GameConfig) => { setLastConfig(config); handleStartGame(config.boardSize, config.timer, config.minWordLength); }
               }
               disabled={isDaily}
-              defaultValues={dailyDefaults}
+              defaultValues={isDaily ? dailyDefaults : lastConfig ?? undefined}
             />
           </div>
         );
