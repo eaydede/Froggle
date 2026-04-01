@@ -1,0 +1,16 @@
+/* Press feedback — needs transition-duration override on :active */
+.daily-card:active {
+  transform: scale(0.985);
+  transition: transform 0.06s;
+}
+
+.free-card:active {
+  transform: scale(0.985);
+  transition: transform 0.06s;
+}
+
+/* Arrow nudge on hover */
+.free-card:hover .free-arrow {
+  transform: translateX(3px);
+  color: var(--text-mid);
+}

@@ -6,3 +6,16 @@
  */
 @import "tailwindcss/theme";
 @import "tailwindcss/utilities";
+
+/*
+ * Design tokens used by Tailwind-based components.
+ * These are referenced as var(--token) in landing, game-config, etc.
+ */
+:root {
+  --card: #ffffff;
+  --text: #1a1a1a;
+  --text-muted: #999999;
+  --text-mid: #666666;
+  --track: #f2f2f2;
+  --accent: #555555;
+}

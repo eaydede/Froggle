@@ -3,7 +3,8 @@ import { GameState, Position } from 'models';
 import { useGameApi } from './hooks/useGameApi';
 import { useTimer } from './hooks/useTimer';
 import { useFeedbackSounds } from './hooks/useFeedbackSounds';
-import { StartPage } from './pages/StartPage';
+import { LandingPage } from './landing';
+import type { DailyResults } from './landing';
 import { ConfigPage } from './pages/ConfigPage';
 import { GamePage } from './pages/GamePage';
 import { ResultsPage } from './pages/ResultsPage';
@@ -236,12 +237,36 @@ function App() {
             );
           }
         }
+        const info = getDailyInfo();
+        const todayDate = getDailyDatePST();
+        const todayResult = hasPlayedDaily(todayDate) ? loadDailyResult(todayDate) : null;
+
+        let dailyResultsData: DailyResults | null = null;
+        if (todayResult) {
+          const longest = todayResult.foundWords.reduce(
+            (best, w) => w.word.length > best.length ? w.word : best, ''
+          );
+          dailyResultsData = {
+            words: todayResult.wordCount,
+            points: todayResult.score,
+            longestWord: longest,
+          };
+        }
+
         return (
-          <StartPage 
-            onSinglePlayer={handleSinglePlayer}
-            onDaily={handleDaily}
-            onDailyResults={handleDailyResults}
-          />
+          <div className="flex flex-1 items-center justify-center">
+            <LandingPage
+              dailyConfig={{
+                puzzleNumber: info.number,
+                boardSize: info.boardSize,
+                timer: info.timeLimit,
+                minWordLength: info.minWordLength,
+              }}
+              dailyResults={dailyResultsData}
+              onDailyClick={todayResult ? handleDailyResults : handleDaily}
+              onFreePlayClick={handleSinglePlayer}
+            />
+          </div>
         );
 
       case GameState.Config:  // Game created, in config phase
@@ -282,17 +307,21 @@ function App() {
     }
   };
 
+  const isLandingPage = (game?.status ?? null) === null && !viewingDailyResults;
+
   return (
     <div className="app">
-      <h1 
-        onClick={handleTitleClick}
-        onPointerDown={handleTitlePointerDown}
-        onPointerUp={handleTitlePointerUp}
-        onPointerLeave={handleTitlePointerUp}
-        className="app-title"
-      >
-        Froggle
-      </h1>
+      {!isLandingPage && (
+        <h1 
+          onClick={handleTitleClick}
+          onPointerDown={handleTitlePointerDown}
+          onPointerUp={handleTitlePointerUp}
+          onPointerLeave={handleTitlePointerUp}
+          className="app-title"
+        >
+          Froggle
+        </h1>
+      )}
       {showHomeConfirm && (
         <div className="confirm-overlay" onClick={() => setShowHomeConfirm(false)}>
           <div className="confirm-modal" onClick={e => e.stopPropagation()}>
