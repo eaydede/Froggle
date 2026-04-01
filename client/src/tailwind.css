@@ -18,4 +18,16 @@
   --text-mid: #666666;
   --track: #f2f2f2;
   --accent: #555555;
+  --dot: #d4d4d4;
+  --dot-hi: #333333;
+  --dot-hi2: #888888;
+  --label-color: #999999;
+
+  /* Typography */
+  --font-heading: "Inter", sans-serif;
+  --font-heading-weight: 700;
+  --font-label: "Inter", sans-serif;
+  --font-label-weight: 600;
+  --font-option: "Inter", sans-serif;
+  --font-option-weight: 600;
 }

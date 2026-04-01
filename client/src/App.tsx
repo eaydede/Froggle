@@ -5,7 +5,8 @@ import { useTimer } from './hooks/useTimer';
 import { useFeedbackSounds } from './hooks/useFeedbackSounds';
 import { LandingPage } from './landing';
 import type { DailyResults } from './landing';
-import { ConfigPage } from './pages/ConfigPage';
+import { GameConfigPage } from './game-config';
+import type { GameConfig } from './game-config';
 import { GamePage } from './pages/GamePage';
 import { ResultsPage } from './pages/ResultsPage';
 import { FeedbackType } from './components/Board';
@@ -272,13 +273,15 @@ function App() {
       case GameState.Config:  // Game created, in config phase
         if (dailyLoading) return null;
         return (
-          <ConfigPage 
-            onStartGame={handleStartGame}
-            onBack={handleBackToStart}
-            sharedSeed={sharedSeed}
-            onSeedCode={(decoded) => setSharedSeed(decoded)}
-            onClearShared={() => setSharedSeed(null)}
-          />
+          <div className="flex flex-1 items-center justify-center">
+            <GameConfigPage
+              title="Free Play"
+              subtitle="Choose your settings"
+              card={false}
+              onBack={handleBackToStart}
+              onStart={(config: GameConfig) => handleStartGame(config.boardSize, config.timer, config.minWordLength)}
+            />
+          </div>
         );
 
       case GameState.InProgress:  // Game is active
@@ -308,10 +311,12 @@ function App() {
   };
 
   const isLandingPage = (game?.status ?? null) === null && !viewingDailyResults;
+  const isConfigPage = game?.status === GameState.Config;
+  const hideAppTitle = isLandingPage || isConfigPage;
 
   return (
     <div className="app">
-      {!isLandingPage && (
+      {!hideAppTitle && (
         <h1 
           onClick={handleTitleClick}
           onPointerDown={handleTitlePointerDown}
