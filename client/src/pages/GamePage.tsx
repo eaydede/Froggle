@@ -1,24 +1,27 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Game, Position, Word } from 'models';
-import { Board, FeedbackType, BASE_LABELS, HOVER_LABELS, PRESS_LABELS, PREACT_LABELS, VALID_ANIM_LABELS, VALID_ANIM_STYLES, computeFeedbackColors } from '../components/Board';
-import { SOUND_LABELS } from '../hooks/useThockSound';
-import { VALID_SOUND_LABELS, INVALID_SOUND_LABELS, DUPLICATE_SOUND_LABELS } from '../hooks/useFeedbackSounds';
+import { Board, FeedbackType, computeFeedbackColors } from '../components/Board';
 import { TimerBar } from '../components/TimerBar';
 
-interface BoardStyleState {
-  base: number;
-  hover: number;
-  press: number;
-  sound: number;
-  validSound: number;
-  invalidSound: number;
-  duplicateSound: number;
-  colorWash: number;
-  preact: number;
-  preactRadius: number;
-  preactIntensity: number;
-  validAnim: number;
-}
+// Hardcoded board style defaults
+const BOARD_STYLE = {
+  base: 0,
+  hover: 0,
+  press: 3,
+  sound: 0,
+  colorWash: 35,
+  preact: 1,
+  preactRadius: 130,
+  preactIntensity: 100,
+  validAnim: 3,
+} as const;
+
+const VALID_ANIMATIONS = [
+  'word-bounce 0.4s ease',
+  'word-pulse 0.4s ease',
+  'word-slide 0.5s ease',
+  '', // wave is per-letter
+];
 
 interface GamePageProps {
   game: Game;
@@ -28,21 +31,11 @@ interface GamePageProps {
   onSubmitWord: (path: Position[]) => void;
   onCancelGame: () => void;
   onEndGame: () => void;
-  boardStyle: BoardStyleState;
-  onBoardStyleChange: (style: BoardStyleState) => void;
-  showBoardStylePicker: boolean;
   muted: boolean;
   onToggleMute: () => void;
 }
 
-const VALID_ANIMATIONS = [
-  'word-bounce 0.4s ease',
-  'word-pulse 0.4s ease',
-  'word-slide 0.5s ease',
-  '', // wave is per-letter
-];
-
-export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGame, boardStyle, onBoardStyleChange, showBoardStylePicker, muted, onToggleMute }: GamePageProps) => {
+export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGame, muted, onToggleMute }: GamePageProps) => {
   const boardSize = game.board.length;
   const [displayWord, setDisplayWord] = useState('');
   const [wordFeedback, setWordFeedback] = useState<FeedbackType>(null);
@@ -81,11 +74,11 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
     }
   }, [feedback, game.board]);
 
-  const colors = computeFeedbackColors(boardStyle.colorWash);
+  const colors = computeFeedbackColors(BOARD_STYLE.colorWash);
 
   function getWordAnimation(): string | undefined {
-    if (wordFeedback === 'valid' && boardStyle.validAnim !== 3) {
-      return VALID_ANIMATIONS[boardStyle.validAnim];
+    if (wordFeedback === 'valid' && BOARD_STYLE.validAnim !== 3) {
+      return VALID_ANIMATIONS[BOARD_STYLE.validAnim];
     }
     if (wordFeedback === 'invalid' || wordFeedback === 'duplicate') {
       return 'word-shake 0.3s ease';
@@ -99,27 +92,6 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
     if (wordFeedback === 'duplicate') return colors.duplicate;
     return '#999';
   }
-
-  const renderPicker = (label: string, options: string[], activeIndex: number, onChange: (i: number) => void) => (
-    <div className="flex flex-col gap-1.5 py-1.5">
-      <div className="text-xs text-[#888] font-semibold">{label}</div>
-      <div className="flex flex-wrap gap-1">
-        {options.map((opt, i) => (
-          <button
-            key={i}
-            className={`px-2.5 py-1.5 text-[11px] rounded-md border-none cursor-pointer transition-colors duration-150 ${
-              i === activeIndex
-                ? 'bg-[#333] text-white'
-                : 'bg-[#f0f0f0] text-[#666] hover:bg-[#e0e0e0]'
-            }`}
-            onClick={() => onChange(i)}
-          >
-            {opt}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
 
   return (
     <div className="w-full max-w-[500px] mx-auto" style={{ '--board-size': boardSize } as React.CSSProperties}>
@@ -145,14 +117,14 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
             board={game.board}
             onSubmitWord={onSubmitWord}
             feedback={feedback}
-            baseStyleIndex={boardStyle.base}
-            hoverStyleIndex={boardStyle.hover}
-            pressStyleIndex={boardStyle.press}
-            soundIndex={muted ? 4 : boardStyle.sound}
-            colorWash={boardStyle.colorWash}
-            preactStyleIndex={boardStyle.preact}
-            preactRadius={boardStyle.preactRadius}
-            preactIntensity={boardStyle.preactIntensity}
+            baseStyleIndex={BOARD_STYLE.base}
+            hoverStyleIndex={BOARD_STYLE.hover}
+            pressStyleIndex={BOARD_STYLE.press}
+            soundIndex={muted ? 4 : BOARD_STYLE.sound}
+            colorWash={BOARD_STYLE.colorWash}
+            preactStyleIndex={BOARD_STYLE.preact}
+            preactRadius={BOARD_STYLE.preactRadius}
+            preactIntensity={BOARD_STYLE.preactIntensity}
             onCurrentWordChange={handleCurrentWordChange}
           />
         </div>
@@ -190,7 +162,7 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
           fontFamily: "'Roboto Mono', monospace",
         }}
       >
-        {wordFeedback === 'valid' && boardStyle.validAnim === 3
+        {wordFeedback === 'valid' && BOARD_STYLE.validAnim === 3
           ? displayWord.split('').map((letter, i) => (
               <span key={i} className="inline-block" style={{ animation: 'letter-wave 0.4s ease both', animationDelay: `${i * 0.04}s` }}>
                 {letter}
@@ -199,51 +171,6 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
           : displayWord
         }
       </div>
-
-      {/* Board style picker (long-press Froggle title to toggle) */}
-      {showBoardStylePicker && (
-        <div className="mt-4 p-4 bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.08)] flex flex-col gap-1">
-          {renderPicker('Board Style', BASE_LABELS, boardStyle.base, (i) => onBoardStyleChange({ ...boardStyle, base: i }))}
-          {renderPicker('Hover Effect', HOVER_LABELS, boardStyle.hover, (i) => onBoardStyleChange({ ...boardStyle, hover: i }))}
-          {renderPicker('Press Effect', PRESS_LABELS, boardStyle.press, (i) => onBoardStyleChange({ ...boardStyle, press: i }))}
-          {renderPicker('Cell Sound', SOUND_LABELS, boardStyle.sound, (i) => onBoardStyleChange({ ...boardStyle, sound: i }))}
-          {renderPicker('Valid Word', VALID_SOUND_LABELS, boardStyle.validSound, (i) => onBoardStyleChange({ ...boardStyle, validSound: i }))}
-          {renderPicker('Invalid Word', INVALID_SOUND_LABELS, boardStyle.invalidSound, (i) => onBoardStyleChange({ ...boardStyle, invalidSound: i }))}
-          {renderPicker('Duplicate Word', DUPLICATE_SOUND_LABELS, boardStyle.duplicateSound, (i) => onBoardStyleChange({ ...boardStyle, duplicateSound: i }))}
-          {renderPicker('Pre-Actuation', PREACT_LABELS, boardStyle.preact, (i) => onBoardStyleChange({ ...boardStyle, preact: i }))}
-          {renderPicker('Valid Word Effect', VALID_ANIM_LABELS, boardStyle.validAnim, (i) => onBoardStyleChange({ ...boardStyle, validAnim: i }))}
-
-          {boardStyle.preact !== 0 && (
-            <>
-              <div className="flex flex-col gap-1.5 py-1.5">
-                <div className="text-xs text-[#888] font-semibold">Proximity Radius — {boardStyle.preactRadius}%</div>
-                <input type="range" min="20" max="150" value={boardStyle.preactRadius}
-                  onChange={(e) => onBoardStyleChange({ ...boardStyle, preactRadius: parseInt(e.target.value) })}
-                  className="w-full" />
-              </div>
-              <div className="flex flex-col gap-1.5 py-1.5">
-                <div className="text-xs text-[#888] font-semibold">Intensity — {boardStyle.preactIntensity}%</div>
-                <input type="range" min="10" max="100" value={boardStyle.preactIntensity}
-                  onChange={(e) => onBoardStyleChange({ ...boardStyle, preactIntensity: parseInt(e.target.value) })}
-                  className="w-full" />
-              </div>
-            </>
-          )}
-
-          <div className="flex flex-col gap-1.5 py-1.5">
-            <div className="text-xs text-[#888] font-semibold">Feedback Colors — {boardStyle.colorWash}% wash</div>
-            <div className="flex gap-1.5 mb-1">
-              <div className="w-6 h-6 rounded" style={{ backgroundColor: colors.selected }} title="Selected" />
-              <div className="w-6 h-6 rounded" style={{ backgroundColor: colors.valid }} title="Valid" />
-              <div className="w-6 h-6 rounded" style={{ backgroundColor: colors.invalid }} title="Invalid" />
-              <div className="w-6 h-6 rounded" style={{ backgroundColor: colors.duplicate }} title="Duplicate" />
-            </div>
-            <input type="range" min="0" max="100" value={boardStyle.colorWash}
-              onChange={(e) => onBoardStyleChange({ ...boardStyle, colorWash: parseInt(e.target.value) })}
-              className="w-full" />
-          </div>
-        </div>
-      )}
     </div>
   );
 };

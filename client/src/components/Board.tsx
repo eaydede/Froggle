@@ -5,12 +5,7 @@ import { useThockSound } from '../hooks/useThockSound';
 
 export type FeedbackType = 'valid' | 'invalid' | 'duplicate' | null;
 
-export const BASE_LABELS = ['Soft Cards', 'Frosted', 'Flat Minimal', 'Neumorphic'];
-export const HOVER_LABELS = ['Shadow Lift', 'BG Tint', 'Darken', 'Neu Press'];
-export const PRESS_LABELS = ['Glow', 'Flat', 'Subtle', 'Inset'];
-export const PREACT_LABELS = ['None', 'Depress', 'Shadow', 'Color Bleed', 'Dim', 'Depress + Bleed'];
-export const VALID_ANIM_STYLES = ['valid-bounce', 'valid-pulse', 'valid-slide', 'valid-wave'];
-export const VALID_ANIM_LABELS = ['Bounce Up', 'Gentle Pulse', 'Slide Up', 'Letter Wave'];
+
 
 // --- Style configs as data ---
 

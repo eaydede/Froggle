@@ -24,8 +24,8 @@
   --label-color: #999999;
 
   /* Typography */
-  --font-heading: "Inter", sans-serif;
-  --font-heading-weight: 700;
+  --font-heading: "Merriweather", Georgia, serif;
+  --font-heading-weight: 900;
   --font-label: "Inter", sans-serif;
   --font-label-weight: 600;
   --font-option: "Inter", sans-serif;

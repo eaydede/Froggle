@@ -27,15 +27,12 @@ function App() {
   const { game, words, results, gameSeed, createGame, startGame, cancelGame, endGame, fetchGameState, submitWord } = useGameApi();
   const [feedback, setFeedback] = useState<{ type: FeedbackType; path: Position[] } | null>(null);
   const [showHomeConfirm, setShowHomeConfirm] = useState(false);
-  const [boardStyle, setBoardStyle] = useState({ base: 0, hover: 0, press: 3, sound: 0, validSound: 0, invalidSound: 0, duplicateSound: 2, colorWash: 35, preact: 1, preactRadius: 130, preactIntensity: 100, validAnim: 3 });
-  const [showBoardStylePicker, setShowBoardStylePicker] = useState(false);
+
   const [muted, setMuted] = useState(loadMuted);
   const [sharedSeed, setSharedSeed] = useState<{ boardSize: number; seed: number } | null>(null);
   const [dailyInfo, setDailyInfo] = useState<{ date: string; number: number; seed: number } | null>(null);
   const [viewingDailyResults, setViewingDailyResults] = useState(false);
   const [dailyLoading, setDailyLoading] = useState(false);
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
-  const longPressTriggered = useRef(false);
 
   const toggleMute = () => {
     setMuted(prev => {
@@ -46,7 +43,7 @@ function App() {
   };
 
   const timeRemaining = useTimer(game, fetchGameState);
-  const { playValid, playInvalid, playDuplicate } = useFeedbackSounds(boardStyle.validSound, boardStyle.invalidSound, boardStyle.duplicateSound);
+  const { playValid, playInvalid, playDuplicate } = useFeedbackSounds(0, 0, 2);
 
   const handleSinglePlayer = async () => {
     setDailyInfo(null);
@@ -107,7 +104,6 @@ function App() {
   };
 
   const handleTitleClick = () => {
-    if (longPressTriggered.current) return;
     if (viewingDailyResults) {
       setViewingDailyResults(false);
       setDailyInfo(null);
@@ -118,21 +114,6 @@ function App() {
       setShowHomeConfirm(true);
     } else {
       handleConfirmHome();
-    }
-  };
-
-  const handleTitlePointerDown = () => {
-    longPressTriggered.current = false;
-    longPressTimer.current = setTimeout(() => {
-      longPressTriggered.current = true;
-      setShowBoardStylePicker(prev => !prev);
-    }, 800);
-  };
-
-  const handleTitlePointerUp = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
     }
   };
 
@@ -294,9 +275,6 @@ function App() {
             onSubmitWord={handleSubmitWord}
             onCancelGame={handleCancelGame}
             onEndGame={handleEndGame}
-            boardStyle={boardStyle}
-            onBoardStyleChange={setBoardStyle}
-            showBoardStylePicker={showBoardStylePicker}
             muted={muted}
             onToggleMute={toggleMute}
           />
@@ -319,9 +297,6 @@ function App() {
       {!hideAppTitle && (
         <h1 
           onClick={handleTitleClick}
-          onPointerDown={handleTitlePointerDown}
-          onPointerUp={handleTitlePointerUp}
-          onPointerLeave={handleTitlePointerUp}
           className="app-title"
         >
           Froggle
