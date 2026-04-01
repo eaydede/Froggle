@@ -1,4 +1,5 @@
 import { usePillPosition } from "../use-pill-position";
+import { useDisabledShake } from "../hooks/useDisabledShake";
 import type { MinWordLength } from "../types";
 
 const OPTIONS: { value: MinWordLength; label: string; sub: string }[] = [
@@ -10,11 +11,13 @@ const OPTIONS: { value: MinWordLength; label: string; sub: string }[] = [
 interface LetterConfigProps {
   value: MinWordLength;
   onChange: (len: MinWordLength) => void;
+  disabled?: boolean;
 }
 
-export function LetterConfig({ value, onChange }: LetterConfigProps) {
+export function LetterConfig({ value, onChange, disabled }: LetterConfigProps) {
   const selectedIndex = OPTIONS.findIndex((o) => o.value === value);
   const { trackRef, pillLeft } = usePillPosition(selectedIndex, OPTIONS.length);
+  const { shakeKey, shakeStyle, triggerShake } = useDisabledShake();
 
   return (
     <div className="flex items-center gap-3">
@@ -26,7 +29,9 @@ export function LetterConfig({ value, onChange }: LetterConfigProps) {
       </div>
       <div
         ref={trackRef}
+        key={shakeKey}
         className="flex-1 grid grid-cols-3 bg-[var(--track)] rounded-xl p-[3px] relative"
+        style={shakeStyle}
       >
         <div
           className="seg-pill absolute top-[3px] h-[calc(100%-6px)] bg-[var(--card)] rounded-[10px] pointer-events-none z-0"
@@ -44,14 +49,17 @@ export function LetterConfig({ value, onChange }: LetterConfigProps) {
             <button
               key={opt.value}
               type="button"
-              onClick={() => onChange(opt.value)}
+              onClick={() => disabled ? triggerShake() : onChange(opt.value)}
               className={`
                 seg-btn relative z-1 bg-transparent border-none rounded-[10px]
-                cursor-pointer flex flex-col items-center justify-center text-center
+                flex flex-col items-center justify-center text-center
                 select-none
                 py-[0.55rem] px-[0.2rem] gap-[0.02rem]
                 transition-colors duration-250
+                ${disabled ? 'cursor-default' : 'cursor-pointer'}
                 ${isSelected ? "text-[var(--text)]" : "text-[var(--text-muted)]"}
+                ${disabled && isSelected ? "opacity-70" : ""}
+                ${disabled && !isSelected ? "opacity-30" : ""}
               `}
               style={{ WebkitTapHighlightColor: "transparent", fontFamily: 'var(--font-option)', fontWeight: 'var(--font-option-weight)' as any }}
             >

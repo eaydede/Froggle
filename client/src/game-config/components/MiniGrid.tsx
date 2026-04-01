@@ -15,16 +15,17 @@ interface MiniGridProps {
   selected: boolean;
   /** Incremented to re-trigger the pop animation on selection */
   animationKey: number;
+  disabled?: boolean;
 }
 
-export function MiniGrid({ size, selected, animationKey }: MiniGridProps) {
+export function MiniGrid({ size, selected, animationKey, disabled }: MiniGridProps) {
   const gridRef = useRef<HTMLDivElement>(null);
   const total = size * size;
   const { hi, hi2 } = HIGHLIGHTS[size] ?? { hi: [], hi2: [] };
 
   // Re-trigger CSS animations by removing and re-adding the class
   useEffect(() => {
-    if (!selected || !gridRef.current) return;
+    if (!selected || !gridRef.current || disabled) return;
 
     const cells = gridRef.current.querySelectorAll<HTMLElement>(".cell");
     cells.forEach((cell) => {
@@ -33,7 +34,7 @@ export function MiniGrid({ size, selected, animationKey }: MiniGridProps) {
       void cell.offsetHeight;
       cell.classList.add("cell-animate");
     });
-  }, [animationKey, selected]);
+  }, [animationKey, selected, disabled]);
 
   return (
     <div

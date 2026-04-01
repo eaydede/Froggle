@@ -55,11 +55,7 @@ function App() {
     const info = getDailyInfo();
     setDailyInfo({ date: info.date, number: info.number, seed: info.seed });
     setViewingDailyResults(false);
-    setDailyLoading(true);
     await createGame();
-    await startGame(info.timeLimit, info.boardSize, info.minWordLength, undefined, info.seed);
-    setDailyLoading(false);
-    setFeedback(null);
   };
 
   const handleDailyResults = async () => {
@@ -251,19 +247,40 @@ function App() {
           </div>
         );
 
-      case GameState.Config:  // Game created, in config phase
+      case GameState.Config: {  // Game created, in config phase
         if (dailyLoading) return null;
+        const isDaily = dailyInfo !== null;
+        const dailyDefaults = isDaily ? {
+          boardSize: getDailyInfo().boardSize as 4 | 5 | 6,
+          timer: getDailyInfo().timeLimit as 60 | 120 | -1,
+          minWordLength: getDailyInfo().minWordLength as 3 | 4 | 5,
+        } : undefined;
+
+        const handleDailyStart = async () => {
+          const info = getDailyInfo();
+          setDailyLoading(true);
+          await startGame(info.timeLimit, info.boardSize, info.minWordLength, undefined, info.seed);
+          setDailyLoading(false);
+          setFeedback(null);
+        };
+
         return (
           <div className="flex flex-1 items-center justify-center">
             <GameConfigPage
-              title="Free Play"
+              title={isDaily ? 'Daily Puzzle' : 'Free Play'}
               subtitle="Choose your settings"
               card={false}
               onBack={handleBackToStart}
-              onStart={(config: GameConfig) => handleStartGame(config.boardSize, config.timer, config.minWordLength)}
+              onStart={isDaily
+                ? () => handleDailyStart()
+                : (config: GameConfig) => handleStartGame(config.boardSize, config.timer, config.minWordLength)
+              }
+              disabled={isDaily}
+              defaultValues={dailyDefaults}
             />
           </div>
         );
+      }
 
       case GameState.InProgress:  // Game is active
         return (

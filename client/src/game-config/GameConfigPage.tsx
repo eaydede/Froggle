@@ -7,15 +7,20 @@ interface GameConfigPageProps {
   title?: string;
   subtitle?: string;
   card?: boolean;
+  disabled?: boolean;
+  defaultValues?: {
+    boardSize: BoardSize;
+    timer: TimerOption;
+    minWordLength: MinWordLength;
+  };
   onBack?: () => void;
   onStart?: (config: GameConfig) => void;
 }
 
-export function GameConfigPage({ title, subtitle, card = true, onBack, onStart }: GameConfigPageProps) {
-  const [boardSize, setBoardSize] = useState<BoardSize>(4);
-
-  const [timer, setTimer] = useState<TimerOption>(60);
-  const [minWordLength, setMinWordLength] = useState<MinWordLength>(3);
+export function GameConfigPage({ title, subtitle, card = true, disabled = false, defaultValues, onBack, onStart }: GameConfigPageProps) {
+  const [boardSize, setBoardSize] = useState<BoardSize>(defaultValues?.boardSize ?? 4);
+  const [timer, setTimer] = useState<TimerOption>(defaultValues?.timer ?? 60);
+  const [minWordLength, setMinWordLength] = useState<MinWordLength>(defaultValues?.minWordLength ?? 3);
 
   function handleStart() {
     onStart?.({ boardSize, timer, minWordLength });
@@ -42,15 +47,13 @@ export function GameConfigPage({ title, subtitle, card = true, onBack, onStart }
                 absolute left-0 top-0.5
                 flex items-center justify-center
                 bg-transparent border-none cursor-pointer
-                text-[var(--text-muted)] hover:text-[var(--text)]
-                transition-colors duration-200 select-none
+                text-[0.85rem] text-[var(--text-muted)] hover:text-[var(--text)]
+                transition-all duration-200 select-none
               "
               style={{ WebkitTapHighlightColor: "transparent" }}
               aria-label="Back"
             >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 5L7 10L12 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              ←
             </button>
           )}
           <div className="text-center" style={{ fontFamily: 'var(--font-heading)', fontWeight: 'var(--font-heading-weight)' as any }}>
@@ -70,9 +73,9 @@ export function GameConfigPage({ title, subtitle, card = true, onBack, onStart }
 
       {/* Config sections */}
       <div className="flex flex-col gap-6">
-        <BoardConfigCards value={boardSize} onChange={setBoardSize} />
-        <TimerConfig value={timer} onChange={setTimer} />
-        <LetterConfig value={minWordLength} onChange={setMinWordLength} />
+        <BoardConfigCards value={boardSize} onChange={setBoardSize} disabled={disabled} />
+        <TimerConfig value={timer} onChange={setTimer} disabled={disabled} />
+        <LetterConfig value={minWordLength} onChange={setMinWordLength} disabled={disabled} />
       </div>
 
       {/* Start button */}

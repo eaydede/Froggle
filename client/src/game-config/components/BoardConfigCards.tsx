@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { MiniGrid } from "./MiniGrid";
+import { useDisabledShake } from "../hooks/useDisabledShake";
 import type { BoardSize } from "../types";
 
 const OPTIONS: { size: BoardSize; label: string; sub: string }[] = [
@@ -32,6 +33,8 @@ export function BoardConfigCards({ value, onChange, disabled, code, onCodeChange
   const codeValue = code ?? internalCode;
   const setCodeValue = onCodeChange ?? setInternalCode;
 
+  const { shakeKey, shakeStyle, triggerShake } = useDisabledShake();
+
   const [animKeys, setAnimKeys] = useState<Record<BoardSize, number>>({
     4: 0,
     5: 0,
@@ -39,7 +42,7 @@ export function BoardConfigCards({ value, onChange, disabled, code, onCodeChange
   });
 
   function handleSelect(size: BoardSize) {
-    if (disabled) return;
+    if (disabled) { triggerShake(); return; }
     onChange(size);
     setAnimKeys((prev) => ({ ...prev, [size]: prev[size] + 1 }));
   }
@@ -126,7 +129,7 @@ export function BoardConfigCards({ value, onChange, disabled, code, onCodeChange
       </div>
 
       {/* Cards */}
-      <div className="grid grid-cols-3 gap-2">
+      <div key={shakeKey} className="grid grid-cols-3 gap-2" style={shakeStyle}>
         {OPTIONS.map((opt) => {
           const isSelected = opt.size === value;
           return (
@@ -143,7 +146,8 @@ export function BoardConfigCards({ value, onChange, disabled, code, onCodeChange
                   ? "border-[var(--accent)] bg-[var(--card)] shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
                   : "border-transparent bg-[var(--track)] hover:bg-[var(--card)] hover:shadow-[0_1px_6px_rgba(0,0,0,0.04)]"
                 }
-                ${disabled && !isSelected ? "opacity-20" : ""}
+                ${disabled && isSelected ? "opacity-70" : ""}
+                ${disabled && !isSelected ? "opacity-30" : ""}
               `}
               style={{
                 WebkitTapHighlightColor: "transparent",
@@ -156,6 +160,7 @@ export function BoardConfigCards({ value, onChange, disabled, code, onCodeChange
                   size={opt.size}
                   selected={isSelected}
                   animationKey={animKeys[opt.size]}
+                  disabled={disabled}
                 />
               </div>
               <span className={`text-[0.78rem] leading-none mt-[0.3rem] ${isSelected ? "text-[var(--text)]" : "text-[var(--text-muted)]"}`}>
