@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { BoardConfigCards, TimerConfig, LetterConfig } from "./components";
 import type { GameConfig, BoardSize, TimerOption, MinWordLength } from "./types";
 import { decodeSeedCode } from "models/seedCode";
-import "./game-config.css";
+
 
 interface GameConfigPageProps {
   title?: string;
@@ -76,9 +76,9 @@ export function GameConfigPage({ title, subtitle, card = true, disabled = false,
               ←
             </button>
           )}
-          <div className="text-center" style={{ fontFamily: 'var(--font-heading)', fontWeight: 'var(--font-heading-weight)' as any }}>
+          <div className="text-center">
             {title && (
-              <h1 className="text-[1.35rem] tracking-[-0.025em]">
+              <h1 className="text-[1.35rem] tracking-[-0.025em]" style={{ fontFamily: "'Merriweather', Georgia, serif", fontWeight: 900 }}>
                 {title}
               </h1>
             )}
@@ -103,8 +103,7 @@ export function GameConfigPage({ title, subtitle, card = true, disabled = false,
         type="button"
         onClick={handleStart}
         className="
-          start-btn
-          w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white border-none rounded-xl
+          w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] active:scale-[0.975] active:duration-[60ms] text-white border-none rounded-xl
           py-3.5 mt-8
           text-[0.85rem]
           cursor-pointer select-none

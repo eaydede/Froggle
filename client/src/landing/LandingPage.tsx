@@ -1,6 +1,5 @@
 import { DailyCard, FreePlayCard } from "./components";
 import type { DailyPuzzleConfig, DailyResults } from "./types";
-import "./landing.css";
 
 interface LandingPageProps {
   dailyConfig: DailyPuzzleConfig;

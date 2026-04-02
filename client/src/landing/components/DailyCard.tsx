@@ -20,9 +20,8 @@ export function DailyCard({ config, results, onClick }: DailyCardProps) {
     <div
       onClick={onClick}
       className={`
-        daily-card
         rounded-2xl relative overflow-hidden select-none
-        transition-all duration-200
+        transition-all duration-200 active:scale-[0.985] active:duration-[60ms]
         ${completed
           ? "bg-[var(--card)] text-[var(--text)] cursor-pointer"
           : "bg-[var(--accent)] text-white cursor-pointer"

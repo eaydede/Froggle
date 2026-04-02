@@ -1,10 +1,10 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Position, Game } from 'models';
 import { GameResults } from '../api/gameApi';
-import { ResultsBoard } from '../components/ResultsBoard';
-import { ResultsWordList } from '../components/ResultsWordList';
+import { ResultsBoard } from './components/ResultsBoard';
+import { ResultsWordList } from './components/ResultsWordList';
 import { generateShareText } from '../utils/shareResults';
-import { useDefinition } from '../hooks/useDefinition';
+import { useDefinition } from './hooks/useDefinition';
 import { encodeSeedCode } from 'models/seedCode';
 
 const SCORE_SQUARE_STYLES: Record<number, React.CSSProperties> = {

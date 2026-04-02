@@ -51,7 +51,7 @@ export function LetterConfig({ value, onChange, disabled }: LetterConfigProps) {
               type="button"
               onClick={() => disabled ? triggerShake() : onChange(opt.value)}
               className={`
-                seg-btn relative z-1 bg-transparent border-none rounded-[10px]
+                seg-btn relative z-1 bg-transparent border-none rounded-[10px] active:scale-[0.96] active:transition-transform active:duration-[60ms]
                 flex flex-col items-center justify-center text-center
                 select-none
                 py-[0.55rem] px-[0.2rem] gap-[0.02rem]

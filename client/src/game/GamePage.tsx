@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Game, Position, Word } from 'models';
-import { Board, FeedbackType, computeFeedbackColors } from '../components/Board';
-import { TimerBar } from '../components/TimerBar';
+import { Board, FeedbackType, computeFeedbackColors } from './components/Board';
+import { TimerBar } from './components/TimerBar';
 
 // Hardcoded board style defaults
 const BOARD_STYLE = {
