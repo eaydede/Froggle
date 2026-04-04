@@ -27,6 +27,18 @@ const ACCENT_COLORS = [
   { token: '--accent-hover', value: '#5A8A6C', label: 'Accent Hover' },
 ]
 
+const DARK_MODE_COLORS = [
+  { token: 'dark-bg', value: '#2C2C2E', label: 'Dark Background (Slate)' },
+  { token: 'dark-surface', value: '#3A3A3C', label: 'Dark Surface / Card' },
+  { token: 'dark-text', value: '#E5E5E7', label: 'Dark Primary Text' },
+  { token: 'dark-text-muted', value: 'rgba(255,255,255,0.45)', label: 'Dark Muted Text' },
+  { token: 'dark-border', value: 'rgba(255,255,255,0.06)', label: 'Dark Border' },
+  { token: 'dark-btn-primary-bg', value: '#FAF8F5', label: 'Dark Primary Button BG' },
+  { token: 'dark-btn-primary-text', value: '#2C2C2E', label: 'Dark Primary Button Text' },
+  { token: 'dark-btn-secondary-bg', value: 'rgba(255,255,255,0.15)', label: 'Dark Secondary Button BG' },
+  { token: 'dark-btn-tertiary-border', value: 'rgba(255,255,255,0.25)', label: 'Dark Tertiary Border' },
+]
+
 const DOT_COLORS = [
   { token: '--dot', value: '#D4D4D4', label: 'Grid Dot (default)' },
   { token: '--dot-hi', value: '#333333', label: 'Grid Dot (selected)' },
@@ -242,6 +254,20 @@ export const ColorPalette: Story = {
           ))}
         </div>
       </div>
+
+      <div style={sectionStyle}>
+        <div style={headingStyle}>Dark Mode</div>
+        <div style={subStyle}>Colors for dark surfaces (slate #2C2C2E background)</div>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', padding: 24, borderRadius: 16, backgroundColor: '#2C2C2E' }}>
+          {DARK_MODE_COLORS.map(c => (
+            <div key={c.token} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <Swatch color={c.value} size={48} />
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#E5E5E7' }}>{c.label}</div>
+              <div style={{ ...monoStyle, color: 'rgba(255,255,255,0.5)' }}>{c.value}</div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   ),
 }
@@ -418,6 +444,17 @@ export const FullReference: Story = {
                   <div style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: c.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 11, fontWeight: 700 }}>
                     {c.points}
                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div style={{ ...labelStyle, marginBottom: 12, fontWeight: 700 }}>Dark Mode</div>
+            <div style={{ display: 'flex', gap: 8, padding: '8px 12px', borderRadius: 10, backgroundColor: '#2C2C2E' }}>
+              {DARK_MODE_COLORS.slice(0, 5).map(c => (
+                <div key={c.token} style={{ textAlign: 'center' }}>
+                  <Swatch color={c.value} size={40} />
+                  <div style={{ fontSize: 9, marginTop: 4, color: 'rgba(255,255,255,0.5)' }}>{c.label.replace('Dark ', '')}</div>
                 </div>
               ))}
             </div>
