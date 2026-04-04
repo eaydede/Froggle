@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { fn } from '@storybook/test';
-import { FreePlayCard } from '../shared/components/FreePlayCard';
+import { FreePlayCard } from '../pages/landing/components/FreePlayCard';
 
 const DARK_BG = '#2C2C2E';
 

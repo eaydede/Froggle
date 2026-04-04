@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { fn } from '@storybook/test';
-import { DailyPuzzleCard } from '../shared/components/DailyPuzzleCard';
-import { FreePlayCard } from '../shared/components/FreePlayCard';
+import { DailyCard } from '../pages/landing/components/DailyCard';
+import { FreePlayCard } from '../pages/landing/components/FreePlayCard';
 
 const DARK_BG = '#2C2C2E';
 
@@ -18,17 +18,17 @@ const dailyResults = {
   longestWord: 'FROGS',
 };
 
-// --- Daily Puzzle Card ---
+// --- Daily Card ---
 
-const dailyMeta: Meta<typeof DailyPuzzleCard> = {
-  title: 'Components/DailyPuzzleCard',
-  component: DailyPuzzleCard,
+const dailyMeta: Meta<typeof DailyCard> = {
+  title: 'Components/DailyCard',
+  component: DailyCard,
   parameters: { layout: 'centered' },
   args: { onClick: fn() },
 };
 
 export default dailyMeta;
-type Story = StoryObj<typeof DailyPuzzleCard>;
+type Story = StoryObj<typeof DailyCard>;
 
 function DailyStory({ completed }: { completed: boolean }) {
   return (
@@ -36,7 +36,7 @@ function DailyStory({ completed }: { completed: boolean }) {
       <div className="w-[340px]">
         <div className="text-xs text-[#999] font-semibold mb-3 uppercase tracking-wider">Light</div>
         <div className="p-6 rounded-2xl bg-[#FAFAF8] border border-[#eee]">
-          <DailyPuzzleCard
+          <DailyCard
             config={dailyConfig}
             results={completed ? dailyResults : null}
             onClick={fn()}
@@ -47,7 +47,7 @@ function DailyStory({ completed }: { completed: boolean }) {
       <div className="w-[340px]">
         <div className="text-xs text-[#999] font-semibold mb-3 uppercase tracking-wider">Dark</div>
         <div className="p-6 rounded-2xl" style={{ backgroundColor: DARK_BG }}>
-          <DailyPuzzleCard
+          <DailyCard
             config={dailyConfig}
             results={completed ? dailyResults : null}
             onClick={fn()}

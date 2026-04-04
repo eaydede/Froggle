@@ -1,5 +1,14 @@
 import type { DailyPuzzleConfig, DailyResults } from "../types";
 
+type CardMode = 'light' | 'dark';
+
+interface DailyCardProps {
+  config: DailyPuzzleConfig;
+  results: DailyResults | null;
+  onClick: () => void;
+  mode?: CardMode;
+}
+
 function formatTimer(seconds: number): string {
   if (!isFinite(seconds)) return "∞";
   const m = Math.floor(seconds / 60);
@@ -7,116 +16,114 @@ function formatTimer(seconds: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-interface DailyCardProps {
-  config: DailyPuzzleConfig;
-  results: DailyResults | null;
-  onClick: () => void;
-}
-
-export function DailyCard({ config, results, onClick }: DailyCardProps) {
+export function DailyCard({ config, results, onClick, mode = 'light' }: DailyCardProps) {
   const completed = results !== null;
+  const dark = mode === 'dark';
+
+  const bg = completed
+    ? dark ? '#3A3A3C' : 'var(--card)'
+    : 'var(--accent)';
+
+  const textColor = completed
+    ? dark ? '#E5E5E7' : 'var(--text)'
+    : 'white';
+
+  const subtitleColor = completed
+    ? dark ? 'rgba(255,255,255,0.45)' : 'var(--text-muted)'
+    : 'rgba(255,255,255,0.5)';
+
+  const watermarkColor = completed
+    ? dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
+    : 'rgba(255,255,255,0.15)';
+
+  const shadow = completed
+    ? dark
+      ? '0 0 0 1px rgba(255,255,255,0.06), 0 4px 24px rgba(0,0,0,0.3)'
+      : '0 0 0 1px rgba(0,0,0,0.04), 0 4px 24px rgba(107,155,125,0.18)'
+    : dark
+      ? '0 4px 24px rgba(0,0,0,0.4)'
+      : '0 4px 24px rgba(107,155,125,0.30)';
+
+  const borderLeft = completed
+    ? '3px solid var(--accent)'
+    : undefined;
+
+  const resultBoxBg = dark ? 'rgba(255,255,255,0.08)' : 'var(--track)';
+  const resultValueColor = dark ? '#E5E5E7' : 'var(--text)';
+  const resultLabelColor = dark ? 'rgba(255,255,255,0.4)' : 'var(--text-muted)';
+
+  const tagBg = 'rgba(255,255,255,0.12)';
+  const tagColor = 'rgba(255,255,255,0.7)';
 
   return (
     <div
       onClick={onClick}
-      className={`
-        rounded-2xl relative overflow-hidden select-none
-        transition-all duration-200 active:scale-[0.985] active:duration-[60ms]
-        ${completed
-          ? "bg-[var(--card)] text-[var(--text)] cursor-pointer"
-          : "bg-[var(--accent)] text-white cursor-pointer"
-        }
-        sm:p-6
-      `}
+      className="rounded-2xl relative overflow-hidden select-none transition-all duration-200 active:scale-[0.985] active:duration-[60ms] cursor-pointer sm:p-6"
       style={{
-        padding: "1.35rem",
-        WebkitTapHighlightColor: "transparent",
-        ...(completed
-          ? {
-              borderLeft: '3px solid var(--accent)',
-              boxShadow: '0 0 0 1px rgba(0,0,0,0.04), 0 4px 24px rgba(107,155,125,0.18)',
-            }
-          : {
-              boxShadow: '0 4px 24px rgba(107,155,125,0.30)',
-            }
-        ),
+        padding: '1.35rem',
+        WebkitTapHighlightColor: 'transparent',
+        backgroundColor: bg,
+        color: textColor,
+        boxShadow: shadow,
+        borderLeft,
       }}
     >
-      {/* Watermark puzzle number */}
+      {/* Watermark */}
       <span
-        className="absolute top-4 right-5 text-[2rem] font-bold leading-none tracking-[-0.03em] opacity-15"
-        style={{ color: completed ? "var(--text)" : "white" }}
+        className="absolute top-4 right-5 text-[2rem] font-bold leading-none tracking-[-0.03em]"
+        style={{ color: watermarkColor }}
       >
         #{config.puzzleNumber}
       </span>
 
-      {/* Title area */}
+      {/* Title */}
       <div className="mb-3">
         <div className="text-[0.95rem] font-bold">
-          {completed
-            ? `Daily Puzzle #${config.puzzleNumber}`
-            : "Daily Puzzle"}
+          {completed ? `Daily Puzzle #${config.puzzleNumber}` : 'Daily Puzzle'}
         </div>
-        <div
-          className="text-[0.68rem] font-medium mt-0.5"
-          style={{
-            color: completed ? "var(--text-muted)" : "rgba(255,255,255,0.5)",
-          }}
-        >
-          {completed ? "Completed today" : "A new board every day"}
+        <div className="text-[0.68rem] font-medium mt-0.5" style={{ color: subtitleColor }}>
+          {completed ? 'Completed today' : 'A new board every day'}
         </div>
       </div>
 
-      {/* Playable: show config tags */}
+      {/* Config tags (unplayed) */}
       {!completed && (
         <div className="flex gap-1.5 flex-wrap">
-          <ConfigTag label={`${config.boardSize}×${config.boardSize}`} />
-          <ConfigTag label={formatTimer(config.timer)} />
-          <ConfigTag label={`${config.minWordLength}+ letters`} />
+          <span className="text-[0.6rem] font-semibold rounded-md" style={{ padding: '0.22rem 0.5rem', background: tagBg, color: tagColor }}>
+            {config.boardSize}×{config.boardSize}
+          </span>
+          <span className="text-[0.6rem] font-semibold rounded-md" style={{ padding: '0.22rem 0.5rem', background: tagBg, color: tagColor }}>
+            {formatTimer(config.timer)}
+          </span>
+          <span className="text-[0.6rem] font-semibold rounded-md" style={{ padding: '0.22rem 0.5rem', background: tagBg, color: tagColor }}>
+            {config.minWordLength}+ letters
+          </span>
         </div>
       )}
 
-      {/* Completed: show results */}
+      {/* Results (completed) */}
       {completed && (
         <div className="flex gap-1.5">
-          <ResultBox value={String(results.words)} label="Words" shrinkable />
-          <ResultBox value={String(results.points)} label="Points" shrinkable />
-          <ResultBox value={results.longestWord} label="Longest" />
+          <ResultBox value={String(results.words)} label="Words" shrinkable bg={resultBoxBg} valueColor={resultValueColor} labelColor={resultLabelColor} />
+          <ResultBox value={String(results.points)} label="Points" shrinkable bg={resultBoxBg} valueColor={resultValueColor} labelColor={resultLabelColor} />
+          <ResultBox value={results.longestWord} label="Longest" bg={resultBoxBg} valueColor={resultValueColor} labelColor={resultLabelColor} />
         </div>
       )}
     </div>
   );
 }
 
-function ConfigTag({ label }: { label: string }) {
-  return (
-    <span
-      className="text-[0.6rem] font-semibold rounded-md"
-      style={{
-        padding: "0.22rem 0.5rem",
-        background: "rgba(255,255,255,0.12)",
-        color: "rgba(255,255,255,0.7)",
-      }}
-    >
-      {label}
-    </span>
-  );
-}
-
-function ResultBox({ value, label, shrinkable }: { value: string; label: string; shrinkable?: boolean }) {
+function ResultBox({ value, label, shrinkable, bg, valueColor, labelColor }: {
+  value: string; label: string; shrinkable?: boolean;
+  bg: string; valueColor: string; labelColor: string;
+}) {
   return (
     <div
-      className={`rounded-[10px] bg-[var(--track)] text-center ${
-        shrinkable ? "flex-1 min-w-0" : "flex-1 shrink-0"
-      }`}
-      style={{ padding: shrinkable ? "0.55rem 0.3rem" : "0.55rem 0.75rem" }}
+      className={`rounded-[10px] text-center ${shrinkable ? 'flex-1 min-w-0' : 'flex-1 shrink-0'}`}
+      style={{ padding: shrinkable ? '0.55rem 0.3rem' : '0.55rem 0.75rem', backgroundColor: bg }}
     >
-      <div className="text-[1rem] font-bold leading-[1.1] text-[var(--text)] truncate">
-        {value}
-      </div>
-      <div className="text-[0.48rem] font-semibold text-[var(--text-muted)] uppercase tracking-[0.04em] mt-0.5">
-        {label}
-      </div>
+      <div className="text-[1rem] font-bold leading-[1.1] truncate" style={{ color: valueColor }}>{value}</div>
+      <div className="text-[0.48rem] font-semibold uppercase tracking-[0.04em] mt-0.5" style={{ color: labelColor }}>{label}</div>
     </div>
   );
 }
