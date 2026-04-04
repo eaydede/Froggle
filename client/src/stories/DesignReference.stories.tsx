@@ -77,14 +77,9 @@ const FONTS = [
     name: 'Outfit',
     family: "'Outfit', sans-serif",
     weights: [400, 500, 600, 700],
-    usage: 'Primary action buttons (Start Game, Play Again)',
+    usage: 'Action buttons, board cell letters, current word display',
   },
-  {
-    name: 'Roboto Mono',
-    family: "'Roboto Mono', monospace",
-    weights: [700, 900],
-    usage: 'Board cell letters, seed codes',
-  },
+
 ]
 
 const TYPOGRAPHY_ROLES = [
@@ -95,8 +90,9 @@ const TYPOGRAPHY_ROLES = [
   { role: 'Option Subtitle', font: 'Inter', weight: 600, size: '0.52rem', tracking: 'normal', example: 'Standard' },
   { role: 'Action Button', font: 'Outfit', weight: 700, size: '0.85rem', tracking: 'normal', example: 'Start Game' },
   { role: 'Body / Subtitle', font: 'Inter', weight: 500, size: '0.75rem', tracking: 'normal', example: 'Choose your settings' },
-  { role: 'Board Cell', font: 'Roboto Mono', weight: 900, size: 'responsive', tracking: 'normal', example: 'F' },
-  { role: 'Current Word', font: 'Merriweather', weight: 900, size: '1.5rem', tracking: '0.05em', example: 'FROG' },
+  { role: 'Board Cell', font: 'Outfit', weight: 800, size: 'responsive', tracking: 'normal', example: 'F' },
+  { role: 'Current Word', font: 'Outfit', weight: 800, size: '1.4rem', tracking: '0.05em', example: 'FROG' },
+  { role: 'Seed Code', font: 'Inter', weight: 600, size: '0.75rem', tracking: '0.05em', example: 'FIRE-BOLD-LAMP' },
   { role: 'Results Word', font: 'Merriweather', weight: 800, size: '0.8125rem', tracking: '0.5px', example: 'LEAP' },
   { role: 'Definition', font: 'Merriweather', weight: 400, size: '0.8125rem', tracking: 'normal', example: 'A tailless amphibian...' },
   { role: 'Share Button', font: 'Merriweather', weight: 600, size: '0.8125rem', tracking: 'normal', example: 'Share Results' },
@@ -141,7 +137,7 @@ const COMPONENT_PATTERNS = [
   {
     name: 'Board Cell',
     description: 'Game board letter tile',
-    specs: '4 base styles (Soft Cards default). Inline computed styles for hover/press/feedback. Roboto Mono 900.',
+    specs: '4 base styles (Soft Cards default). Inline computed styles for hover/press/feedback. Outfit 800.',
   },
   {
     name: 'Timer Bar',
@@ -320,7 +316,6 @@ export const Typography: Story = {
               <div style={{
                 fontFamily: t.font === 'Merriweather' ? "'Merriweather', Georgia, serif"
                   : t.font === 'Outfit' ? "'Outfit', sans-serif"
-                  : t.font === 'Roboto Mono' ? "'Roboto Mono', monospace"
                   : "'Inter', sans-serif",
                 fontWeight: t.weight,
                 fontSize: t.size === 'responsive' ? 16 : t.size,
