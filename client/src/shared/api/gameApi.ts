@@ -1,4 +1,5 @@
 import { Position, Game, Word } from 'models';
+import type { GameResults } from '../types';
 
 const API_URL = '/api';
 
@@ -89,8 +90,6 @@ export const fetchGameState = async (): Promise<{
   });
   return response.json();
 };
-
-import type { GameResults } from '../types';
 
 export const fetchResults = async (): Promise<GameResults> => {
   const response = await fetch(`${API_URL}/game/results`, {
