@@ -27,7 +27,7 @@ export const getScoreColor = (score: number): string => {
 };
 
 const WORD_FONT: React.CSSProperties = {
-  fontFamily: "'Merriweather', Georgia, serif",
+  fontFamily: 'var(--font-serif)',
   fontWeight: 800,
 };
 

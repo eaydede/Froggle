@@ -30,12 +30,12 @@ function App() {
   };
 
   return (
-    <div className="max-w-[800px] mx-auto p-5 bg-[#FAFAF8] h-dvh box-border overflow-y-auto flex flex-col" style={{ fontFamily: "'Inter', system-ui, sans-serif", WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+    <div className="max-w-[800px] mx-auto p-5 bg-[#FAFAF8] h-dvh box-border overflow-y-auto flex flex-col" style={{ fontFamily: 'var(--font-body)', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
       {showTitle && (
         <h1
           onClick={handleTitleClick}
           className="text-center text-[1.35rem] tracking-[-0.025em] m-0 mb-2.5 cursor-pointer select-none transition-all duration-200 hover:scale-105"
-          style={{ fontFamily: "'Merriweather', Georgia, serif", fontWeight: 900 }}
+          style={{ fontFamily: 'var(--font-heading)', fontWeight: 'var(--font-heading-weight)' as any }}
         >
           Froggle
         </h1>
@@ -48,14 +48,14 @@ function App() {
             <div className="flex gap-3 justify-center">
               <button
                 className="py-2 px-6 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white border-none rounded-lg cursor-pointer text-sm transition-colors duration-200"
-                style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 700 }}
+                style={{ fontFamily: 'var(--font-button)', fontWeight: 'var(--font-button-weight)' as any }}
                 onClick={handleGoHome}
               >
                 Yes
               </button>
               <button
                 className="py-2 px-6 bg-[var(--track)] hover:bg-[#ddd] text-[var(--text)] border-none rounded-lg cursor-pointer text-sm transition-colors duration-200"
-                style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 700 }}
+                style={{ fontFamily: 'var(--font-button)', fontWeight: 'var(--font-button-weight)' as any }}
                 onClick={() => setShowHomeConfirm(false)}
               >
                 Cancel

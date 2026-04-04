@@ -45,11 +45,18 @@ const DOT_COLORS = [
   { token: '--dot-hi2', value: '#888888', label: 'Grid Dot (secondary)' },
 ]
 
+const CELL_COLORS = [
+  { token: '--cell-bg', value: '#E8E2DA', label: 'Cell Background' },
+  { token: '--cell-text', value: '#2C2C2E', label: 'Cell Text' },
+  { token: '--cell-edge', value: '#CFC9C1', label: 'Cell Edge (dice)' },
+  { token: '--cell-edge-deep', value: '#C4BEB6', label: 'Cell Edge Deep (dice)' },
+]
+
 const BOARD_FEEDBACK = [
-  { label: 'Selected', value: 'hsl(207, 58%, 63%)', note: 'At 35% wash' },
-  { label: 'Valid', value: 'hsl(122, 29%, 57%)', note: 'At 35% wash' },
-  { label: 'Invalid', value: 'hsl(4, 60%, 63%)', note: 'At 35% wash' },
-  { label: 'Duplicate', value: 'hsl(45, 65%, 60%)', note: 'At 35% wash' },
+  { label: 'Selected', value: 'hsl(207, 58%, 63%)', token: '--color-selected' },
+  { label: 'Valid', value: 'hsl(122, 29%, 57%)', token: '--color-valid' },
+  { label: 'Invalid', value: 'hsl(4, 60%, 63%)', token: '--color-invalid' },
+  { label: 'Duplicate', value: 'hsl(45, 65%, 60%)', token: '--color-duplicate' },
 ]
 
 const SCORE_TIERS = [
@@ -63,38 +70,40 @@ const SCORE_TIERS = [
 const FONTS = [
   {
     name: 'Merriweather',
+    token: '--font-serif',
     family: "'Merriweather', Georgia, serif",
     weights: [400, 700, 900],
-    usage: 'Page titles, app wordmark, current word display, results word list, definition text',
+    usage: 'Headings, word list, definitions, share button',
   },
   {
     name: 'Inter',
+    token: '--font-sans',
     family: "'Inter', system-ui, sans-serif",
     weights: [400, 500, 600, 700],
-    usage: 'Body text, config labels, config options, landing page subtitle',
+    usage: 'Body text, config labels, config options, subtitles',
   },
   {
     name: 'Outfit',
+    token: '--font-display',
     family: "'Outfit', sans-serif",
-    weights: [400, 500, 600, 700],
-    usage: 'Action buttons, board cell letters, current word display',
+    weights: [400, 500, 600, 700, 800],
+    usage: 'Action buttons, board cells, current word display',
   },
-
 ]
 
 const TYPOGRAPHY_ROLES = [
-  { role: 'Page Heading', font: 'Merriweather', weight: 900, size: '1.35rem', tracking: '-0.025em', example: 'Froggle' },
-  { role: 'Card Title', font: 'Inter', weight: 700, size: '0.95rem', tracking: 'normal', example: 'Daily Puzzle' },
-  { role: 'Config Label', font: 'Inter', weight: 600, size: '0.68rem', tracking: '0.06em', example: 'TIMER' },
-  { role: 'Config Option', font: 'Inter', weight: 600, size: '1.15rem', tracking: 'normal', example: '2:00' },
-  { role: 'Option Subtitle', font: 'Inter', weight: 600, size: '0.52rem', tracking: 'normal', example: 'Standard' },
-  { role: 'Action Button', font: 'Outfit', weight: 700, size: '0.85rem', tracking: 'normal', example: 'Start Game' },
-  { role: 'Body / Subtitle', font: 'Inter', weight: 500, size: '0.75rem', tracking: 'normal', example: 'Choose your settings' },
-  { role: 'Board Cell', font: 'Outfit', weight: 800, size: 'responsive', tracking: 'normal', example: 'F' },
-  { role: 'Current Word', font: 'Outfit', weight: 800, size: '1.4rem', tracking: '0.05em', example: 'FROG' },
-  { role: 'Seed Code', font: 'Inter', weight: 600, size: '0.75rem', tracking: '0.05em', example: 'FIRE-BOLD-LAMP' },
-  { role: 'Results Word', font: 'Merriweather', weight: 800, size: '0.8125rem', tracking: '0.5px', example: 'LEAP' },
-  { role: 'Definition', font: 'Merriweather', weight: 400, size: '0.8125rem', tracking: 'normal', example: 'A tailless amphibian...' },
+  { role: 'Page Heading', token: '--font-heading', weight: '--font-heading-weight (900)', size: '1.35rem', tracking: '-0.025em', example: 'Froggle' },
+  { role: 'Card Title', token: '--font-body', weight: '700', size: '0.95rem', tracking: 'normal', example: 'Daily Puzzle' },
+  { role: 'Config Label', token: '--font-label', weight: '--font-label-weight (600)', size: '0.68rem', tracking: '0.06em', example: 'TIMER' },
+  { role: 'Config Option', token: '--font-option', weight: '--font-option-weight (600)', size: '1.15rem', tracking: 'normal', example: '2:00' },
+  { role: 'Option Subtitle', token: '--font-option', weight: '--font-option-weight (600)', size: '0.52rem', tracking: 'normal', example: 'Standard' },
+  { role: 'Action Button', token: '--font-button', weight: '--font-button-weight (700)', size: '0.85rem', tracking: 'normal', example: 'Start Game' },
+  { role: 'Body / Subtitle', token: '--font-body', weight: '--font-body-weight (400)', size: '0.75rem', tracking: 'normal', example: 'Choose your settings' },
+  { role: 'Board Cell', token: '--font-cell', weight: '--font-cell-weight (800)', size: 'responsive', tracking: 'normal', example: 'F' },
+  { role: 'Current Word', token: '--font-cell', weight: '--font-cell-weight (800)', size: '1.4rem', tracking: '0.05em', example: 'FROG' },
+  { role: 'Seed Code', token: '--font-body', weight: '600', size: '0.75rem', tracking: '0.05em', example: 'FIRE-BOLD-LAMP' },
+  { role: 'Results Word', token: '--font-serif', weight: '800', size: '0.8125rem', tracking: '0.5px', example: 'LEAP' },
+  { role: 'Definition', token: '--font-serif', weight: '400', size: '0.8125rem', tracking: 'normal', example: 'A tailless amphibian...' },
   { role: 'Share Button', font: 'Merriweather', weight: 600, size: '0.8125rem', tracking: 'normal', example: 'Share Results' },
 ]
 
@@ -223,15 +232,30 @@ export const ColorPalette: Story = {
       </div>
 
       <div style={sectionStyle}>
+        <div style={headingStyle}>Cell</div>
+        <div style={subStyle}>Board cell surface and dice edge colors</div>
+        <div style={{ display: 'flex', gap: 24 }}>
+          {CELL_COLORS.map(c => (
+            <div key={c.token} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <Swatch color={c.value} size={48} rounded={12} />
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#333' }}>{c.label}</div>
+              <div style={monoStyle}>{c.value}</div>
+              <div style={labelStyle}>{c.token}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={sectionStyle}>
         <div style={headingStyle}>Board Feedback</div>
-        <div style={subStyle}>Cell colors during gameplay (at 35% color wash)</div>
+        <div style={subStyle}>Cell colors during gameplay (defaults at 35% wash)</div>
         <div style={{ display: 'flex', gap: 24 }}>
           {BOARD_FEEDBACK.map(c => (
             <div key={c.label} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <Swatch color={c.value} size={48} rounded={12} />
               <div style={{ fontSize: 12, fontWeight: 600, color: '#333' }}>{c.label}</div>
               <div style={monoStyle}>{c.value}</div>
-              <div style={labelStyle}>{c.note}</div>
+              <div style={labelStyle}>{c.token}</div>
             </div>
           ))}
         </div>
@@ -273,14 +297,15 @@ export const Typography: Story = {
     <div style={{ padding: 48, maxWidth: 900, fontFamily: "'Inter', sans-serif" }}>
       <div style={sectionStyle}>
         <div style={headingStyle}>Font Families</div>
-        <div style={subStyle}>Four typefaces, each with a distinct role</div>
+        <div style={subStyle}>Three typefaces, each referenced via CSS variable</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
           {FONTS.map(f => (
             <div key={f.name}>
               <div style={{ fontFamily: f.family, fontSize: 28, fontWeight: f.weights[f.weights.length - 1], color: '#1a1a1a', marginBottom: 4 }}>
                 {f.name}
               </div>
-              <div style={labelStyle}>{f.family}</div>
+              <div style={monoStyle}>{f.token}</div>
+              <div style={{ ...labelStyle, marginTop: 2 }}>{f.family}</div>
               <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
                 {f.weights.map(w => (
                   <span key={w} style={{ fontFamily: f.family, fontWeight: w, fontSize: 14, color: '#555' }}>
@@ -298,26 +323,24 @@ export const Typography: Story = {
         <div style={headingStyle}>Type Scale</div>
         <div style={subStyle}>How each font is applied across the app</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '140px 110px 60px 80px 80px 1fr', gap: 8, padding: '8px 0', borderBottom: '1px solid #eee' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '130px 130px 180px 80px 80px 1fr', gap: 8, padding: '8px 0', borderBottom: '1px solid #eee' }}>
             <div style={{ ...labelStyle, fontWeight: 700 }}>Role</div>
-            <div style={{ ...labelStyle, fontWeight: 700 }}>Font</div>
+            <div style={{ ...labelStyle, fontWeight: 700 }}>Token</div>
             <div style={{ ...labelStyle, fontWeight: 700 }}>Weight</div>
             <div style={{ ...labelStyle, fontWeight: 700 }}>Size</div>
             <div style={{ ...labelStyle, fontWeight: 700 }}>Tracking</div>
             <div style={{ ...labelStyle, fontWeight: 700 }}>Example</div>
           </div>
           {TYPOGRAPHY_ROLES.map(t => (
-            <div key={t.role} style={{ display: 'grid', gridTemplateColumns: '140px 110px 60px 80px 80px 1fr', gap: 8, padding: '10px 0', borderBottom: '1px solid #f5f5f5', alignItems: 'center' }}>
+            <div key={t.role} style={{ display: 'grid', gridTemplateColumns: '130px 130px 180px 80px 80px 1fr', gap: 8, padding: '10px 0', borderBottom: '1px solid #f5f5f5', alignItems: 'center' }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: '#333' }}>{t.role}</div>
-              <div style={labelStyle}>{t.font}</div>
+              <div style={monoStyle}>{t.token}</div>
               <div style={monoStyle}>{t.weight}</div>
               <div style={monoStyle}>{t.size}</div>
               <div style={monoStyle}>{t.tracking}</div>
               <div style={{
-                fontFamily: t.font === 'Merriweather' ? "'Merriweather', Georgia, serif"
-                  : t.font === 'Outfit' ? "'Outfit', sans-serif"
-                  : "'Inter', sans-serif",
-                fontWeight: t.weight,
+                fontFamily: `var(${t.token})`,
+                fontWeight: parseInt(String(t.weight)) || 400,
                 fontSize: t.size === 'responsive' ? 16 : t.size,
                 letterSpacing: t.tracking,
                 color: '#1a1a1a',

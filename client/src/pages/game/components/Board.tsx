@@ -2,41 +2,38 @@ import { useEffect, useState } from 'react';
 import { Board as BoardType, Position } from 'models';
 import { useBoardInteraction } from '../hooks/useBoardInteraction';
 import { useThockSound } from '../hooks/useThockSound';
+import { Cell } from '../../../shared/components/Cell';
+import type { CellState } from '../../../shared/components/Cell';
 
 export type FeedbackType = 'valid' | 'invalid' | 'duplicate' | null;
 
+// --- Board layout configs ---
 
-
-// --- Style configs as data ---
-
-interface BoardStyleConfig {
+interface BoardLayoutConfig {
   board: React.CSSProperties;
   rowGap: string;
-  cell: React.CSSProperties;
 }
 
-const BASE_CONFIGS: BoardStyleConfig[] = [
+const BOARD_LAYOUTS: BoardLayoutConfig[] = [
   { // Soft Cards
     board: { background: 'transparent', padding: 0, gap: '8px' },
     rowGap: '8px',
-    cell: { backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)', color: '#333' },
   },
   { // Frosted
     board: { backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: '20px', padding: '14px', gap: '10px' },
     rowGap: '10px',
-    cell: { backgroundColor: 'white', borderRadius: '14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', color: '#333' },
   },
   { // Flat Minimal
     board: { background: 'transparent', padding: 0, gap: '8px' },
     rowGap: '8px',
-    cell: { backgroundColor: '#EDECEA', borderRadius: '12px', color: '#333' },
   },
   { // Neumorphic
     board: { backgroundColor: '#EDECEA', borderRadius: '20px', padding: '16px', gap: '10px', boxShadow: '8px 8px 16px rgba(0,0,0,0.08), -8px -8px 16px rgba(255,255,255,0.9)' },
     rowGap: '10px',
-    cell: { backgroundColor: '#EDECEA', borderRadius: '12px', color: '#333', boxShadow: '4px 4px 8px rgba(0,0,0,0.1), -4px -4px 8px rgba(255,255,255,0.8)' },
   },
 ];
+
+// --- Hover styles ---
 
 function getHoverStyle(hoverIndex: number): React.CSSProperties {
   switch (hoverIndex) {
@@ -48,21 +45,27 @@ function getHoverStyle(hoverIndex: number): React.CSSProperties {
   }
 }
 
-function getPressStyle(pressIndex: number, selectedColor: string): React.CSSProperties {
-  const base: React.CSSProperties = { backgroundColor: selectedColor, color: 'white' };
-  switch (pressIndex) {
-    case 0: return { ...base, boxShadow: '0 4px 14px rgba(0,0,0,0.2)', transform: 'scale(1.05)' };
-    case 1: return { ...base, boxShadow: 'none', transform: 'scale(1.05)' };
-    case 2: return { ...base, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', transform: 'scale(1.05)' };
-    case 3: return { ...base, boxShadow: 'inset 3px 3px 6px rgba(0,0,0,0.15), inset -3px -3px 6px rgba(255,255,255,0.1)', transform: 'scale(1.02)' };
-    default: return base;
-  }
-}
+// --- Proximity ---
 
-function getFeedbackStyle(type: FeedbackType, colors: Record<string, string>): React.CSSProperties {
-  if (!type) return {};
-  const colorMap: Record<string, string> = { valid: colors.valid, invalid: colors.invalid, duplicate: colors.duplicate };
-  return { backgroundColor: colorMap[type], color: 'white', transform: 'scale(1.05)' };
+function getProximityStyle(
+  proximity: number, angle: number, preactStyle: number, intensity: number
+): React.CSSProperties {
+  if (proximity === 0 || preactStyle === 0) return {};
+  const p = Math.pow(proximity, 1.5);
+  const gradDir = (angle + 270) % 360;
+  const colorStop = Math.round(p * 50 * intensity);
+  const fadeStop = Math.min(100, colorStop + 30);
+  const bleedColor = `rgba(0,0,0,${(p * 0.08 * intensity).toFixed(3)})`;
+  const scaleAmount = p * 0.15 * intensity;
+
+  switch (preactStyle) {
+    case 1: return { transform: `scale(${1 - scaleAmount})` };
+    case 2: return { boxShadow: `0 ${Math.round((1 - p * intensity) * 4)}px ${Math.round((1 - p * intensity) * 8)}px rgba(0,0,0,${0.08 * (1 - p * intensity)})` };
+    case 3: return { background: `linear-gradient(${gradDir}deg, ${bleedColor} ${colorStop}%, transparent ${fadeStop}%)` };
+    case 4: return { filter: `brightness(${1 - p * 0.3 * intensity})` };
+    case 5: return { transform: `scale(${1 - scaleAmount * 0.7})`, background: `linear-gradient(${gradDir}deg, ${bleedColor} ${colorStop}%, transparent ${fadeStop}%)` };
+    default: return {};
+  }
 }
 
 // --- Color computation ---
@@ -88,29 +91,6 @@ export function computeFeedbackColors(wash: number) {
     result[key] = `hsl(${h}, ${s}%, ${l}%)`;
   }
   return result;
-}
-
-// --- Proximity ---
-
-function getProximityStyle(
-  proximity: number, angle: number, preactStyle: number, intensity: number
-): React.CSSProperties {
-  if (proximity === 0 || preactStyle === 0) return {};
-  const p = Math.pow(proximity, 1.5);
-  const gradDir = (angle + 270) % 360;
-  const colorStop = Math.round(p * 50 * intensity);
-  const fadeStop = Math.min(100, colorStop + 30);
-  const bleedColor = `rgba(0,0,0,${(p * 0.08 * intensity).toFixed(3)})`;
-  const scaleAmount = p * 0.15 * intensity;
-
-  switch (preactStyle) {
-    case 1: return { transform: `scale(${1 - scaleAmount})` };
-    case 2: return { boxShadow: `0 ${Math.round((1 - p * intensity) * 4)}px ${Math.round((1 - p * intensity) * 8)}px rgba(0,0,0,${0.08 * (1 - p * intensity)})` };
-    case 3: return { background: `linear-gradient(${gradDir}deg, ${bleedColor} ${colorStop}%, transparent ${fadeStop}%)` };
-    case 4: return { filter: `brightness(${1 - p * 0.3 * intensity})` };
-    case 5: return { transform: `scale(${1 - scaleAmount * 0.7})`, background: `linear-gradient(${gradDir}deg, ${bleedColor} ${colorStop}%, transparent ${fadeStop}%)` };
-    default: return {};
-  }
 }
 
 // --- Component ---
@@ -151,65 +131,70 @@ export const Board = ({
   useEffect(() => { onCurrentWordChange?.(currentWord); }, [currentWord, onCurrentWordChange]);
   useEffect(() => { if (feedback) clearPath(); }, [feedback]);
 
-  const baseConfig = BASE_CONFIGS[baseStyleIndex] || BASE_CONFIGS[0];
+  const layout = BOARD_LAYOUTS[baseStyleIndex] || BOARD_LAYOUTS[0];
   const colors = computeFeedbackColors(colorWash);
 
-  function getCellStyle(rowIndex: number, colIndex: number): React.CSSProperties {
+  function getCellState(rowIndex: number, colIndex: number): CellState {
+    const feedbackState = isInFeedbackPath(rowIndex, colIndex);
+    if (feedbackState === 'valid') return 'valid';
+    if (feedbackState === 'invalid') return 'invalid';
+    if (feedbackState === 'duplicate') return 'duplicate';
+    if (isInCurrentPath(rowIndex, colIndex)) return 'selected';
+    return 'default';
+  }
+
+  function getDynamicOverride(rowIndex: number, colIndex: number): React.CSSProperties {
     const feedbackState = isInFeedbackPath(rowIndex, colIndex);
     const isSelected = isInCurrentPath(rowIndex, colIndex);
     const isHovered = hoveredCell === `${rowIndex},${colIndex}`;
     const { proximity, angle } = getCellProximity(rowIndex, colIndex);
 
-    let style: React.CSSProperties = { ...baseConfig.cell };
+    let override: React.CSSProperties = {};
 
     if (isHovered && !isSelected && !feedbackState) {
-      Object.assign(style, getHoverStyle(hoverStyleIndex));
+      Object.assign(override, getHoverStyle(hoverStyleIndex));
     }
 
     if (!isSelected && !feedbackState) {
-      Object.assign(style, getProximityStyle(proximity, angle, preactStyleIndex, preactIntensity / 100));
+      Object.assign(override, getProximityStyle(proximity, angle, preactStyleIndex, preactIntensity / 100));
     }
 
-    if (isSelected && !feedbackState) {
-      Object.assign(style, getPressStyle(pressStyleIndex, colors.selected));
-    }
-
-    if (feedbackState) {
-      Object.assign(style, getFeedbackStyle(feedbackState, colors));
-    }
-
-    return style;
+    return override;
   }
 
   return (
     <div
       ref={boardRef}
       className="flex flex-col select-none touch-none w-full aspect-square box-border"
-      style={baseConfig.board}
+      style={{
+        ...layout.board,
+        // Override CSS variables with computed wash colors so Cell picks them up
+        '--color-selected': colors.selected,
+        '--color-valid': colors.valid,
+        '--color-invalid': colors.invalid,
+        '--color-duplicate': colors.duplicate,
+      } as React.CSSProperties}
       onPointerMove={handleBoardPointerMove}
       onPointerUp={handleBoardPointerUp}
       onPointerLeave={() => { handleBoardPointerLeave(); setHoveredCell(null); }}
     >
       {board.map((row, rowIndex) => (
-        <div key={rowIndex} className="flex flex-1" style={{ gap: baseConfig.rowGap }}>
+        <div key={rowIndex} className="flex flex-1" style={{ gap: layout.rowGap }}>
           {row.map((letter, colIndex) => (
-            <div
+            <Cell
               key={`${rowIndex}-${colIndex}`}
-              className="flex-1 flex items-center justify-center cursor-pointer select-none border-none transition-all duration-[50ms]"
-              style={{
-                fontFamily: "'Outfit', sans-serif",
-                fontWeight: 800,
-                fontSize: `calc(min(32px, (100vw - 100px) / var(--board-size, 4) * 0.4))`,
-                ...getCellStyle(rowIndex, colIndex),
-              }}
+              letter={letter}
+              state={getCellState(rowIndex, colIndex)}
+              size="responsive"
+              variant="dice"
+              styleOverride={getDynamicOverride(rowIndex, colIndex)}
+              className="cursor-pointer"
               data-row={rowIndex}
               data-col={colIndex}
               onPointerDown={(e) => handleCellPointerDown(rowIndex, colIndex, e)}
               onPointerEnter={() => setHoveredCell(`${rowIndex},${colIndex}`)}
               onPointerLeave={() => setHoveredCell(null)}
-            >
-              {letter}
-            </div>
+            />
           ))}
         </div>
       ))}

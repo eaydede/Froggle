@@ -130,7 +130,7 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
         style={{
           color: getWordColor(),
           animation: getWordAnimation(),
-          fontFamily: "'Outfit', sans-serif",
+          fontFamily: 'var(--font-cell)',
           fontWeight: 800,
           fontSize: '1.4rem',
         }}
@@ -166,7 +166,7 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
       {/* Footer: mute toggle + mode label */}
       <div className="flex items-center justify-between w-full mt-1.5">
         {/* Mode label */}
-        <div className="flex items-center gap-2.5 text-[0.6rem] text-[var(--text-muted)] select-none" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500 }}>
+        <div className="flex items-center gap-2.5 text-[0.6rem] text-[var(--text-muted)] select-none" style={{ fontFamily: 'var(--font-body)', fontWeight: 500 }}>
           <span className="font-semibold">{modeLabel}</span>
           <span className="flex items-center gap-1 opacity-60">
             {/* Board icon */}

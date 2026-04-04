@@ -18,7 +18,7 @@ export function LandingPage({
     <div className="w-full max-w-[400px]">
       {/* Header */}
       <div className="text-center mb-6">
-        <h1 className="text-[1.35rem] tracking-[-0.025em]" style={{ fontFamily: "'Merriweather', Georgia, serif", fontWeight: 900 }}>
+        <h1 className="text-[1.35rem] tracking-[-0.025em]" style={{ fontFamily: 'var(--font-heading)', fontWeight: 'var(--font-heading-weight)' as any }}>
           Froggle
         </h1>
         <p className="text-[0.75rem] font-medium text-[var(--text-muted)] mt-0.5">

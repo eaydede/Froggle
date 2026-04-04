@@ -13,8 +13,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const FONT: React.CSSProperties = {
-  fontFamily: "'Outfit', sans-serif",
-  fontWeight: 700,
+  fontFamily: 'var(--font-button)',
+  fontWeight: 'var(--font-button-weight)' as any,
   WebkitTapHighlightColor: 'transparent',
 };
 

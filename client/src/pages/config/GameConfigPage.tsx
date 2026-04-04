@@ -78,7 +78,7 @@ export function GameConfigPage({ title, subtitle, card = true, disabled = false,
           )}
           <div className="text-center">
             {title && (
-              <h1 className="text-[1.35rem] tracking-[-0.025em]" style={{ fontFamily: "'Merriweather', Georgia, serif", fontWeight: 900 }}>
+              <h1 className="text-[1.35rem] tracking-[-0.025em]" style={{ fontFamily: 'var(--font-heading)', fontWeight: 'var(--font-heading-weight)' as any }}>
                 {title}
               </h1>
             )}
@@ -109,7 +109,7 @@ export function GameConfigPage({ title, subtitle, card = true, disabled = false,
           cursor-pointer select-none
           transition-all duration-200
         "
-        style={{ WebkitTapHighlightColor: "transparent", fontFamily: "'Outfit', sans-serif", fontWeight: 700 }}
+        style={{ WebkitTapHighlightColor: "transparent", fontFamily: 'var(--font-button)', fontWeight: 'var(--font-button-weight)' as any }}
       >
         {disabled ? 'Start Daily' : 'Start Game'}
       </button>

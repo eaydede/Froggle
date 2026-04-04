@@ -46,7 +46,7 @@ export function LandingRoute() {
     return (
       <div className="flex flex-1 items-center justify-center">
         <div className="w-full max-w-[400px] text-center">
-          <h1 className="text-[1.35rem] tracking-[-0.025em]" style={{ fontFamily: "'Merriweather', Georgia, serif", fontWeight: 900 }}>
+          <h1 className="text-[1.35rem] tracking-[-0.025em]" style={{ fontFamily: 'var(--font-heading)', fontWeight: 'var(--font-heading-weight)' as any }}>
             Froggle
           </h1>
         </div>

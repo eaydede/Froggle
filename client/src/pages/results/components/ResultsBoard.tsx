@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Position } from 'models';
+import { Cell } from '../../../shared/components/Cell';
 
 interface ResultsBoardProps {
   board: string[][];
@@ -46,24 +47,17 @@ export const ResultsBoard = ({ board, highlightPath, minimized = false }: Result
           {row.map((letter, colIndex) => {
             const highlighted = isHighlighted(rowIndex, colIndex);
             return (
-              <div
+              <Cell
                 key={`${rowIndex}-${colIndex}`}
-                className="flex-1 flex items-center justify-center select-none transition-all duration-150"
-                style={{
-                  fontFamily: "'Outfit', sans-serif",
-                  fontWeight: 800,
-                  fontSize: `calc(min(32px, (100vw - 100px) / var(--board-size, 4) * 0.4))`,
-                  backgroundColor: highlighted ? 'var(--color-selected, #7BA7C9)' : 'white',
-                  color: highlighted ? 'white' : '#333',
+                letter={letter}
+                state={highlighted ? 'selected' : 'default'}
+                size="responsive"
+                variant="simple"
+                styleOverride={{
                   borderRadius: minimized ? '4px' : '12px',
-                  boxShadow: highlighted
-                    ? 'inset 3px 3px 6px rgba(0,0,0,0.15), inset -3px -3px 6px rgba(255,255,255,0.1)'
-                    : '0 2px 8px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)',
-                  transform: highlighted ? 'scale(1.02)' : undefined,
+                  transitionDuration: '150ms',
                 }}
-              >
-                {letter}
-              </div>
+              />
             );
           })}
         </div>

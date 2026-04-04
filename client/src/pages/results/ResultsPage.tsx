@@ -104,7 +104,7 @@ export const ResultsPage = ({ results, onPlayAgain, game, gameSeed, dailyNumber 
               style={{ WebkitTapHighlightColor: 'transparent' }}
               onClick={handleCopyCode}
             >
-              <span className="text-xs font-semibold tracking-wider" style={{ fontFamily: "'Inter', sans-serif" }}>{seedCode}</span>
+              <span className="text-xs font-semibold tracking-wider" style={{ fontFamily: 'var(--font-body)' }}>{seedCode}</span>
               {codeCopied ? (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12" />
@@ -144,7 +144,7 @@ export const ResultsPage = ({ results, onPlayAgain, game, gameSeed, dailyNumber 
 
           {/* Definition */}
           {boardMinimized && highlightedWordInfo && (
-            <div className="mt-4 p-3 text-[13px] text-[#444] flex-1 overflow-y-auto min-h-0" style={{ fontFamily: "'Merriweather', Georgia, serif", fontWeight: 400, lineHeight: '19.5px' }}>
+            <div className="mt-4 p-3 text-[13px] text-[#444] flex-1 overflow-y-auto min-h-0" style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, lineHeight: '19.5px' }}>
               {definitionLoading ? (
                 <div className="text-[#aaa] italic">...</div>
               ) : definition ? (
@@ -198,7 +198,7 @@ export const ResultsPage = ({ results, onPlayAgain, game, gameSeed, dailyNumber 
         <button
           onClick={onPlayAgain}
           className="w-full max-w-[400px] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white border-none rounded-xl py-3.5 text-[0.85rem] cursor-pointer select-none transition-all duration-200"
-          style={{ WebkitTapHighlightColor: "transparent", fontFamily: "'Outfit', sans-serif", fontWeight: 700 }}
+          style={{ WebkitTapHighlightColor: "transparent", fontFamily: 'var(--font-button)', fontWeight: 'var(--font-button-weight)' as any }}
         >
           {isDaily ? 'Home' : 'Play Again'}
         </button>
@@ -206,7 +206,7 @@ export const ResultsPage = ({ results, onPlayAgain, game, gameSeed, dailyNumber 
           <button
             onClick={() => setShareOpen(!shareOpen)}
             className="flex items-center gap-1.5 py-2 px-4 text-[13px] bg-transparent border border-[#ddd] rounded-md text-[#888] cursor-pointer transition-all duration-150 hover:border-[#aaa] hover:text-[#555]"
-            style={{ fontFamily: "'Merriweather', Georgia, serif", fontWeight: 600 }}
+            style={{ fontFamily: 'var(--font-serif)', fontWeight: 600 }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
