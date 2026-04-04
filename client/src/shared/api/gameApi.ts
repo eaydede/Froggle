@@ -90,8 +90,6 @@ export const fetchGameState = async (): Promise<{
   return response.json();
 };
 
-// Types re-exported for backward compat — canonical definitions in shared/types.ts
-export type { ScoredWord, GameResults } from '../types';
 import type { GameResults } from '../types';
 
 export const fetchResults = async (): Promise<GameResults> => {
