@@ -145,8 +145,3 @@ export function clearDailyResult(date: string): void {
   delete all[date];
   saveAllResults(all);
 }
-
-export function getRecentResults(): DailyResult[] {
-  const all = loadAllResults();
-  return Object.values(all).sort((a, b) => b.date.localeCompare(a.date));
-}

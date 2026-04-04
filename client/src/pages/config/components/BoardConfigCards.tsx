@@ -83,7 +83,10 @@ export function BoardConfigCards({ value, onChange, disabled, code, onCodeChange
           >
             <input
               ref={inputRef}
+              id="board-code"
+              name="board-code"
               type="text"
+              autoComplete="off"
               value={codeValue}
               onChange={(e) => setCodeValue(formatCode(e.target.value))}
               placeholder="XXXX-XXXX-XXXX"

@@ -11,9 +11,9 @@ import { GamePage } from './pages/game';
 import type { FeedbackType } from './pages/game';
 import { ResultsPage } from './pages/results';
 import { decodeSeedCode } from 'models/seedCode';
-import { getDailyInfo, getDailyDatePST } from './shared/utils/daily';
 import { recordDailyResult, loadDailyResult, hasPlayedDaily, clearDailyResult } from './shared/utils/dailyStorage';
-import { fetchDailyBoard } from './shared/api/gameApi';
+import { fetchDaily } from './shared/api/gameApi';
+import type { DailyInfo } from './shared/api/gameApi';
 import './tailwind.css';
 
 const loadMuted = (): boolean => {
@@ -31,9 +31,15 @@ function App() {
   const [boardCode, setBoardCode] = useState('');
   const [muted, setMuted] = useState(loadMuted);
   const [sharedSeed, setSharedSeed] = useState<{ boardSize: number; seed: number } | null>(null);
-  const [dailyInfo, setDailyInfo] = useState<{ date: string; number: number; seed: number } | null>(null);
+  const [dailyInfo, setDailyInfo] = useState<DailyInfo | null>(null);
   const [viewingDailyResults, setViewingDailyResults] = useState(false);
   const [dailyLoading, setDailyLoading] = useState(false);
+  const [cachedDaily, setCachedDaily] = useState<DailyInfo | null>(null);
+
+  // Fetch today's daily info on mount for the landing page
+  useEffect(() => {
+    fetchDaily().then(setCachedDaily).catch(() => {});
+  }, []);
 
   const toggleMute = () => {
     setMuted(prev => {
@@ -53,35 +59,32 @@ function App() {
   };
 
   const handleDaily = async () => {
-    const info = getDailyInfo();
-    setDailyInfo({ date: info.date, number: info.number, seed: info.seed });
+    const info = await fetchDaily();
+    setDailyInfo(info);
     setViewingDailyResults(false);
     await createGame();
   };
 
   const handleDailyResults = async () => {
-    const date = getDailyDatePST();
-    const info = getDailyInfo(date);
-    const savedResult = loadDailyResult(date);
+    const info = await fetchDaily();
+    const savedResult = loadDailyResult(info.date);
 
     if (savedResult) {
       try {
-        const { board: expectedBoard } = await fetchDailyBoard(date);
         const savedFlat = savedResult.board.flat().join(',');
-        const expectedFlat = expectedBoard.flat().join(',');
+        const expectedFlat = info.board.flat().join(',');
         if (savedFlat !== expectedFlat) {
-          // Board mismatch — clear invalid result so user can replay
-          clearDailyResult(date);
-          setDailyInfo({ date: info.date, number: info.number, seed: info.seed });
+          clearDailyResult(info.date);
+          setDailyInfo(info);
           setViewingDailyResults(false);
           return;
         }
       } catch {
-        // If validation request fails, still show results
+        // If validation fails, still show results
       }
     }
 
-    setDailyInfo({ date: info.date, number: info.number, seed: info.seed });
+    setDailyInfo(info);
     setViewingDailyResults(true);
   };
 
@@ -145,27 +148,20 @@ function App() {
   useEffect(() => {
     if (!dailyInfo || !results || viewingDailyResults) return;
 
-    const validate = async () => {
-      try {
-        const { board: expectedBoard } = await fetchDailyBoard(dailyInfo.date);
-        const resultsFlat = results.board.flat().join(',');
-        const expectedFlat = expectedBoard.flat().join(',');
-        if (resultsFlat !== expectedFlat) {
-          console.warn('Daily board mismatch — results not recorded');
-          return;
-        }
-      } catch {
-        // If validation fails, still record (don't penalize for network issues)
-      }
-      recordDailyResult(
-        dailyInfo.date,
-        dailyInfo.number,
-        results.foundWords,
-        results.missedWords,
-        results.board,
-      );
-    };
-    validate();
+    const resultsFlat = results.board.flat().join(',');
+    const expectedFlat = dailyInfo.board.flat().join(',');
+    if (resultsFlat !== expectedFlat) {
+      console.warn('Daily board mismatch — results not recorded');
+      return;
+    }
+
+    recordDailyResult(
+      dailyInfo.date,
+      dailyInfo.number,
+      results.foundWords,
+      results.missedWords,
+      results.board,
+    );
   }, [dailyInfo, results, viewingDailyResults]);
 
   const handlePlayAgain = async () => {
@@ -231,9 +227,19 @@ function App() {
             );
           }
         }
-        const info = getDailyInfo();
-        const todayDate = getDailyDatePST();
-        const todayResult = hasPlayedDaily(todayDate) ? loadDailyResult(todayDate) : null;
+        if (!cachedDaily) {
+          return (
+            <div className="flex flex-1 items-center justify-center">
+              <div className="w-full max-w-[400px] text-center">
+                <h1 className="text-[1.35rem] tracking-[-0.025em]" style={{ fontFamily: "'Merriweather', Georgia, serif", fontWeight: 900 }}>
+                  Froggle
+                </h1>
+              </div>
+            </div>
+          );
+        }
+
+        const todayResult = hasPlayedDaily(cachedDaily.date) ? loadDailyResult(cachedDaily.date) : null;
 
         let dailyResultsData: DailyResults | null = null;
         if (todayResult) {
@@ -251,10 +257,10 @@ function App() {
           <div className="flex flex-1 items-center justify-center">
             <LandingPage
               dailyConfig={{
-                puzzleNumber: info.number,
-                boardSize: info.boardSize,
-                timer: info.timeLimit,
-                minWordLength: info.minWordLength,
+                puzzleNumber: cachedDaily.number,
+                boardSize: cachedDaily.config.boardSize,
+                timer: cachedDaily.config.timeLimit,
+                minWordLength: cachedDaily.config.minWordLength,
               }}
               dailyResults={dailyResultsData}
               onDailyClick={todayResult ? handleDailyResults : handleDaily}
@@ -267,15 +273,15 @@ function App() {
         if (dailyLoading) return null;
         const isDaily = dailyInfo !== null;
         const dailyDefaults = isDaily ? {
-          boardSize: getDailyInfo().boardSize as 4 | 5 | 6,
-          timer: getDailyInfo().timeLimit as 60 | 120 | -1,
-          minWordLength: getDailyInfo().minWordLength as 3 | 4 | 5,
+          boardSize: dailyInfo.config.boardSize as 4 | 5 | 6,
+          timer: dailyInfo.config.timeLimit as 60 | 120 | -1,
+          minWordLength: dailyInfo.config.minWordLength as 3 | 4 | 5,
         } : undefined;
 
         const handleDailyStart = async () => {
-          const info = getDailyInfo();
+          if (!dailyInfo) return;
           setDailyLoading(true);
-          await startGame(info.timeLimit, info.boardSize, info.minWordLength, undefined, info.seed);
+          await startGame(dailyInfo.config.timeLimit, dailyInfo.config.boardSize, dailyInfo.config.minWordLength, undefined, dailyInfo.seed);
           setDailyLoading(false);
           setFeedback(null);
         };

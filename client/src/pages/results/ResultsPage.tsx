@@ -3,7 +3,7 @@ import { Position, Game } from 'models';
 import type { GameResults } from '../../shared/types';
 import { ResultsBoard } from './components/ResultsBoard';
 import { ResultsWordList } from './components/ResultsWordList';
-import { generateShareText } from '../../shared/utils/shareResults';
+import { generateShareText } from './utils/shareResults';
 import { useDefinition } from './hooks/useDefinition';
 import { encodeSeedCode } from 'models/seedCode';
 

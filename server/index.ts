@@ -147,15 +147,40 @@ app.get('/api/game/results', (req, res) => {
   }
 });
 
-// Get expected daily board for a given date
-app.get('/api/daily/board', (req, res) => {
-  const date = req.query.date as string;
-  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
-  }
+// Daily puzzle configuration
+const DAILY_LAUNCH_DATE = '2026-03-30';
+const DAILY_BOARD_SIZE = 5;
+const DAILY_TIME_LIMIT = 120;
+const DAILY_MIN_WORD_LENGTH = 4;
+
+function getDailyDatePST(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+}
+
+function getDailyNumber(dateStr: string): number {
+  const launch = new Date(DAILY_LAUNCH_DATE + 'T00:00:00Z');
+  const current = new Date(dateStr + 'T00:00:00Z');
+  const diffMs = current.getTime() - launch.getTime();
+  return Math.floor(diffMs / (24 * 60 * 60 * 1000)) + 1;
+}
+
+// Get today's daily puzzle info
+app.get('/api/daily', (_req, res) => {
+  const date = getDailyDatePST();
+  const number = getDailyNumber(date);
   const seed = getDailySeed(date);
-  const board = generateSeededBoard(5, seed);
-  res.json({ date, seed, board });
+  const board = generateSeededBoard(DAILY_BOARD_SIZE, seed);
+  res.json({
+    date,
+    number,
+    seed,
+    board,
+    config: {
+      boardSize: DAILY_BOARD_SIZE,
+      timeLimit: DAILY_TIME_LIMIT,
+      minWordLength: DAILY_MIN_WORD_LENGTH,
+    },
+  });
 });
 
 // Serve client for all non-API routes (SPA fallback)
