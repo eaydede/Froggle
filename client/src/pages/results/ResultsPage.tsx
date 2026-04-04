@@ -1,9 +1,9 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Position, Game } from 'models';
-import { GameResults } from '../api/gameApi';
+import { GameResults } from '../../shared/api/gameApi';
 import { ResultsBoard } from './components/ResultsBoard';
 import { ResultsWordList } from './components/ResultsWordList';
-import { generateShareText } from '../utils/shareResults';
+import { generateShareText } from '../../shared/utils/shareResults';
 import { useDefinition } from './hooks/useDefinition';
 import { encodeSeedCode } from 'models/seedCode';
 

@@ -1,19 +1,19 @@
 import { useState, useRef, useEffect } from 'react';
 import { GameState, Position } from 'models';
-import { useGameApi } from './hooks/useGameApi';
-import { useTimer } from './hooks/useTimer';
-import { useFeedbackSounds } from './game';
-import { LandingPage } from './landing';
-import type { DailyResults } from './landing';
-import { GameConfigPage } from './game-config';
-import type { GameConfig } from './game-config';
-import { GamePage } from './game';
-import type { FeedbackType } from './game';
-import { ResultsPage } from './results';
+import { useGameApi } from './shared/hooks/useGameApi';
+import { useTimer } from './shared/hooks/useTimer';
+import { useFeedbackSounds } from './pages/game';
+import { LandingPage } from './pages/landing';
+import type { DailyResults } from './pages/landing';
+import { GameConfigPage } from './pages/config';
+import type { GameConfig } from './pages/config';
+import { GamePage } from './pages/game';
+import type { FeedbackType } from './pages/game';
+import { ResultsPage } from './pages/results';
 import { decodeSeedCode } from 'models/seedCode';
-import { getDailyInfo, getDailyDatePST } from './utils/daily';
-import { recordDailyResult, loadDailyResult, hasPlayedDaily, clearDailyResult } from './utils/dailyStorage';
-import { fetchDailyBoard } from './api/gameApi';
+import { getDailyInfo, getDailyDatePST } from './shared/utils/daily';
+import { recordDailyResult, loadDailyResult, hasPlayedDaily, clearDailyResult } from './shared/utils/dailyStorage';
+import { fetchDailyBoard } from './shared/api/gameApi';
 import './tailwind.css';
 
 const loadMuted = (): boolean => {

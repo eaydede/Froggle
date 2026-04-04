@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { fn } from '@storybook/test';
-import { DailyPuzzleCard } from '../components/DailyPuzzleCard';
-import { FreePlayCard } from '../components/FreePlayCard';
+import { DailyPuzzleCard } from '../shared/components/DailyPuzzleCard';
+import { FreePlayCard } from '../shared/components/FreePlayCard';
 
 const DARK_BG = '#2C2C2E';
 
