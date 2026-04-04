@@ -1,22 +1,28 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GameState } from 'models';
 import { useGame } from '../../GameContext';
 import { GamePage } from './GamePage';
 
 export function GameRoute() {
-  const { game, words, timeRemaining, feedback, handleSubmitWord, cancelGame, endGame, muted, toggleMute, dailyInfo } = useGame();
+  const { game, words, results, timeRemaining, feedback, handleSubmitWord, cancelGame, endGame, muted, toggleMute, dailyInfo } = useGame();
   const navigate = useNavigate();
+  const navigatingRef = useRef(false);
 
   useEffect(() => {
-    if (!game || game.status !== GameState.InProgress) {
-      navigate(game?.status === GameState.Finished ? '/results' : '/');
+    if (!game) {
+      navigate('/');
+    } else if (game.status === GameState.Finished && results && !navigatingRef.current) {
+      // Game finished (timer expired or server-side end) and results are ready
+      navigatingRef.current = true;
+      navigate('/results');
     }
-  }, [game, game?.status, navigate]);
+  }, [game, game?.status, results, navigate]);
 
   if (!game || game.status !== GameState.InProgress) return null;
 
   const handleEndGame = async () => {
+    navigatingRef.current = true;
     await endGame();
     navigate('/results');
   };
@@ -28,7 +34,7 @@ export function GameRoute() {
       timeRemaining={timeRemaining}
       feedback={feedback}
       onSubmitWord={handleSubmitWord}
-      onCancelGame={() => { cancelGame(); navigate('/'); }}
+      onCancelGame={() => { navigatingRef.current = true; cancelGame(); navigate('/'); }}
       onEndGame={handleEndGame}
       muted={muted}
       onToggleMute={toggleMute}
