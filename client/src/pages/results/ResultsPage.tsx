@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Position, Game } from 'models';
-import { GameResults } from '../../shared/api/gameApi';
+import type { GameResults } from '../../shared/types';
 import { ResultsBoard } from './components/ResultsBoard';
 import { ResultsWordList } from './components/ResultsWordList';
 import { generateShareText } from '../../shared/utils/shareResults';

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { GameState, Position } from 'models';
-import { useGameApi } from './shared/hooks/useGameApi';
-import { useTimer } from './shared/hooks/useTimer';
+import { useGameApi } from './hooks/useGameApi';
+import { useTimer } from './hooks/useTimer';
 import { useFeedbackSounds } from './pages/game';
 import { LandingPage } from './pages/landing';
 import type { DailyResults } from './pages/landing';

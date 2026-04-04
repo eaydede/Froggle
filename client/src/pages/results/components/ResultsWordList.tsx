@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Position } from 'models';
-import { ScoredWord } from '../../../shared/api/gameApi';
+import type { ScoredWord } from '../../../shared/types';
 
 interface ResultsWordListProps {
   foundWords: ScoredWord[];

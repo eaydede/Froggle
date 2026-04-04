@@ -1,4 +1,4 @@
-import { ScoredWord } from '../api/gameApi';
+import type { ScoredWord } from '../types';
 
 const STATS_KEY = 'froggle-daily-stats';
 const RESULTS_KEY = 'froggle-daily-results';

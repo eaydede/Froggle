@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { Game, Word, Position, hashWord } from 'models';
-import * as gameApi from '../api/gameApi';
-import { GameResults } from '../api/gameApi';
+import * as gameApi from '../shared/api/gameApi';
+import type { GameResults } from '../shared/types';
 
 export const useGameApi = () => {
   const [game, setGame] = useState<Game | null>(null);
