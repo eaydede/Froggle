@@ -133,6 +133,12 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord, onWordSe
             {compact ? `${totalScore}pts` : `${totalScore} pts`}
           </span>
         </div>
+        <span
+          className="text-sm text-[#999] transition-transform duration-200"
+          style={{ transform: showAll ? 'rotate(180deg)' : 'rotate(0deg)' }}
+        >
+          ▾
+        </span>
       </div>
 
       {/* Word list */}
