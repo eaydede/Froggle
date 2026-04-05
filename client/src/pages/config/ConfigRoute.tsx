@@ -23,6 +23,7 @@ export function ConfigRoute({ mode }: { mode: 'freeplay' | 'daily' }) {
       const seed = sharedSeed?.seed;
       await startGame(config.timer, effectiveBoardSize, config.minWordLength, undefined, seed);
       setBoardCode('');
+      handleCodeChange('');
     }
     navigate('/game');
   };

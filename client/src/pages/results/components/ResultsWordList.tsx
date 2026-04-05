@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Position } from 'models';
 import type { ScoredWord } from '../../../shared/types';
 
@@ -7,6 +7,7 @@ interface ResultsWordListProps {
   missedWords: ScoredWord[];
   onHoverWord: (path: Position[] | null) => void;
   onWordSelect?: (info: { word: string; score: number } | null) => void;
+  selectedWord?: string | null;
   compact?: boolean;
 }
 
@@ -84,18 +85,25 @@ const findRelatedMissedWords = (foundWord: ScoredWord, missedWords: ScoredWord[]
   });
 };
 
-export const ResultsWordList = ({ foundWords, missedWords, onHoverWord, onWordSelect, compact = false }: ResultsWordListProps) => {
+export const ResultsWordList = ({ foundWords, missedWords, onHoverWord, onWordSelect, selectedWord: externalSelectedWord, compact = false }: ResultsWordListProps) => {
   const [showAll, setShowAll] = useState(false);
   const [expandedWord, setExpandedWord] = useState<string | null>(null);
-  const [highlightedWord, setHighlightedWord] = useState<string | null>(null);
+  const [internalHighlightedWord, setInternalHighlightedWord] = useState<string | null>(null);
+
+  // Clear internal state when external selection changes
+  useEffect(() => {
+    setInternalHighlightedWord(null);
+  }, [externalSelectedWord]);
+
+  const highlightedWord = externalSelectedWord ?? internalHighlightedWord;
 
   const handleWordTap = (word: string, path: Position[], score: number) => {
     if (highlightedWord === word) {
-      setHighlightedWord(null);
+      setInternalHighlightedWord(null);
       onHoverWord(null);
       onWordSelect?.(null);
     } else {
-      setHighlightedWord(word);
+      setInternalHighlightedWord(word);
       onHoverWord(path);
       onWordSelect?.({ word, score });
     }
@@ -152,6 +160,7 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord, onWordSe
               score={w.score}
               found={w.found}
               isHighlighted={highlightedWord === w.word}
+
               onTap={() => handleWordTap(w.word, w.path, w.score)}
             />
           ))

@@ -35,16 +35,6 @@ function buildSquareLine(count: number, emoji: string): string | null {
   return Array(count).fill(emoji).join('');
 }
 
-function findLongestWord(words: ScoredWord[]): string {
-  let longest = '';
-  for (const w of words) {
-    if (w.word.length > longest.length) {
-      longest = w.word;
-    }
-  }
-  return longest;
-}
-
 export function generateShareText(foundWords: ScoredWord[], options: ShareOptions = {}): string {
   const totalWords = foundWords.length;
   const totalPoints = foundWords.reduce((sum, w) => sum + w.score, 0);
@@ -58,12 +48,9 @@ export function generateShareText(foundWords: ScoredWord[], options: ShareOption
     lines.push(`Froggle ${totalWords}W ${totalPoints}pts`);
   }
 
-  if (isDaily) {
-    const longest = findLongestWord(foundWords);
-    if (longest) {
-      const spaced = longest.toUpperCase().split('').join(' ');
-      lines.push(`⭐ ${spaced} ⭐`);
-    }
+  const longestLength = foundWords.reduce((max, w) => Math.max(max, w.word.length), 0);
+  if (longestLength > 0) {
+    lines.push(`⭐ ${longestLength} letters ⭐`);
   }
 
   for (const tier of SCORE_TIERS) {

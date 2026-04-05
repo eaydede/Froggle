@@ -1,7 +1,7 @@
 import type { HTMLAttributes } from 'react';
 
 export type CellState = 'default' | 'selected' | 'valid' | 'invalid' | 'duplicate';
-export type CellSize = 'sm' | 'md' | 'lg' | 'responsive';
+export type CellSize = 'xxs' | 'xs' | 'sm' | 'md' | 'lg' | 'responsive';
 export type CellMode = 'light' | 'dark';
 export type CellVariant = 'simple' | 'dice';
 
@@ -15,12 +15,16 @@ interface CellProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const SIZE_MAP: Record<string, string> = {
+  xxs: '12px',
+  xs: '24px',
   sm: '40px',
   md: '56px',
   lg: '72px',
 };
 
 const FONT_SIZE_MAP: Record<string, string> = {
+  xxs: '8px',
+  xs: '12px',
   sm: '16px',
   md: '22px',
   lg: '28px',

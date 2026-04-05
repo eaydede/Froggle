@@ -3,6 +3,7 @@ import { Position, Game } from 'models';
 import type { GameResults } from '../../shared/types';
 import { ResultsBoard } from './components/ResultsBoard';
 import { ResultsWordList } from './components/ResultsWordList';
+import { Cell } from '../../shared/components/Cell';
 import { generateShareText } from './utils/shareResults';
 import { useDefinition } from './hooks/useDefinition';
 import { encodeSeedCode } from 'models/seedCode';
@@ -46,6 +47,15 @@ export const ResultsPage = ({ results, onPlayAgain, game, gameSeed, dailyNumber 
   const { definition, loading: definitionLoading } = useDefinition(highlightedWordInfo?.word ?? null);
 
   const totalScore = results?.foundWords.reduce((sum, w) => sum + w.score, 0) || 0;
+
+  const longestFoundWordData = useMemo(() => {
+    if (!results || results.foundWords.length === 0) return null;
+    return results.foundWords.reduce((best, w) =>
+      w.word.length > best.word.length ? w : best
+    );
+  }, [results]);
+
+  const longestFoundWord = longestFoundWordData?.word ?? null;
 
   const sortedFoundWords = useMemo(() => {
     if (!results) return [];
@@ -121,19 +131,51 @@ export const ResultsPage = ({ results, onPlayAgain, game, gameSeed, dailyNumber 
             <ResultsBoard board={results.board} highlightPath={highlightPath} minimized={boardMinimized} />
           </div>
 
+          {/* Longest word */}
+          {longestFoundWordData && (
+            <div
+              className="flex items-center justify-center gap-1.5 mt-2 cursor-pointer select-none transition-opacity duration-150 hover:opacity-80"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+              onClick={() => {
+                const isAlreadySelected = highlightedWordInfo?.word === longestFoundWordData.word;
+                if (isAlreadySelected) {
+                  setHighlightPath(null);
+                  setHighlightedWordInfo(null);
+                } else {
+                  setHighlightPath(longestFoundWordData.path);
+                  setHighlightedWordInfo({ word: longestFoundWordData.word, score: longestFoundWordData.score });
+                }
+              }}
+            >
+              <span className="text-[11px]" style={{ color: '#F5C518' }}>★</span>
+              <div className="flex gap-0.5">
+                {longestFoundWordData.word.split('').map((letter, i) => (
+                  <Cell
+                    key={i}
+                    letter={letter}
+                    state={highlightedWordInfo?.word === longestFoundWordData.word ? 'selected' : 'default'}
+                    size="xxs"
+                    variant="simple"
+                    styleOverride={{ width: '13px', height: '13px', fontSize: '10px', borderRadius: '2px' }}
+                  />
+                ))}
+              </div>
+              <span className="text-[11px]" style={{ color: '#F5C518' }}>★</span>
+            </div>
+          )}
+
           {/* Score visualization */}
           {totalScore > 0 && (
             <>
-              <div className="flex items-start gap-1.5 mt-4">
-                <span className="text-[10px] font-bold text-[#bbb] leading-[8px] shrink-0 w-3.5">W:</span>
+              <div className="flex items-start gap-1.5 mt-2">
                 <div className="flex flex-wrap gap-1">
                   {sortedFoundWords.map((w, i) => (
                     <div
                       key={i}
-                      className="w-2 h-2 rounded-[2px] transition-transform duration-200"
+                      className="h-[12px] w-[12px] rounded-[2px] transition-transform duration-200"
                       style={{
                         ...(SCORE_SQUARE_STYLES[w.score] || { backgroundColor: '#8BA89B' }),
-                        ...(highlightedWordInfo?.word === w.word ? { transform: 'scale(1.6)', zIndex: 1 } : {}),
+                        ...(highlightedWordInfo?.word === w.word ? { transform: 'scale(1.2)', zIndex: 1 } : {}),
                       }}
                     />
                   ))}
@@ -144,7 +186,7 @@ export const ResultsPage = ({ results, onPlayAgain, game, gameSeed, dailyNumber 
 
           {/* Definition */}
           {boardMinimized && highlightedWordInfo && (
-            <div className="mt-4 p-3 text-[13px] text-[var(--text-mid)] flex-1 overflow-y-auto min-h-0" style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, lineHeight: '19.5px' }}>
+            <div className="p-3 text-[13px] text-[var(--text-mid)] flex-1 overflow-y-auto min-h-0" style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, lineHeight: '19.5px' }}>
               {definitionLoading ? (
                 <div className="text-[#aaa] italic">...</div>
               ) : definition ? (
@@ -188,6 +230,7 @@ export const ResultsPage = ({ results, onPlayAgain, game, gameSeed, dailyNumber 
             missedWords={results.missedWords}
             onHoverWord={setHighlightPath}
             onWordSelect={setHighlightedWordInfo}
+            selectedWord={highlightedWordInfo?.word ?? null}
             compact={boardMinimized}
           />
         </div>
