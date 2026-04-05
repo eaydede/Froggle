@@ -49,12 +49,12 @@ const WordRow = ({ word, path, score, found, isHighlighted, onTap }: {
 }) => {
   return (
     <div
-      className={`flex justify-between items-center py-1.5 px-3 rounded cursor-default transition-colors duration-150 hover:bg-[#f0f0f0] ${isHighlighted ? 'bg-[#f0f0f0]' : ''}`}
+      className={`flex justify-between items-center py-1.5 px-3 rounded cursor-default transition-colors duration-150 hover:bg-[var(--track)] ${isHighlighted ? 'bg-[var(--track)]' : ''}`}
       onClick={onTap}
     >
       <span
         className="text-[13px] uppercase tracking-wide"
-        style={{ ...WORD_FONT, color: found ? '#333' : '#ccc' }}
+        style={{ ...WORD_FONT, color: found ? 'var(--text)' : 'var(--text-muted)' }}
       >
         {word}
       </span>
@@ -116,12 +116,12 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord, onWordSe
     <div className="flex flex-col flex-1 min-h-0">
       {/* Summary bar */}
       <div
-        className={`flex justify-between items-center py-2 px-3 rounded-lg mb-1.5 cursor-pointer select-none transition-colors duration-150 hover:bg-[#eee] active:bg-[#e8e8e8] ${showAll ? 'bg-[#eaeaea]' : 'bg-[#f5f5f5]'}`}
+        className={`flex justify-between items-center py-2 px-3 rounded-lg mb-1.5 cursor-pointer select-none transition-colors duration-150 hover:bg-[var(--track)] active:bg-[var(--track)] ${showAll ? 'bg-[var(--track)]' : 'bg-[var(--card)]'}`}
         style={{ WebkitTapHighlightColor: 'transparent' }}
         onClick={() => setShowAll(!showAll)}
       >
         <div className="flex items-center gap-3">
-          <span className="text-sm text-[#333]" style={WORD_FONT}>
+          <span className="text-sm text-[var(--text)]" style={WORD_FONT}>
             {showAll
               ? `${foundWords.length}/${foundWords.length + missedWords.length}`
               : compact
@@ -163,12 +163,12 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord, onWordSe
 
             return (
               <div key={fw.word} className="flex flex-col">
-                <div
-                  className={`flex justify-between items-center py-1.5 px-3 rounded cursor-default transition-colors duration-150 hover:bg-[#f0f0f0] ${highlightedWord === fw.word ? 'bg-[#f0f0f0]' : ''}`}
+                  <div
+                  className={`flex justify-between items-center py-1.5 px-3 rounded cursor-default transition-colors duration-150 hover:bg-[var(--track)] ${highlightedWord === fw.word ? 'bg-[var(--track)]' : ''}`}
                   onClick={() => handleWordTap(fw.word, fw.path, fw.score)}
                 >
                   <div className="flex items-center">
-                    <span className="text-[13px] uppercase tracking-wide text-[#333]" style={WORD_FONT}>
+                    <span className="text-[13px] uppercase tracking-wide text-[var(--text)]" style={WORD_FONT}>
                       {fw.word}
                     </span>
                     {hasRelated && (

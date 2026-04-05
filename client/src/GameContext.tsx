@@ -58,6 +58,10 @@ interface GameContextValue {
   // Confirm modal
   showHomeConfirm: boolean;
   setShowHomeConfirm: (show: boolean) => void;
+
+  // Theme
+  theme: 'light' | 'dark';
+  toggleTheme: () => void;
 }
 
 const GameContext = createContext<GameContextValue | null>(null);
@@ -78,6 +82,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [sharedSeed, setSharedSeed] = useState<{ boardSize: number; seed: number } | null>(null);
   const [lastConfig, setLastConfig] = useState<GameConfig | null>(null);
   const [showHomeConfirm, setShowHomeConfirm] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      return (localStorage.getItem('froggle-theme') as 'light' | 'dark') || 'light';
+    } catch { return 'light'; }
+  });
+
+  const toggleTheme = () => {
+    setTheme(prev => {
+      const next = prev === 'light' ? 'dark' : 'light';
+      try { localStorage.setItem('froggle-theme', next); } catch { /* ignore */ }
+      return next;
+    });
+  };
 
   const timeRemaining = useTimer(game, fetchGameState);
   const { playValid, playInvalid, playDuplicate } = useFeedbackSounds(0, 0, 2);
@@ -161,8 +178,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
       muted, toggleMute,
       createGame, startGame, cancelGame, endGame, submitWord, handleSubmitWord,
       showHomeConfirm, setShowHomeConfirm,
+      theme, toggleTheme,
     }}>
-      {children}
+      <div data-theme={theme} className="contents">
+        {children}
+      </div>
     </GameContext.Provider>
   );
 }

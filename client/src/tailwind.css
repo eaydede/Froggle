@@ -3,7 +3,7 @@
 
 /* Base resets */
 body {
-  background-color: #FAFAF8;
+  background-color: var(--page-bg);
   margin: 0;
 }
 
@@ -16,20 +16,15 @@ button, input, select, textarea {
  * Design tokens used by Tailwind-based components.
  * These are referenced as var(--token) in landing, game-config, etc.
  */
+/*
+ * Shared tokens (theme-independent)
+ */
 :root {
-  --card: #ffffff;
-  --text: #1a1a1a;
-  --text-muted: #999999;
-  --text-mid: #666666;
-  --track: #f2f2f2;
+  /* Accent */
   --accent: #6B9B7D;
   --accent-hover: #5A8A6C;
-  --dot: #d4d4d4;
-  --dot-hi: #333333;
-  --dot-hi2: #888888;
-  --label-color: #999999;
 
-  /* Cell / board colors */
+  /* Cell / board */
   --cell-bg: #E8E2DA;
   --cell-text: #2C2C2E;
   --cell-edge: #CFC9C1;
@@ -59,6 +54,38 @@ button, input, select, textarea {
   --font-button-weight: 700;
   --font-cell: var(--font-display);
   --font-cell-weight: 800;
+}
+
+/*
+ * Light theme (default)
+ */
+:root, [data-theme="light"] {
+  --page-bg: #FAFAF8;
+  --card: #ffffff;
+  --text: #1a1a1a;
+  --text-muted: #999999;
+  --text-mid: #666666;
+  --track: #f2f2f2;
+  --dot: #d4d4d4;
+  --dot-hi: #333333;
+  --dot-hi2: #888888;
+  --label-color: #999999;
+}
+
+/*
+ * Dark theme
+ */
+[data-theme="dark"] {
+  --page-bg: #2C2C2E;
+  --card: #3A3A3C;
+  --text: #E5E5E7;
+  --text-muted: rgba(255,255,255,0.45);
+  --text-mid: rgba(255,255,255,0.6);
+  --track: #48484A;
+  --dot: #555558;
+  --dot-hi: #E5E5E7;
+  --dot-hi2: #8E8E93;
+  --label-color: rgba(255,255,255,0.45);
 }
 
 /* Config page: sliding pill transition */

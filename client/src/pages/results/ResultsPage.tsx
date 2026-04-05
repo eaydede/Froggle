@@ -144,13 +144,13 @@ export const ResultsPage = ({ results, onPlayAgain, game, gameSeed, dailyNumber 
 
           {/* Definition */}
           {boardMinimized && highlightedWordInfo && (
-            <div className="mt-4 p-3 text-[13px] text-[#444] flex-1 overflow-y-auto min-h-0" style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, lineHeight: '19.5px' }}>
+            <div className="mt-4 p-3 text-[13px] text-[var(--text-mid)] flex-1 overflow-y-auto min-h-0" style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, lineHeight: '19.5px' }}>
               {definitionLoading ? (
                 <div className="text-[#aaa] italic">...</div>
               ) : definition ? (
                 <>
                   <div className="flex items-baseline gap-2 mb-2">
-                    <span className="font-black text-base text-[#222]">{definition.word}</span>
+                    <span className="font-black text-base text-[var(--text)]">{definition.word}</span>
                     {definition.phonetic && (
                       <span className="text-[13px] text-[#888] italic">{definition.phonetic}</span>
                     )}
@@ -173,7 +173,7 @@ export const ResultsPage = ({ results, onPlayAgain, game, gameSeed, dailyNumber 
                 </>
               ) : (
                 <div className="flex flex-col gap-1">
-                  <span className="font-black text-base text-[#222]">{highlightedWordInfo.word.toLowerCase()}</span>
+                  <span className="font-black text-base text-[var(--text)]">{highlightedWordInfo.word.toLowerCase()}</span>
                   <span className="italic text-[#aaa] text-xs">Definition not available</span>
                 </div>
               )}

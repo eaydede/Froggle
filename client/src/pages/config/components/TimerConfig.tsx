@@ -12,15 +12,16 @@ interface TimerConfigProps {
   value: TimerOption;
   onChange: (timer: TimerOption) => void;
   disabled?: boolean;
+  mode?: 'light' | 'dark';
 }
 
-export function TimerConfig({ value, onChange, disabled }: TimerConfigProps) {
+export function TimerConfig({ value, onChange, disabled, mode = 'light' }: TimerConfigProps) {
   const selectedIndex = OPTIONS.findIndex((o) => o.value === value);
   const { trackRef, pillLeft } = usePillPosition(selectedIndex, OPTIONS.length);
   const { shakeKey, shakeStyle, triggerShake } = useDisabledShake();
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-3" data-theme={mode === 'dark' ? 'dark' : undefined}>
       <div
         className="text-[0.68rem] text-[var(--label-color)] uppercase tracking-[0.06em] shrink-0 w-[4.5rem]"
         style={{ fontFamily: 'var(--font-label)', fontWeight: 'var(--font-label-weight)' as any }}

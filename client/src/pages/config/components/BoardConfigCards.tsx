@@ -22,11 +22,12 @@ interface BoardConfigCardsProps {
   value: BoardSize;
   onChange: (size: BoardSize) => void;
   disabled?: boolean;
+  mode?: 'light' | 'dark';
   code?: string;
   onCodeChange?: (code: string) => void;
 }
 
-export function BoardConfigCards({ value, onChange, disabled, code, onCodeChange }: BoardConfigCardsProps) {
+export function BoardConfigCards({ value, onChange, disabled, mode = 'light', code, onCodeChange }: BoardConfigCardsProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [codeOpen, setCodeOpen] = useState(false);
   const [internalCode, setInternalCode] = useState("");
@@ -63,7 +64,7 @@ export function BoardConfigCards({ value, onChange, disabled, code, onCodeChange
   }, [codeOpen]);
 
   return (
-    <div>
+    <div data-theme={mode === 'dark' ? 'dark' : undefined}>
       {/* Label row with code toggle */}
       <div className="flex items-center justify-between mb-2">
         <div
