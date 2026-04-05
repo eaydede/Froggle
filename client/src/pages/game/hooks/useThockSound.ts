@@ -1,20 +1,51 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 
 export const SOUND_LABELS = ['Trackpad', 'Typewriter', 'Pop', 'Tap', 'None'];
 export const SOUND_STYLES = ['trackpad', 'typewriter', 'pop', 'tap', 'none'];
 
 // Shared AudioContext across all sound hooks
 let sharedAudioContext: AudioContext | null = null;
+let audioUnlocked = false;
 
 function getSharedContext(): AudioContext {
   if (!sharedAudioContext) {
     sharedAudioContext = new AudioContext();
   }
-  // Resume if suspended (required on mobile after user gesture)
   if (sharedAudioContext.state === 'suspended') {
     sharedAudioContext.resume();
   }
   return sharedAudioContext;
+}
+
+/**
+ * Unlock audio on first user interaction.
+ * Safari/iOS requires AudioContext to be created/resumed
+ * during a direct user gesture (touchstart/click).
+ */
+function unlockAudio() {
+  if (audioUnlocked) return;
+  try {
+    const ctx = getSharedContext();
+    // Play a silent buffer to fully unlock on iOS
+    const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    source.start(0);
+    audioUnlocked = true;
+  } catch {
+    // Ignore
+  }
+}
+
+// Attach unlock listener once globally
+if (typeof window !== 'undefined') {
+  const events = ['touchstart', 'touchend', 'mousedown', 'click'];
+  const handler = () => {
+    unlockAudio();
+    events.forEach(e => document.removeEventListener(e, handler, true));
+  };
+  events.forEach(e => document.addEventListener(e, handler, true));
 }
 
 export { getSharedContext };
