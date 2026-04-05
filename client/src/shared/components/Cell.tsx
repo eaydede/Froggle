@@ -170,7 +170,7 @@ export function Cell({
   const isResponsive = size === 'responsive';
   const dimension = isResponsive ? undefined : SIZE_MAP[size];
   const fontSize = isResponsive
-    ? `calc(min(32px, (100vw - 100px) / var(--board-size, 4) * 0.4))`
+    ? `calc(50cqi / var(--board-size, 4))`
     : FONT_SIZE_MAP[size];
 
   const stateStyle = STYLE_MAP[`${variant}-${mode}`][state];

@@ -167,6 +167,7 @@ export const Board = ({
       ref={boardRef}
       className="flex flex-col select-none touch-none w-full aspect-square box-border"
       style={{
+        containerType: 'inline-size',
         ...layout.board,
         // Override CSS variables with computed wash colors so Cell picks them up
         '--color-selected': colors.selected,

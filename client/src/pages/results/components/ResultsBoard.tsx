@@ -40,7 +40,7 @@ export const ResultsBoard = ({ board, highlightPath, minimized = false }: Result
   return (
     <div
       className="flex flex-col bg-transparent border-none p-0 max-w-[500px] aspect-square box-border"
-      style={{ '--board-size': boardSize, gap } as React.CSSProperties}
+      style={{ containerType: 'inline-size', '--board-size': boardSize, gap } as React.CSSProperties}
     >
       {board.map((row, rowIndex) => (
         <div key={rowIndex} className="flex flex-1" style={{ gap }}>
