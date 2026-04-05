@@ -84,7 +84,7 @@ const FONTS = [
   },
   {
     name: 'Outfit',
-    token: '--font-display',
+    token: '--font-sans',
     family: "'Outfit', sans-serif",
     weights: [400, 500, 600, 700, 800],
     usage: 'Action buttons, board cells, current word display',

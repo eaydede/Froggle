@@ -38,8 +38,7 @@ button, input, select, textarea {
 
   /* Font families — single source of truth */
   --font-serif: "Merriweather", Georgia, serif;
-  --font-sans: "Inter", system-ui, sans-serif;
-  --font-display: "Outfit", sans-serif;
+  --font-sans: "Outfit", system-ui, sans-serif;
 
   /* Typography roles */
   --font-heading: var(--font-serif);
@@ -50,9 +49,9 @@ button, input, select, textarea {
   --font-label-weight: 600;
   --font-option: var(--font-sans);
   --font-option-weight: 600;
-  --font-button: var(--font-display);
+  --font-button: var(--font-sans);
   --font-button-weight: 700;
-  --font-cell: var(--font-display);
+  --font-cell: var(--font-sans);
   --font-cell-weight: 800;
 }
 

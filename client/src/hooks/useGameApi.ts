@@ -88,10 +88,14 @@ export const useGameApi = () => {
   }, []);
 
   const submitWord = async (path: Position[]) => {
-    // Still submit to server for game state tracking
-    gameApi.submitWord(path);
+    // Submit to server with single retry on failure
+    const serverSubmit = () => gameApi.submitWord(path);
+    serverSubmit().catch(() => {
+      // Retry once after a short delay
+      setTimeout(() => serverSubmit().catch(() => {}), 200);
+    });
 
-    // But derive the word and validate locally for instant feedback
+    // Validate locally for instant feedback
     if (!game) return { valid: false, reason: 'invalid' };
     const word = path.map(pos => game.board[pos.row][pos.col]).join('').toUpperCase();
     const localResult = validateWordLocally(word);

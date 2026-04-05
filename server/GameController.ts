@@ -11,10 +11,13 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const GRACE_PERIOD_MS = 500;
+
 export class GameController {
   private game: Game | null = null;
   private words: Word[] = [];
   private timer: NodeJS.Timeout | null = null;
+  private finishedAt: number | null = null;
   private dictionary: Set<string>;
   private validWordHashes: Set<string> = new Set();
   private wordSalt: string = '';
@@ -97,6 +100,7 @@ export class GameController {
     }
     this.game = null;
     this.words = [];
+    this.finishedAt = null;
   }
 
   endGame(): Game | null {
@@ -111,11 +115,22 @@ export class GameController {
     }
 
     this.game.status = GameState.Finished;
+    this.finishedAt = Date.now();
     return this.game;
   }
 
   submitWord(path: Position[]): { valid: boolean; word?: string; reason?: string } {
-    if (!this.game || this.game.status !== GameState.InProgress) {
+    if (!this.game) {
+      return { valid: false, reason: 'invalid' };
+    }
+
+    // Accept submissions if the game is in progress, or if it just finished
+    // and we're within the grace period (catches in-flight requests at timer expiry)
+    const inGracePeriod = this.game.status === GameState.Finished
+      && this.finishedAt !== null
+      && (Date.now() - this.finishedAt) <= GRACE_PERIOD_MS;
+
+    if (this.game.status !== GameState.InProgress && !inGracePeriod) {
       return { valid: false, reason: 'invalid' };
     }
 
