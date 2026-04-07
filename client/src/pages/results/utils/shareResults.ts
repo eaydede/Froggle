@@ -60,7 +60,7 @@ export function generateShareText(foundWords: ScoredWord[], options: ShareOption
   }
 
   if (isDaily) {
-    lines.push(window.location.origin);
+    lines.push(`${window.location.origin}/daily`);
   } else if (options.gameLink) {
     lines.push(options.gameLink);
   }

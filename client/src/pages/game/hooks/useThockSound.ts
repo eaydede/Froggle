@@ -1,11 +1,10 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 
 export const SOUND_LABELS = ['Trackpad', 'Typewriter', 'Pop', 'Tap', 'None'];
 export const SOUND_STYLES = ['trackpad', 'typewriter', 'pop', 'tap', 'none'];
 
-// Shared AudioContext across all sound hooks
+// Shared AudioContext — lazily created on first sound play (during a user gesture)
 let sharedAudioContext: AudioContext | null = null;
-let audioUnlocked = false;
 
 function getSharedContext(): AudioContext {
   if (!sharedAudioContext) {
@@ -15,37 +14,6 @@ function getSharedContext(): AudioContext {
     sharedAudioContext.resume();
   }
   return sharedAudioContext;
-}
-
-/**
- * Unlock audio on first user interaction.
- * Safari/iOS requires AudioContext to be created/resumed
- * during a direct user gesture (touchstart/click).
- */
-function unlockAudio() {
-  if (audioUnlocked) return;
-  try {
-    const ctx = getSharedContext();
-    // Play a silent buffer to fully unlock on iOS
-    const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-    source.connect(ctx.destination);
-    source.start(0);
-    audioUnlocked = true;
-  } catch {
-    // Ignore
-  }
-}
-
-// Attach unlock listener once globally
-if (typeof window !== 'undefined') {
-  const events = ['touchstart', 'touchend', 'mousedown', 'click'];
-  const handler = () => {
-    unlockAudio();
-    events.forEach(e => document.removeEventListener(e, handler, true));
-  };
-  events.forEach(e => document.addEventListener(e, handler, true));
 }
 
 export { getSharedContext };
@@ -72,7 +40,6 @@ export const useThockSound = (soundIndex: number = 0) => {
   const playTypewriter = (ctx: AudioContext) => {
     const now = ctx.currentTime;
 
-    // Sharp click with noise
     const bufferSize = ctx.sampleRate * 0.02;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
@@ -118,7 +85,6 @@ export const useThockSound = (soundIndex: number = 0) => {
   const playTap = (ctx: AudioContext) => {
     const now = ctx.currentTime;
 
-    // Muted knock
     const osc = ctx.createOscillator();
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(120, now);
