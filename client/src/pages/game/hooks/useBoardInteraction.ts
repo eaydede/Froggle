@@ -9,8 +9,9 @@ interface UseBoardInteractionProps {
   proximityRadius?: number;
 }
 
-const CELL_HITBOX_AREA_RATIO = 0.66;
-const CELL_HITBOX_SIDE_RATIO = Math.sqrt(CELL_HITBOX_AREA_RATIO);
+// Circular hitbox radius as a fraction of cell width/2.
+// 0.81 ≈ sqrt(0.66), preserving roughly the same area as the old square hitbox.
+const CELL_HITBOX_RADIUS_RATIO = 0.85;
 
 export interface CellProximityData {
   proximity: number;
@@ -54,24 +55,15 @@ export const useBoardInteraction = ({ onSubmitWord, feedback, onCellSelected, pr
     });
   };
 
-  const getCenteredHitbox = (element: HTMLElement) => {
+  const isPointInCellHitbox = (x: number, y: number, element: HTMLElement) => {
     const rect = element.getBoundingClientRect();
-    const hitboxWidth = rect.width * CELL_HITBOX_SIDE_RATIO;
-    const hitboxHeight = rect.height * CELL_HITBOX_SIDE_RATIO;
-    const hitboxLeft = rect.left + (rect.width - hitboxWidth) / 2;
-    const hitboxTop = rect.top + (rect.height - hitboxHeight) / 2;
-
-    return {
-      left: hitboxLeft,
-      right: hitboxLeft + hitboxWidth,
-      top: hitboxTop,
-      bottom: hitboxTop + hitboxHeight,
-    };
-  };
-
-  const isPointInCenteredHitbox = (x: number, y: number, element: HTMLElement) => {
-    const hitbox = getCenteredHitbox(element);
-    return x >= hitbox.left && x <= hitbox.right && y >= hitbox.top && y <= hitbox.bottom;
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const dx = x - centerX;
+    const dy = y - centerY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const radius = (rect.width / 2) * CELL_HITBOX_RADIUS_RATIO;
+    return distance <= radius;
   };
 
   const updateProximity = useCallback((pointerX: number, pointerY: number) => {
@@ -106,7 +98,7 @@ export const useBoardInteraction = ({ onSubmitWord, feedback, onCellSelected, pr
   }, [proximityRadius]);
 
   const handleCellPointerDown = (row: number, col: number, e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isPointInCenteredHitbox(e.clientX, e.clientY, e.currentTarget)) {
+    if (!isPointInCellHitbox(e.clientX, e.clientY, e.currentTarget)) {
       return;
     }
 
@@ -124,7 +116,7 @@ export const useBoardInteraction = ({ onSubmitWord, feedback, onCellSelected, pr
     const cells = boardElement.querySelectorAll<HTMLElement>('[data-row][data-col]');
 
     for (const cell of cells) {
-      if (!isPointInCenteredHitbox(x, y, cell)) continue;
+      if (!isPointInCellHitbox(x, y, cell)) continue;
 
       const row = parseInt(cell.dataset.row ?? '', 10);
       const col = parseInt(cell.dataset.col ?? '', 10);
