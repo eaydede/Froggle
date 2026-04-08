@@ -91,6 +91,7 @@ export function ConfigRoute({ mode }: { mode: 'freeplay' | 'daily' }) {
 
   const isLocked = isDaily || isSharedGame;
   const title = isDaily ? 'Daily Puzzle' : isSharedGame ? 'Shared Board' : 'Free Play';
+  const subtitle = isDaily? undefined: isSharedGame ? undefined: 'Choose your settings'
 
   // Key forces remount when defaults change (e.g., daily info loaded after mount)
   const configKey = defaults ? `${defaults.boardSize}-${defaults.timer}-${defaults.minWordLength}` : 'default';
@@ -100,7 +101,7 @@ export function ConfigRoute({ mode }: { mode: 'freeplay' | 'daily' }) {
       <GameConfigPage
         key={configKey}
         title={title}
-        subtitle="Choose your settings"
+        subtitle={subtitle}
         card={false}
         onBack={handleBack}
         onStart={isLocked ? () => handleStart() : handleStart}

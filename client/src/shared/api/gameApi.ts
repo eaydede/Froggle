@@ -1,5 +1,6 @@
 import { Position, Game, Word } from 'models';
 import type { GameResults } from '../types';
+import { supabase } from '../supabase';
 
 const API_URL = '/api';
 
@@ -9,11 +10,18 @@ export function getSessionId(): string | null {
   return sessionId;
 }
 
-function sessionHeaders(): Record<string, string> {
+async function sessionHeaders(): Promise<Record<string, string>> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (sessionId) {
     headers['X-Session-Id'] = sessionId;
   }
+
+  // Include Supabase auth token if available
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`;
+  }
+
   return headers;
 }
 
@@ -23,7 +31,7 @@ export const createGame = async (): Promise<{
 }> => {
   const response = await fetch(`${API_URL}/game/create`, {
     method: 'POST',
-    headers: sessionHeaders(),
+    headers: await sessionHeaders(),
   });
   const data = await response.json();
   sessionId = data.sessionId;
@@ -44,7 +52,7 @@ export const startGame = async (
 }> => {
   const response = await fetch(`${API_URL}/game/start`, {
     method: 'POST',
-    headers: sessionHeaders(),
+    headers: await sessionHeaders(),
     body: JSON.stringify({ durationSeconds, boardSize, minWordLength, board: predefinedBoard, seed }),
   });
   return response.json();
@@ -53,7 +61,7 @@ export const startGame = async (
 export const cancelGame = async (): Promise<{ success: boolean }> => {
   const response = await fetch(`${API_URL}/game/cancel`, {
     method: 'POST',
-    headers: sessionHeaders(),
+    headers: await sessionHeaders(),
   });
   const data = await response.json();
   sessionId = null;
@@ -63,7 +71,7 @@ export const cancelGame = async (): Promise<{ success: boolean }> => {
 export const endGame = async (): Promise<{ game: Game }> => {
   const response = await fetch(`${API_URL}/game/end`, {
     method: 'POST',
-    headers: sessionHeaders(),
+    headers: await sessionHeaders(),
   });
   return response.json();
 };
@@ -75,7 +83,7 @@ export const submitWord = async (path: Position[]): Promise<{
 }> => {
   const response = await fetch(`${API_URL}/game/submit`, {
     method: 'POST',
-    headers: sessionHeaders(),
+    headers: await sessionHeaders(),
     body: JSON.stringify({ path }),
   });
   return response.json();
@@ -86,14 +94,14 @@ export const fetchGameState = async (): Promise<{
   words: Word[];
 }> => {
   const response = await fetch(`${API_URL}/game/state`, {
-    headers: sessionHeaders(),
+    headers: await sessionHeaders(),
   });
   return response.json();
 };
 
 export const fetchResults = async (): Promise<GameResults> => {
   const response = await fetch(`${API_URL}/game/results`, {
-    headers: sessionHeaders(),
+    headers: await sessionHeaders(),
   });
   return response.json();
 };

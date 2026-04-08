@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import type { Position, Game, Word } from 'models';
+import type { Session } from '@supabase/supabase-js';
+import { supabase } from './shared/supabase';
 import { useGameApi } from './hooks/useGameApi';
 import { useTimer } from './hooks/useTimer';
 import { useFeedbackSounds } from './pages/game';
@@ -62,6 +64,10 @@ interface GameContextValue {
   // Theme
   theme: 'light' | 'dark';
   toggleTheme: () => void;
+
+  // Auth
+  session: Session | null;
+  authReady: boolean;
 }
 
 const GameContext = createContext<GameContextValue | null>(null);
@@ -95,6 +101,41 @@ export function GameProvider({ children }: { children: ReactNode }) {
       return next;
     });
   };
+
+  // Auth state
+  const [session, setSession] = useState<Session | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+
+  const authInitRef = useRef(false);
+
+  useEffect(() => {
+    if (authInitRef.current) return;
+    authInitRef.current = true;
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setSession(session);
+        setAuthReady(true);
+      } else {
+        // No session — sign in anonymously
+        supabase.auth.signInAnonymously().then(({ data: { session } }) => {
+          setSession(session);
+          setAuthReady(true);
+        }).catch((err) => {
+          console.warn('Anonymous sign-in failed:', err);
+          setAuthReady(true); // Continue without auth
+        });
+      }
+    });
+
+    // Listen for auth state changes (token refresh, sign out, etc.)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const timeRemaining = useTimer(game, fetchGameState);
   const { playValid, playInvalid, playDuplicate } = useFeedbackSounds(0, 0, 2);
@@ -179,6 +220,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       createGame, startGame, cancelGame, endGame, submitWord, handleSubmitWord,
       showHomeConfirm, setShowHomeConfirm,
       theme, toggleTheme,
+      session, authReady,
     }}>
       <div data-theme={theme} className="contents">
         {children}

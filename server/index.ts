@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { GameController } from './GameController.js';
 import { getDailySeed } from 'models/seedCode';
 import { generateSeededBoard } from 'engine/board.js';
+import { authMiddleware, requireAuth } from './middleware/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,6 +16,9 @@ const PORT = Number(process.env.PORT) || 3000;
 
 app.use(cors());
 app.use(express.json());
+
+// Auth middleware — extracts user ID from Supabase JWT on all /api routes
+app.use('/api', authMiddleware);
 
 // Serve static files from the client build
 const clientDistPath = path.join(__dirname, '../client/dist');
@@ -180,6 +184,13 @@ app.get('/api/daily', (_req, res) => {
       timeLimit: DAILY_TIME_LIMIT,
       minWordLength: DAILY_MIN_WORD_LENGTH,
     },
+  });
+});
+
+// User endpoint — returns current user info from JWT
+app.get('/api/user/me', requireAuth, (req, res) => {
+  res.json({
+    id: req.userId,
   });
 });
 
