@@ -2,6 +2,10 @@ FROM node:20-slim
 
 WORKDIR /app
 
+# Build args for client-side env vars (needed at build time by Vite)
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+
 # Copy package files for all workspaces
 COPY package.json package-lock.json ./
 COPY models/package.json models/
@@ -20,7 +24,9 @@ COPY client/ client/
 COPY enable1.txt .
 COPY tsconfig.json .
 
-# Build the client
+# Build the client (VITE_ env vars are available via ARG → ENV)
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 RUN npm run build --workspace=client
 
 # Expose the port

@@ -111,7 +111,7 @@ export function GameConfigPage({ title, subtitle, card = true, disabled = false,
         "
         style={{ WebkitTapHighlightColor: "transparent", fontFamily: 'var(--font-button)', fontWeight: 'var(--font-button-weight)' as any }}
       >
-        {disabled ? 'Start Daily' : 'Start Game'}
+        Start
       </button>
     </div>
   );
