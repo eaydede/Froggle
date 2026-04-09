@@ -2,11 +2,11 @@ import { useNavigate } from 'react-router-dom';
 import { useGame } from '../../GameContext';
 import { LandingPage } from './LandingPage';
 import { fetchDaily } from '../../shared/api/gameApi';
-import { loadDailyResult, hasPlayedDaily, clearDailyResult } from '../../shared/utils/dailyStorage';
+import { scoreWord } from 'engine/scoring';
 import type { DailyResults } from './types';
 
 export function LandingRoute() {
-  const { cachedDaily, createGame, setDailyInfo } = useGame();
+  const { cachedDaily, cachedDailyResult, dailyResultLoaded, createGame, setDailyInfo, displayName, updateDisplayName } = useGame();
   const navigate = useNavigate();
 
   const handleFreePlay = async () => {
@@ -24,25 +24,11 @@ export function LandingRoute() {
 
   const handleDailyResults = async () => {
     const info = await fetchDaily();
-    const savedResult = loadDailyResult(info.date);
-
-    if (savedResult) {
-      const savedFlat = savedResult.board.flat().join(',');
-      const expectedFlat = info.board.flat().join(',');
-      if (savedFlat !== expectedFlat) {
-        clearDailyResult(info.date);
-        setDailyInfo(info);
-        await createGame();
-        navigate('/daily');
-        return;
-      }
-    }
-
     setDailyInfo(info);
     navigate('/daily/results');
   };
 
-  if (!cachedDaily) {
+  if (!cachedDaily || !dailyResultLoaded) {
     return (
       <div className="flex flex-1 items-center justify-center">
         <div className="w-full max-w-[400px] text-center">
@@ -54,16 +40,16 @@ export function LandingRoute() {
     );
   }
 
-  const todayResult = hasPlayedDaily(cachedDaily.date) ? loadDailyResult(cachedDaily.date) : null;
+  const hasPlayed = cachedDailyResult !== null;
 
   let dailyResultsData: DailyResults | null = null;
-  if (todayResult) {
-    const longest = todayResult.foundWords.reduce(
-      (best, w) => w.word.length > best.length ? w.word : best, ''
-    );
+  if (hasPlayed && cachedDailyResult) {
+    const words = cachedDailyResult.found_words;
+    const longest = words.reduce((best, w) => w.length > best.length ? w : best, '');
+    const totalScore = words.reduce((sum, w) => sum + scoreWord(w), 0);
     dailyResultsData = {
-      words: todayResult.wordCount,
-      points: todayResult.score,
+      words: words.length,
+      points: totalScore,
       longestWord: longest,
     };
   }
@@ -78,8 +64,10 @@ export function LandingRoute() {
           minWordLength: cachedDaily.config.minWordLength,
         }}
         dailyResults={dailyResultsData}
-        onDailyClick={todayResult ? handleDailyResults : handleDaily}
+        onDailyClick={hasPlayed ? handleDailyResults : handleDaily}
         onFreePlayClick={handleFreePlay}
+        displayName={displayName}
+        onDisplayNameChange={updateDisplayName}
       />
     </div>
   );

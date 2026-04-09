@@ -7,6 +7,8 @@ import { GameController } from './GameController.js';
 import { getDailySeed } from 'models/seedCode';
 import { generateSeededBoard } from 'engine/board.js';
 import { authMiddleware, requireAuth } from './middleware/auth.js';
+import { getDb } from './db/index.js';
+import { getSupabaseAdmin } from './supabaseAdmin.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -192,6 +194,116 @@ app.get('/api/user/me', requireAuth, (req, res) => {
   res.json({
     id: req.userId,
   });
+});
+
+// Get user profile (display name from Supabase user metadata)
+app.get('/api/user/profile', requireAuth, async (req, res) => {
+  try {
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin.auth.admin.getUserById(req.userId!);
+
+    if (error || !data.user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const displayName = data.user.user_metadata?.display_name || 'Anonymous';
+    res.json({ display_name: displayName });
+  } catch (err) {
+    console.error('Failed to fetch user profile:', err);
+    res.status(500).json({ error: 'Failed to fetch profile' });
+  }
+});
+
+// Update user profile (display name stored in Supabase user metadata)
+app.put('/api/user/profile', requireAuth, async (req, res) => {
+  const { display_name } = req.body;
+
+  if (typeof display_name !== 'string' || display_name.trim().length === 0) {
+    return res.status(400).json({ error: 'display_name must be a non-empty string' });
+  }
+
+  const trimmed = display_name.trim().slice(0, 20);
+
+  try {
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin.auth.admin.updateUserById(req.userId!, {
+      user_metadata: { display_name: trimmed },
+    });
+
+    if (error) {
+      console.error('Supabase update error:', error);
+      return res.status(500).json({ error: 'Failed to update profile' });
+    }
+
+    res.json({ display_name: data.user.user_metadata?.display_name || trimmed });
+  } catch (err) {
+    console.error('Failed to update user profile:', err);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+// Record daily result
+app.post('/api/daily/results', requireAuth, async (req, res) => {
+  const { date, found_words, board } = req.body;
+
+  if (!date || !found_words || !board) {
+    return res.status(400).json({ error: 'Missing required fields: date, found_words, board' });
+  }
+
+  try {
+    const db = getDb();
+    await db
+      .insertInto('daily_results')
+      .values({
+        user_id: req.userId!,
+        date,
+        found_words: JSON.stringify(found_words),
+        board: JSON.stringify(board),
+      })
+      .onConflict((oc) => oc
+        .columns(['user_id', 'date'])
+        .doUpdateSet({
+          found_words: JSON.stringify(found_words),
+          board: JSON.stringify(board),
+          completed_at: new Date(),
+        })
+      )
+      .execute();
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Failed to record daily result:', err);
+    res.status(500).json({ error: 'Failed to record result' });
+  }
+});
+
+// Get daily result for a specific date
+app.get('/api/daily/results/:date', requireAuth, async (req, res) => {
+  try {
+    const db = getDb();
+    const result = await db
+      .selectFrom('daily_results')
+      .selectAll()
+      .where('user_id', '=', req.userId!)
+      .where('date', '=', req.params.date)
+      .executeTakeFirst();
+
+    if (!result) {
+      return res.json({ result: null });
+    }
+
+    res.json({
+      result: {
+        date: result.date,
+        found_words: result.found_words,
+        board: result.board,
+        completed_at: result.completed_at,
+      },
+    });
+  } catch (err) {
+    console.error('Failed to fetch daily result:', err);
+    res.status(500).json({ error: 'Failed to fetch result' });
+  }
 });
 
 // Serve client for all non-API routes (SPA fallback)

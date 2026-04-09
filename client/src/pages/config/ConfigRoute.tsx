@@ -5,10 +5,9 @@ import { GameConfigPage } from './GameConfigPage';
 import type { GameConfig } from './types';
 import { decodeGameParams } from '../../shared/utils/gameLink';
 import { fetchDaily } from '../../shared/api/gameApi';
-import { hasPlayedDaily } from '../../shared/utils/dailyStorage';
 
 export function ConfigRoute({ mode }: { mode: 'freeplay' | 'daily' }) {
-  const { game, dailyInfo, startGame, cancelGame, createGame, sharedSeed, boardCode, handleCodeChange, setBoardCode, lastConfig, setLastConfig, setDailyInfo } = useGame();
+  const { game, dailyInfo, cachedDailyResult, startGame, cancelGame, createGame, sharedSeed, boardCode, handleCodeChange, setBoardCode, lastConfig, setLastConfig, setDailyInfo } = useGame();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isDaily = mode === 'daily';
@@ -23,7 +22,8 @@ export function ConfigRoute({ mode }: { mode: 'freeplay' | 'daily' }) {
     const init = async () => {
       if (isDaily) {
         const info = dailyInfo ?? await fetchDaily();
-        if (hasPlayedDaily(info.date)) {
+        // Use cached result from GameContext (already fetched on mount)
+        if (cachedDailyResult) {
           setDailyInfo(info);
           navigate('/daily/results', { replace: true });
           return;
@@ -91,7 +91,6 @@ export function ConfigRoute({ mode }: { mode: 'freeplay' | 'daily' }) {
 
   const isLocked = isDaily || isSharedGame;
   const title = isDaily ? 'Daily Puzzle' : isSharedGame ? 'Shared Board' : 'Free Play';
-  const subtitle = isDaily? undefined: isSharedGame ? undefined: 'Choose your settings'
 
   // Key forces remount when defaults change (e.g., daily info loaded after mount)
   const configKey = defaults ? `${defaults.boardSize}-${defaults.timer}-${defaults.minWordLength}` : 'default';
@@ -101,7 +100,7 @@ export function ConfigRoute({ mode }: { mode: 'freeplay' | 'daily' }) {
       <GameConfigPage
         key={configKey}
         title={title}
-        subtitle={subtitle}
+        subtitle="Choose your settings"
         card={false}
         onBack={handleBack}
         onStart={isLocked ? () => handleStart() : handleStart}
