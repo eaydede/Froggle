@@ -25,7 +25,7 @@ export function LandingRoute() {
   const handleDailyResults = async () => {
     const info = await fetchDaily();
     setDailyInfo(info);
-    navigate('/daily/results');
+    navigate('/leaderboard');
   };
 
   if (!cachedDaily || !dailyResultLoaded) {

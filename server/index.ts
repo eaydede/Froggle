@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { GameController } from './GameController.js';
 import { getDailySeed } from 'models/seedCode';
 import { generateSeededBoard } from 'engine/board.js';
+import { scoreWord } from 'engine/scoring.js';
 import { authMiddleware, requireAuth } from './middleware/auth.js';
 import { getDb } from './db/index.js';
 import { getSupabaseAdmin } from './supabaseAdmin.js';
@@ -303,6 +304,204 @@ app.get('/api/daily/results/:date', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('Failed to fetch daily result:', err);
     res.status(500).json({ error: 'Failed to fetch result' });
+  }
+});
+
+// Get leaderboard for a specific date
+// Returns fully computed rankings and player stats ready for display
+app.get('/api/daily/leaderboard/:date', async (req, res) => {
+  const { date } = req.params;
+  const requestingUserId = req.userId; // may be undefined if not authenticated
+
+  try {
+    const db = getDb();
+    const admin = getSupabaseAdmin();
+
+    const results = await db
+      .selectFrom('daily_results')
+      .selectAll()
+      .where('date', '=', date)
+      .execute();
+
+    const totalPlayers = results.length;
+
+    if (totalPlayers === 0) {
+      return res.json({
+        puzzleNumber: getDailyNumber(date),
+        totalPlayers: 0,
+        rankings: { points: [], words: [], rarity: [] },
+        currentPlayer: null,
+      });
+    }
+
+    // Fetch display names
+    const userMap = new Map<string, string>();
+    for (const r of results) {
+      try {
+        const { data } = await admin.auth.admin.getUserById(r.user_id);
+        userMap.set(r.user_id, data.user?.user_metadata?.display_name || 'Anonymous');
+      } catch {
+        userMap.set(r.user_id, 'Anonymous');
+      }
+    }
+
+    // Build word frequency map across all players
+    const wordCounts = new Map<string, number>();
+    const parsedResults = results.map((r) => {
+      const words: string[] = typeof r.found_words === 'string'
+        ? JSON.parse(r.found_words)
+        : r.found_words;
+      for (const w of words) {
+        wordCounts.set(w, (wordCounts.get(w) || 0) + 1);
+      }
+      return { ...r, words };
+    });
+
+    // Score each player
+    const scored = parsedResults.map((r) => {
+      const points = r.words.reduce((sum, w) => sum + scoreWord(w), 0);
+      const wordCount = r.words.length;
+      const rarityScore = Math.round(
+        r.words.reduce((sum, w) => {
+          const base = scoreWord(w);
+          const freq = wordCounts.get(w) || 1;
+          return sum + base * (2 - freq / totalPlayers);
+        }, 0) * 10,
+      ) / 10;
+      const longest = r.words.reduce((a, b) => (b.length > a.length ? b : a), '');
+
+      return {
+        userId: r.user_id,
+        displayName: userMap.get(r.user_id) || 'Anonymous',
+        words: r.words,
+        points,
+        wordCount,
+        rarityScore,
+        longestWord: longest.toUpperCase(),
+        wordFrequencies: Object.fromEntries(
+          r.words.map((w) => [w, wordCounts.get(w) || 0]),
+        ),
+      };
+    });
+
+    // Build rankings for each type
+    function buildRankings(
+      sortKey: 'points' | 'wordCount' | 'rarityScore',
+      subLabelKey: 'wordCount' | 'points',
+      subLabelSuffix: string,
+    ) {
+      const sorted = [...scored].sort((a, b) => b[sortKey] - a[sortKey]);
+      return sorted.map((p, i) => ({
+        rank: i + 1,
+        displayName: p.displayName,
+        value: Math.round(p[sortKey]),
+        subLabel: `${p[subLabelKey]} ${subLabelSuffix}`,
+        isCurrentUser: p.userId === requestingUserId,
+      }));
+    }
+
+    const rankings = {
+      points: buildRankings('points', 'wordCount', 'words'),
+      words: buildRankings('wordCount', 'points', 'pts'),
+      rarity: buildRankings('rarityScore', 'wordCount', 'words'),
+    };
+
+    // Build current player card data
+    let currentPlayer = null;
+    if (requestingUserId) {
+      const me = scored.find((p) => p.userId === requestingUserId);
+      if (me) {
+        const pointsRank = rankings.points.find((r) => r.isCurrentUser)!.rank;
+
+        // Pick accolade
+        const wordsByRarity = [...me.words].sort(
+          (a, b) => (me.wordFrequencies[a] || totalPlayers) - (me.wordFrequencies[b] || totalPlayers),
+        );
+
+        let accolade = '';
+        if (wordsByRarity.length > 0) {
+          const rarestWord = wordsByRarity[0];
+          const freq = me.wordFrequencies[rarestWord] || totalPlayers;
+          const pct = Math.round((freq / totalPlayers) * 100);
+
+          if (pct <= 10) {
+            accolade = `Only <b>${pct}%</b> of players found <b>${rarestWord.toUpperCase()}</b>`;
+          } else {
+            const rareWords = me.words.filter(
+              (w) => ((me.wordFrequencies[w] || totalPlayers) / totalPlayers) * 100 <= 10,
+            );
+            if (rareWords.length >= 2) {
+              accolade = `You found <b>${rareWords.length} words</b> that less than 10% of players spotted`;
+            }
+          }
+        }
+
+        if (!accolade && me.wordCount > 0) {
+          const avg = (me.points / me.wordCount).toFixed(1);
+          accolade = `Your avg word scored <b>${avg} pts</b>`;
+        }
+
+        if (!accolade) {
+          accolade = 'Keep playing to earn accolades!';
+        }
+
+        const topPercent = Math.round((pointsRank / totalPlayers) * 100);
+
+        currentPlayer = {
+          points: me.points,
+          wordsFound: me.wordCount,
+          longestWord: me.longestWord,
+          rank: pointsRank,
+          totalPlayers,
+          topPercent: topPercent <= 30 ? topPercent : null,
+          accolade,
+        };
+      }
+    }
+
+    res.json({
+      puzzleNumber: getDailyNumber(date),
+      totalPlayers,
+      rankings,
+      currentPlayer,
+    });
+  } catch (err) {
+    console.error('Failed to fetch leaderboard:', err);
+    res.status(500).json({ error: 'Failed to fetch leaderboard' });
+  }
+});
+
+// Get current user's daily result history with pre-computed stats
+app.get('/api/daily/history', requireAuth, async (req, res) => {
+  try {
+    const db = getDb();
+    const results = await db
+      .selectFrom('daily_results')
+      .selectAll()
+      .where('user_id', '=', req.userId!)
+      .orderBy('date', 'desc')
+      .execute();
+
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+
+    const entries = results.map((result) => {
+      const words: string[] = typeof result.found_words === 'string'
+        ? JSON.parse(result.found_words)
+        : result.found_words;
+
+      return {
+        date: result.date,
+        puzzleNumber: getDailyNumber(result.date),
+        points: words.reduce((sum, w) => sum + scoreWord(w), 0),
+        wordsFound: words.length,
+        isToday: result.date === today,
+      };
+    });
+
+    res.json({ entries });
+  } catch (err) {
+    console.error('Failed to fetch daily history:', err);
+    res.status(500).json({ error: 'Failed to fetch history' });
   }
 });
 

@@ -5,6 +5,7 @@ import { LandingRoute } from './pages/landing';
 import { ConfigRoute } from './pages/config';
 import { GameRoute } from './pages/game';
 import { ResultsRoute, DailyResultsRoute } from './pages/results';
+import { LeaderboardRoute } from './pages/leaderboard';
 import './tailwind.css';
 
 function App() {
@@ -99,6 +100,7 @@ function App() {
         <Route path="/daily/results" element={<DailyResultsRoute />} />
         <Route path="/game" element={<GameRoute />} />
         <Route path="/results" element={<ResultsRoute />} />
+        <Route path="/leaderboard" element={<LeaderboardRoute />} />
       </Routes>
     </div>
   );
