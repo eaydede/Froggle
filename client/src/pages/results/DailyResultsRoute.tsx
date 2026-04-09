@@ -1,21 +1,41 @@
-import { useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GameState } from 'models';
 import { useGame } from '../../GameContext';
-import { loadDailyResult } from '../../shared/utils/dailyStorage';
+import { fetchDailyResult } from '../../shared/api/gameApi';
+import { scoreWord } from 'engine/scoring';
 import { ResultsPage } from './ResultsPage';
 
 export function DailyResultsRoute() {
   const { dailyInfo, setDailyInfo, cancelGame, game } = useGame();
   const navigate = useNavigate();
-
-  const savedResult = dailyInfo ? loadDailyResult(dailyInfo.date) : null;
+  const [serverResult, setServerResult] = useState<{ found_words: any[]; board: string[][] } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const fetchedRef = useRef(false);
 
   useEffect(() => {
-    if (!dailyInfo || !savedResult) navigate('/');
-  }, [dailyInfo, savedResult, navigate]);
+    if (!dailyInfo || fetchedRef.current) {
+      if (!dailyInfo) navigate('/');
+      return;
+    }
+    fetchedRef.current = true;
 
-  if (!dailyInfo || !savedResult) return null;
+    fetchDailyResult(dailyInfo.date)
+      .then((result) => {
+        if (result) {
+          setServerResult(result);
+        } else {
+          navigate('/');
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        navigate('/');
+        setLoading(false);
+      });
+  }, [dailyInfo, navigate]);
+
+  if (loading || !dailyInfo || !serverResult) return null;
 
   const handlePlayAgain = async () => {
     setDailyInfo(null);
@@ -26,13 +46,17 @@ export function DailyResultsRoute() {
   return (
     <ResultsPage
       results={{
-        board: savedResult.board,
-        foundWords: savedResult.foundWords,
-        missedWords: savedResult.missedWords,
+        board: serverResult.board,
+        foundWords: serverResult.found_words.map(word => ({
+          word,
+          path: [],
+          score: scoreWord(word),
+        })),
+        missedWords: [],
       }}
       onPlayAgain={handlePlayAgain}
       game={{
-        board: savedResult.board,
+        board: serverResult.board,
         startedAt: 0,
         status: GameState.Finished,
         config: {

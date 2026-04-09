@@ -9,9 +9,9 @@ import { useFeedbackSounds } from './pages/game';
 import type { FeedbackType } from './pages/game';
 import type { GameResults } from './shared/types';
 import type { DailyInfo } from './shared/api/gameApi';
-import { fetchDaily } from './shared/api/gameApi';
+import { fetchDaily, recordDailyResultToServer, fetchDailyResult, fetchProfile, updateProfile } from './shared/api/gameApi';
+import { loadDailyResult, clearDailyResult } from './shared/utils/dailyStorage';
 import { decodeSeedCode } from 'models/seedCode';
-import { recordDailyResult } from './shared/utils/dailyStorage';
 import type { GameConfig } from './pages/config';
 
 const loadMuted = (): boolean => {
@@ -33,6 +33,8 @@ interface GameContextValue {
   dailyInfo: DailyInfo | null;
   setDailyInfo: (info: DailyInfo | null) => void;
   cachedDaily: DailyInfo | null;
+  cachedDailyResult: { found_words: string[]; board: string[][] } | null;
+  dailyResultLoaded: boolean;
   refreshDaily: () => Promise<DailyInfo>;
 
   // Board code
@@ -68,6 +70,10 @@ interface GameContextValue {
   // Auth
   session: Session | null;
   authReady: boolean;
+
+  // Profile
+  displayName: string;
+  updateDisplayName: (name: string) => Promise<void>;
 }
 
 const GameContext = createContext<GameContextValue | null>(null);
@@ -106,6 +112,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
 
+  // Profile
+  const [displayName, setDisplayName] = useState('Anonymous');
+
+  const updateDisplayName = async (name: string) => {
+    setDisplayName(name);
+    await updateProfile(name);
+  };
+
   const authInitRef = useRef(false);
 
   useEffect(() => {
@@ -137,13 +151,55 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Load display name from server after auth is ready
+  useEffect(() => {
+    if (!authReady) return;
+    fetchProfile()
+      .then(({ display_name }) => setDisplayName(display_name))
+      .catch(() => {}); // Fall back to default 'Anonymous'
+  }, [authReady]);
+
   const timeRemaining = useTimer(game, fetchGameState);
   const { playValid, playInvalid, playDuplicate } = useFeedbackSounds(0, 0, 2);
 
-  // Fetch today's daily info on mount
+  // Cached daily result from server
+  const [cachedDailyResult, setCachedDailyResult] = useState<{ found_words: any[]; board: string[][] } | null>(null);
+  const [dailyResultLoaded, setDailyResultLoaded] = useState(false);
+
+  // Fetch today's daily info + result on mount (wait for auth to be ready)
+  // Also migrates any localStorage daily result to the server (one-time bridge for existing users)
   useEffect(() => {
-    fetchDaily().then(setCachedDaily).catch(() => {});
-  }, []);
+    if (!authReady) return;
+    fetchDaily().then(async (info) => {
+      setCachedDaily(info);
+      // Check if user has already played today
+      try {
+        const result = await fetchDailyResult(info.date);
+        if (result) {
+          setCachedDailyResult(result);
+          setDailyResultLoaded(true);
+          return;
+        }
+      } catch {
+        // No server result yet — fall through to localStorage check
+      }
+
+      // Migration: if localStorage has a result for today, upload it to the server
+      const localResult = loadDailyResult(info.date);
+      if (localResult) {
+        const wordStrings = localResult.foundWords.map(w => w.word);
+        try {
+          await recordDailyResultToServer(info.date, wordStrings, localResult.board);
+          setCachedDailyResult({ found_words: wordStrings, board: localResult.board });
+          // Clean up localStorage now that the result is persisted on the server
+          clearDailyResult(info.date);
+        } catch (err) {
+          console.warn('Failed to migrate localStorage daily result to server:', err);
+        }
+      }
+      setDailyResultLoaded(true);
+    }).catch(() => setDailyResultLoaded(true));
+  }, [authReady]);
 
   // Record daily results when they become available
   const hasRecordedRef = useRef(false);
@@ -157,7 +213,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    recordDailyResult(dailyInfo.date, dailyInfo.number, results.foundWords, results.missedWords, results.board);
+    // Record to server — store only the word strings (score/path can be derived)
+    const wordStrings = results.foundWords.map(w => w.word);
+    recordDailyResultToServer(dailyInfo.date, wordStrings, results.board)
+      .then(() => {
+        setCachedDailyResult({ found_words: wordStrings, board: results.board });
+      })
+      .catch((err) => {
+        console.warn('Failed to record daily result to server:', err);
+      });
+
     hasRecordedRef.current = true;
   }, [dailyInfo, results]);
 
@@ -213,7 +278,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   return (
     <GameContext.Provider value={{
       game, words, results, gameSeed, feedback, timeRemaining,
-      dailyInfo, setDailyInfo, cachedDaily, refreshDaily,
+      dailyInfo, setDailyInfo, cachedDaily, cachedDailyResult, dailyResultLoaded, refreshDaily,
       boardCode, setBoardCode, sharedSeed, handleCodeChange,
       lastConfig, setLastConfig,
       muted, toggleMute,
@@ -221,6 +286,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       showHomeConfirm, setShowHomeConfirm,
       theme, toggleTheme,
       session, authReady,
+      displayName, updateDisplayName,
     }}>
       <div data-theme={theme} className="contents">
         {children}

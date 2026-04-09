@@ -122,3 +122,36 @@ export const fetchDaily = async (): Promise<DailyInfo> => {
   const response = await fetch(`${API_URL}/daily`);
   return response.json();
 };
+
+export const recordDailyResultToServer = async (date: string, foundWords: string[], board: string[][]): Promise<{ success: boolean }> => {
+  const response = await fetch(`${API_URL}/daily/results`, {
+    method: 'POST',
+    headers: await sessionHeaders(),
+    body: JSON.stringify({ date, found_words: foundWords, board }),
+  });
+  return response.json();
+};
+
+export const fetchDailyResult = async (date: string): Promise<{ found_words: string[]; board: string[][] } | null> => {
+  const response = await fetch(`${API_URL}/daily/results/${date}`, {
+    headers: await sessionHeaders(),
+  });
+  const data = await response.json();
+  return data.result ?? null;
+};
+
+export const fetchProfile = async (): Promise<{ display_name: string }> => {
+  const response = await fetch(`${API_URL}/user/profile`, {
+    headers: await sessionHeaders(),
+  });
+  return response.json();
+};
+
+export const updateProfile = async (displayName: string): Promise<{ display_name: string }> => {
+  const response = await fetch(`${API_URL}/user/profile`, {
+    method: 'PUT',
+    headers: await sessionHeaders(),
+    body: JSON.stringify({ display_name: displayName }),
+  });
+  return response.json();
+};

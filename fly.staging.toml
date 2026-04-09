@@ -4,7 +4,7 @@ primary_region = 'iad'
 [build]
   [build.args]
     VITE_SUPABASE_URL = "https://ohfqeivycvyudhekuamz.supabase.co"
-    VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9oZnFlaXZ5Y3Z5dWRoZWt1YW16Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1OTQzNjMsImV4cCI6MjA5MTE3MDM2M30.O3Hq0UneP1Dx8qAUZ6K7wDuwoeqoi11-FnPBBeFK3Sw"
+    VITE_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_hQeYAS_LXSSpTROgPy_F8A_uXHucAoi"
 
 [http_service]
   internal_port = 3000

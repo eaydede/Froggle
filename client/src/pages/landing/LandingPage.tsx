@@ -1,4 +1,5 @@
 import { DailyCard, FreePlayCard } from "./components";
+import { ProfileDisplay } from "../../shared/components/ProfileDisplay";
 import type { DailyPuzzleConfig, DailyResults } from "./types";
 
 interface LandingPageProps {
@@ -6,6 +7,8 @@ interface LandingPageProps {
   dailyResults: DailyResults | null;
   onDailyClick: () => void;
   onFreePlayClick: () => void;
+  displayName: string;
+  onDisplayNameChange: (name: string) => void;
 }
 
 export function LandingPage({
@@ -13,6 +16,8 @@ export function LandingPage({
   dailyResults,
   onDailyClick,
   onFreePlayClick,
+  displayName,
+  onDisplayNameChange,
 }: LandingPageProps) {
   return (
     <div className="w-full max-w-[400px]">
@@ -34,6 +39,11 @@ export function LandingPage({
           onClick={onDailyClick}
         />
         <FreePlayCard onClick={onFreePlayClick} />
+      </div>
+
+      {/* Profile */}
+      <div className="flex justify-center mt-5">
+        <ProfileDisplay displayName={displayName} onSave={onDisplayNameChange} />
       </div>
     </div>
   );
