@@ -140,6 +140,57 @@ export const fetchDailyResult = async (date: string): Promise<{ found_words: str
   return data.result ?? null;
 };
 
+export interface LeaderboardRankingEntry {
+  rank: number;
+  displayName: string;
+  value: number;
+  subLabel: string;
+  isCurrentUser: boolean;
+}
+
+export interface LeaderboardPlayerCard {
+  points: number;
+  wordsFound: number;
+  longestWord: string;
+  rank: number;
+  totalPlayers: number;
+  topPercent: number | null;
+  accolade: string;
+}
+
+export interface LeaderboardResponse {
+  puzzleNumber: number;
+  totalPlayers: number;
+  rankings: {
+    points: LeaderboardRankingEntry[];
+    words: LeaderboardRankingEntry[];
+    rarity: LeaderboardRankingEntry[];
+  };
+  currentPlayer: LeaderboardPlayerCard | null;
+}
+
+export const fetchLeaderboard = async (date: string): Promise<LeaderboardResponse> => {
+  const response = await fetch(`${API_URL}/daily/leaderboard/${date}`, {
+    headers: await sessionHeaders(),
+  });
+  return response.json();
+};
+
+export interface DailyHistoryEntry {
+  date: string;
+  puzzleNumber: number;
+  points: number;
+  wordsFound: number;
+  isToday: boolean;
+}
+
+export const fetchDailyHistory = async (): Promise<{ entries: DailyHistoryEntry[] }> => {
+  const response = await fetch(`${API_URL}/daily/history`, {
+    headers: await sessionHeaders(),
+  });
+  return response.json();
+};
+
 export const fetchProfile = async (): Promise<{ display_name: string }> => {
   const response = await fetch(`${API_URL}/user/profile`, {
     headers: await sessionHeaders(),
