@@ -2,9 +2,9 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { TopThree, type TopThreeEntry } from '../pages/leaderboard/components/TopThree';
 
 const sampleEntries: TopThreeEntry[] = [
-  { rank: 1, displayName: 'sarah_j', value: 186 },
-  { rank: 2, displayName: 'mike_k', value: 164 },
-  { rank: 3, displayName: 'alex_l', value: 151 },
+  { rank: 1, displayName: 'sarah_j', value: 186, unit: 'pts' },
+  { rank: 2, displayName: 'mike_k', value: 164, unit: 'pts' },
+  { rank: 3, displayName: 'alex_l', value: 151, unit: 'pts' },
 ];
 
 const meta: Meta<typeof TopThree> = {

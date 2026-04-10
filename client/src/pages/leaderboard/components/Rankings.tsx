@@ -15,6 +15,8 @@ export function Rankings({ entries }: RankingsProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const userRowRef = useRef<HTMLDivElement>(null);
   const [pillPosition, setPillPosition] = useState<'above' | 'below' | null>(null);
+  const [fadeTop, setFadeTop] = useState(false);
+  const [fadeBottom, setFadeBottom] = useState(false);
 
   const currentUser = entries.find((e) => e.isCurrentUser);
 
@@ -31,14 +33,27 @@ export function Rankings({ entries }: RankingsProps) {
 
   useEffect(() => {
     const container = scrollRef.current;
-    if (!container || !userRowRef.current) {
+    if (!container) {
       setPillPosition(null);
+      setFadeTop(false);
+      setFadeBottom(false);
       return;
     }
 
-    const checkVisibility = () => {
+    const checkState = () => {
+      // Fade edges only when there's content hidden in that direction
+      setFadeTop(container.scrollTop > 1);
+      setFadeBottom(
+        container.scrollTop + container.clientHeight < container.scrollHeight - 1,
+      );
+
+      // Pill visibility for current user row
+      if (!userRowRef.current) {
+        setPillPosition(null);
+        return;
+      }
       const containerRect = container.getBoundingClientRect();
-      const rowRect = userRowRef.current!.getBoundingClientRect();
+      const rowRect = userRowRef.current.getBoundingClientRect();
 
       if (rowRect.bottom < containerRect.top) {
         setPillPosition('above');
@@ -49,10 +64,21 @@ export function Rankings({ entries }: RankingsProps) {
       }
     };
 
-    checkVisibility();
-    container.addEventListener('scroll', checkVisibility);
-    return () => container.removeEventListener('scroll', checkVisibility);
+    checkState();
+    container.addEventListener('scroll', checkState);
+    const resizeObserver = new ResizeObserver(checkState);
+    resizeObserver.observe(container);
+    return () => {
+      container.removeEventListener('scroll', checkState);
+      resizeObserver.disconnect();
+    };
   }, [entries]);
+
+  const maskImage = (() => {
+    const top = fadeTop ? 'transparent' : 'black';
+    const bottom = fadeBottom ? 'transparent' : 'black';
+    return `linear-gradient(to bottom, ${top}, black 24px, black calc(100% - 24px), ${bottom})`;
+  })();
 
   return (
     <div className="relative flex flex-col" style={{ minHeight: 0, height: '100%' }}>
@@ -69,10 +95,8 @@ export function Rankings({ entries }: RankingsProps) {
         ref={scrollRef}
         className="relative overflow-y-auto flex-1"
         style={{
-          maskImage:
-            'linear-gradient(to bottom, transparent, black 24px, black calc(100% - 24px), transparent)',
-          WebkitMaskImage:
-            'linear-gradient(to bottom, transparent, black 24px, black calc(100% - 24px), transparent)',
+          maskImage: maskImage,
+          WebkitMaskImage: maskImage,
         }}
       >
         {entries.map((entry) => {

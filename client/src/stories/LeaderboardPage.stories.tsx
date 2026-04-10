@@ -32,9 +32,9 @@ const fullRankings: RankingEntry[] = [
 ];
 
 const fullTopThree: TopThreeEntry[] = [
-  { rank: 1, displayName: 'sarah_j', value: 186 },
-  { rank: 2, displayName: 'mike_k', value: 164 },
-  { rank: 3, displayName: 'alex_l', value: 151 },
+  { rank: 1, displayName: 'sarah_j', value: 186, unit: 'pts' },
+  { rank: 2, displayName: 'mike_k', value: 164, unit: 'pts' },
+  { rank: 3, displayName: 'alex_l', value: 151, unit: 'pts' },
 ];
 
 const meta: Meta<typeof LeaderboardPage> = {
@@ -139,7 +139,7 @@ export const OnePlayer: Story = {
         { rank: 1, displayName: 'You', value: 98, isCurrentUser: true },
       ]}
       topThree={[
-        { rank: 1, displayName: 'You', value: 98 },
+        { rank: 1, displayName: 'You', value: 98, unit: 'pts' },
       ]}
       totalPlayers={1}
       rank={1}
@@ -156,8 +156,8 @@ export const TwoPlayers: Story = {
         { rank: 2, displayName: 'You', value: 98, isCurrentUser: true },
       ]}
       topThree={[
-        { rank: 1, displayName: 'sarah_j', value: 186 },
-        { rank: 2, displayName: 'You', value: 98 },
+        { rank: 1, displayName: 'sarah_j', value: 186, unit: 'pts' },
+        { rank: 2, displayName: 'You', value: 98, unit: 'pts' },
       ]}
       totalPlayers={2}
       rank={2}
