@@ -13,7 +13,12 @@ export function getDb(): Kysely<Database> {
 
     db = new Kysely<Database>({
       dialect: new PostgresDialect({
-        pool: new Pool({ connectionString }),
+        pool: new Pool({
+          connectionString,
+          ssl: connectionString.includes('localhost') || connectionString.includes('127.0.0.1')
+            ? false
+            : { rejectUnauthorized: false },
+        }),
       }),
     });
   }
