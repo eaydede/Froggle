@@ -19,6 +19,6 @@ primary_region = 'iad'
     soft_limit = 80
 
 [[vm]]
-  memory = '256mb'
+  memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
