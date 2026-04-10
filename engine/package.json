@@ -3,59 +3,16 @@
   "version": "1.0.0",
   "type": "module",
   "exports": {
-    "./board": {
-      "development": "./board.ts",
-      "types": "./dist/board.d.ts",
-      "default": "./dist/board.js"
-    },
-    "./board.js": {
-      "development": "./board.ts",
-      "types": "./dist/board.d.ts",
-      "default": "./dist/board.js"
-    },
-    "./adjacency": {
-      "development": "./adjacency.ts",
-      "types": "./dist/adjacency.d.ts",
-      "default": "./dist/adjacency.js"
-    },
-    "./adjacency.js": {
-      "development": "./adjacency.ts",
-      "types": "./dist/adjacency.d.ts",
-      "default": "./dist/adjacency.js"
-    },
-    "./dictionary": {
-      "development": "./dictionary.ts",
-      "types": "./dist/dictionary.d.ts",
-      "default": "./dist/dictionary.js"
-    },
-    "./dictionary.js": {
-      "development": "./dictionary.ts",
-      "types": "./dist/dictionary.d.ts",
-      "default": "./dist/dictionary.js"
-    },
-    "./scoring": {
-      "development": "./scoring.ts",
-      "types": "./dist/scoring.d.ts",
-      "default": "./dist/scoring.js"
-    },
-    "./scoring.js": {
-      "development": "./scoring.ts",
-      "types": "./dist/scoring.d.ts",
-      "default": "./dist/scoring.js"
-    },
-    "./solver": {
-      "development": "./solver.ts",
-      "types": "./dist/solver.d.ts",
-      "default": "./dist/solver.js"
-    },
-    "./solver.js": {
-      "development": "./solver.ts",
-      "types": "./dist/solver.d.ts",
-      "default": "./dist/solver.js"
-    }
-  },
-  "scripts": {
-    "build": "tsc"
+    "./board": "./board.ts",
+    "./board.js": "./board.ts",
+    "./adjacency": "./adjacency.ts",
+    "./adjacency.js": "./adjacency.ts",
+    "./dictionary": "./dictionary.ts",
+    "./dictionary.js": "./dictionary.ts",
+    "./scoring": "./scoring.ts",
+    "./scoring.js": "./scoring.ts",
+    "./solver": "./solver.ts",
+    "./solver.js": "./solver.ts"
   },
   "private": true,
   "dependencies": {
