@@ -29,8 +29,13 @@ ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY
 RUN npm run build --workspace=client
 
+# Precompile server-side workspaces (order matters: models → engine → server)
+RUN npm run build --workspace=models \
+ && npm run build --workspace=engine \
+ && npm run build --workspace=server
+
 # Expose the port
 EXPOSE 3000
 
-# Start the server
-CMD ["npx", "tsx", "server/index.ts"]
+# Start the precompiled server with plain node
+CMD ["node", "server/dist/index.js"]

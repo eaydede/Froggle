@@ -2,10 +2,22 @@
   "name": "models",
   "version": "1.0.0",
   "type": "module",
-  "main": "index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./index.ts",
-    "./seedCode": "./seedCode.ts"
+    ".": {
+      "development": "./index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./seedCode": {
+      "development": "./seedCode.ts",
+      "types": "./dist/seedCode.d.ts",
+      "default": "./dist/seedCode.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc"
   },
   "private": true
 }
