@@ -1,5 +1,5 @@
 export { ConfigRoute } from "./ConfigRoute";
 export { GameConfigPage } from "./GameConfigPage";
 export { BoardConfigCards, TimerConfig, LetterConfig, MiniGrid } from "./components";
-export { usePillPosition } from "./use-pill-position";
+export { usePillPosition } from "./hooks/usePillPosition";
 export type { GameConfig, BoardSize, TimerOption, MinWordLength } from "./types";

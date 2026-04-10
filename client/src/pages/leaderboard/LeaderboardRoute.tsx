@@ -8,8 +8,7 @@ import {
   type DailyHistoryEntry,
 } from '../../shared/api/gameApi';
 import { LeaderboardPage } from './LeaderboardPage';
-import type { RankingType } from './components/RankingSelector';
-import type { DailyNavEntry } from './components/DailyNav';
+import type { RankingType, DailyNavEntry } from './components';
 
 function getTodayPST(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });

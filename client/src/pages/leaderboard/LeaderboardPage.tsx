@@ -1,10 +1,17 @@
 import { useState } from 'react';
-import { DailyNav, type DailyNavEntry } from './components/DailyNav';
-import { PlayerCard, type PlayerCardProps } from './components/PlayerCard';
-import { RankingSelector, type RankingType } from './components/RankingSelector';
-import { TopThree, type TopThreeEntry } from './components/TopThree';
-import { Rankings, type RankingEntry } from './components/Rankings';
-import { MyResultsCard } from './components/MyResultsCard';
+import {
+  DailyNav,
+  type DailyNavEntry,
+  PlayerCard,
+  type PlayerCardProps,
+  RankingSelector,
+  type RankingType,
+  TopThree,
+  type TopThreeEntry,
+  Rankings,
+  type RankingEntry,
+  MyResultsCard,
+} from './components';
 
 interface LeaderboardPageProps {
   title: string;

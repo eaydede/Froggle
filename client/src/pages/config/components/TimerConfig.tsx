@@ -1,4 +1,4 @@
-import { usePillPosition } from "../use-pill-position";
+import { usePillPosition } from "../hooks/usePillPosition";
 import { useDisabledShake } from "../hooks/useDisabledShake";
 import type { TimerOption } from "../types";
 

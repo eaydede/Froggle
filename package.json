@@ -1,5 +1,5 @@
 {
-  "name": "boggle",
+  "name": "froggle",
   "private": true,
   "workspaces": [
     "models",
