@@ -18,6 +18,12 @@ primary_region = 'iad'
     hard_limit = 100
     soft_limit = 80
 
+  [[http_service.http_options.replay_cache]]
+    path_prefix = "/api/game"
+    ttl_seconds = 1800
+    type = "header"
+    name = "X-Session-Id"
+
 [[vm]]
   memory = '1gb'
   cpu_kind = 'shared'
