@@ -201,19 +201,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }).catch(() => setDailyResultLoaded(true));
   }, [authReady]);
 
-  // Record daily results when they become available
-  const hasRecordedRef = useRef(false);
+  // Record daily results when a daily game is completed in the current session.
+  // Skips if the result for this date has already been cached (either from a prior
+  // server fetch or from a successful record earlier in this session), which also
+  // prevents false positives when `results` holds state from an unrelated game.
   useEffect(() => {
-    if (!dailyInfo || !results || hasRecordedRef.current) return;
+    if (!dailyInfo || !results) return;
+    if (cachedDailyResult) return;
 
+    // Only record if the game that produced these results actually matches today's daily board.
     const resultsFlat = results.board.flat().join(',');
     const expectedFlat = dailyInfo.board.flat().join(',');
-    if (resultsFlat !== expectedFlat) {
-      console.warn('Daily board mismatch — results not recorded');
-      return;
-    }
+    if (resultsFlat !== expectedFlat) return;
 
-    // Record to server — store only the word strings (score/path can be derived)
     const wordStrings = results.foundWords.map(w => w.word);
     recordDailyResultToServer(dailyInfo.date, wordStrings, results.board)
       .then(() => {
@@ -222,14 +222,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       .catch((err) => {
         console.warn('Failed to record daily result to server:', err);
       });
-
-    hasRecordedRef.current = true;
-  }, [dailyInfo, results]);
-
-  // Reset recording flag when dailyInfo changes
-  useEffect(() => {
-    hasRecordedRef.current = false;
-  }, [dailyInfo]);
+  }, [dailyInfo, results, cachedDailyResult]);
 
   const toggleMute = () => {
     setMuted(prev => {
