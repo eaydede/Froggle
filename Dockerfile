@@ -24,16 +24,15 @@ COPY client/ client/
 COPY enable1.txt .
 COPY tsconfig.json .
 
-# Precompile server-side workspaces (order matters: models → engine → server)
-# Must run before the client build so client can resolve workspace imports
-RUN npm run build --workspace=models \
- && npm run build --workspace=engine \
- && npm run build --workspace=server
-
 # Build the client (VITE_ env vars are available via ARG → ENV)
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY
 RUN npm run build --workspace=client
+
+# Precompile server-side workspaces (order matters: models → engine → server)
+RUN npm run build --workspace=models \
+ && npm run build --workspace=engine \
+ && npm run build --workspace=server
 
 # Expose the port
 EXPOSE 3000
