@@ -57,13 +57,23 @@ export function LeaderboardRoute() {
     [leaderboard, rankingType],
   );
 
+  const topThreeUnit = useMemo(() => {
+    switch(rankingType){
+      default:
+        return "pts"
+      case "words":
+        return "w"
+    }
+  }, [rankingType])
+
   const topThree = useMemo(
     () => rankings.slice(0, 3).map((r) => ({
       rank: r.rank as 1 | 2 | 3,
       displayName: r.displayName,
       value: r.value,
+      unit: topThreeUnit,
     })),
-    [rankings],
+    [rankings, topThreeUnit],
   );
 
   // The rank on the player card should update based on the active ranking type
