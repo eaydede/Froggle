@@ -60,15 +60,12 @@ export function LeaderboardPage({
       {/* Header */}
       <div className="flex items-center justify-center relative">
         <button
+          type="button"
+          className="absolute left-[18px] top-1/2 -translate-y-1/2 text-lg cursor-pointer leading-none flex bg-transparent border-none"
+          style={{ color: "var(--text-muted)" }}
           onClick={onBack}
-          className="absolute left-0 border-none bg-transparent cursor-pointer flex items-center justify-center"
-          style={{
-            fontSize: '1.25rem',
-            color: 'var(--text)',
-            padding: '4px',
-          }}
         >
-          ←
+          &#8249;
         </button>
         <h1
           className="m-0"
