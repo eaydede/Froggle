@@ -20,10 +20,16 @@ export function DateSelector({
   const currentEntry = entries[currentIndex];
   const isToday = currentIndex === entries.length - 1;
 
+  // z-20 on the wrapper puts the trigger (and dropdown) above BlurOverlay
+  // (z-10), so the current date stays legible while the rest of the page
+  // blurs behind the dropdown.
   return (
-    <>
+    // pb-2.5 (instead of mb-2.5 on the trigger) so the wrapper's content box
+    // includes the breathing room — which means `top-full` on the dropdown
+    // lands 10px below the trigger text on any host layout.
+    <div className="relative z-20 pb-2.5">
       {/* Date trigger */}
-      <div className="flex items-center justify-center px-[18px] mb-2.5 relative">
+      <div className="flex items-center justify-center px-[18px] min-h-[20px]">
         <button
           type="button"
           className="text-[15px] cursor-pointer flex items-center gap-1.5 bg-transparent border-none outline-none p-0"
@@ -50,14 +56,15 @@ export function DateSelector({
         </button>
       </div>
 
-      {/* Dropdown picker */}
+      {/* Dropdown picker — positioned just below the trigger in any layout. */}
       {isOpen && (
-        <div className="absolute left-0 right-0 top-[80px] z-11 flex justify-center px-[18px] mt-[36px]">
+        <div className="absolute left-0 right-0 top-full flex justify-center px-[18px]">
           <div
-            className="rounded-xl flex flex-col w-full min-w-[360px] p-2"
+            className="rounded-xl flex flex-col w-full p-2 overflow-y-auto"
             style={{
               background: "var(--card)",
               border: "0.5px solid var(--dot)",
+              maxHeight: "60vh",
             }}
           >
             {[...entries].reverse().map((_entry, reversedIdx) => {
@@ -70,7 +77,7 @@ export function DateSelector({
                 <div key={entry.puzzleNumber}>
                   <button
                     type="button"
-                    className="flex items-center justify-between w-full px-2 py-2.5 cursor-pointer bg-transparent border-none outline-none text-left rounded-lg"
+                    className="flex items-center justify-between w-full px-2 py-2.5 cursor-pointer bg-transparent border-none outline-none text-left rounded-lg min-h-[40px]"
                     style={{
                       background: isActive ? "var(--track)" : "transparent",
                     }}
@@ -109,7 +116,7 @@ export function DateSelector({
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
 

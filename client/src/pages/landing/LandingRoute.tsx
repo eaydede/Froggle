@@ -18,14 +18,7 @@ export function LandingRoute() {
   const handleDaily = async () => {
     const info = await fetchDaily();
     setDailyInfo(info);
-    await createGame();
     navigate('/daily');
-  };
-
-  const handleDailyResults = async () => {
-    const info = await fetchDaily();
-    setDailyInfo(info);
-    navigate('/leaderboard');
   };
 
   if (!cachedDaily || !dailyResultLoaded) {
@@ -64,7 +57,7 @@ export function LandingRoute() {
           minWordLength: cachedDaily.config.minWordLength,
         }}
         dailyResults={dailyResultsData}
-        onDailyClick={hasPlayed ? handleDailyResults : handleDaily}
+        onDailyClick={handleDaily}
         onFreePlayClick={handleFreePlay}
         displayName={displayName}
         onDisplayNameChange={updateDisplayName}

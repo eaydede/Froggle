@@ -3,15 +3,34 @@ import { useNavigate } from 'react-router-dom';
 import { useGame } from '../../GameContext';
 import {
   fetchLeaderboard,
-  fetchDailyHistory,
+  fetchDailyStats,
+  fetchDaily,
   type LeaderboardResponse,
-  type DailyHistoryEntry,
+  type DailyStatsResponse,
+  type DailyStatsDay,
+  type DailyInfo,
 } from '../../shared/api/gameApi';
 import { LeaderboardPage } from './LeaderboardPage';
-import type { RankingType, DailyNavEntry } from './components';
+import type { RankingType } from './components';
+import type { DailyEntry } from '../daily/types';
 
 function getTodayPST(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+}
+
+function adaptDay(day: DailyStatsDay, config: DailyInfo['config']): DailyEntry {
+  return {
+    puzzleNumber: day.puzzleNumber,
+    date: new Date(day.date + 'T12:00:00'),
+    state: day.state,
+    points: day.points ?? undefined,
+    wordsFound: day.wordsFound ?? undefined,
+    longestWord: day.longestWord ?? undefined,
+    longestWordDefinition: day.longestWordDefinition,
+    stampTier: day.stampTier,
+    playersCount: day.playersCount,
+    config,
+  };
 }
 
 export function LeaderboardRoute() {
@@ -21,15 +40,19 @@ export function LeaderboardRoute() {
   const [selectedDate, setSelectedDate] = useState<string>(dailyInfo?.date ?? getTodayPST());
   const [rankingType, setRankingType] = useState<RankingType>('points');
   const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(null);
-  const [history, setHistory] = useState<DailyHistoryEntry[]>([]);
+  const [stats, setStats] = useState<DailyStatsResponse | null>(null);
+  const [config, setConfig] = useState<DailyInfo['config'] | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch user's history for the nav dropdown
+  // Navigator data comes from the same endpoint that drives the daily page,
+  // so the picker is identical in data and UI across both pages.
   useEffect(() => {
-    fetchDailyHistory().then(({ entries }) => setHistory(entries));
+    Promise.all([fetchDailyStats(), fetchDaily()]).then(([s, info]) => {
+      setStats(s);
+      setConfig(info.config);
+    });
   }, []);
 
-  // Fetch leaderboard when date changes
   useEffect(() => {
     setLoading(true);
     fetchLeaderboard(selectedDate).then((data) => {
@@ -38,18 +61,25 @@ export function LeaderboardRoute() {
     });
   }, [selectedDate]);
 
-  // Map history to DailyNav entries, injecting rank from current leaderboard
-  const dailyEntries: DailyNavEntry[] = useMemo(() => {
-    const currentUserRank = leaderboard?.rankings.points.find((r) => r.isCurrentUser)?.rank ?? 0;
-    return history.map((e) => ({
-      date: e.date,
-      puzzleNumber: e.puzzleNumber,
-      points: e.points,
-      wordsFound: e.wordsFound,
-      rank: e.date === selectedDate ? currentUserRank : 0,
-      isToday: e.isToday,
-    }));
-  }, [history, leaderboard, selectedDate]);
+  const entries: DailyEntry[] = useMemo(() => {
+    if (!stats || !config) return [];
+    return stats.days.map((d) => adaptDay(d, config));
+  }, [stats, config]);
+
+  const currentIndex = useMemo(() => {
+    if (entries.length === 0) return 0;
+    const idx = entries.findIndex((e) => e.date.toISOString().slice(0, 10) === selectedDate);
+    return idx >= 0 ? idx : entries.length - 1;
+  }, [entries, selectedDate]);
+
+  const handleChangeIndex = useCallback(
+    (index: number) => {
+      const entry = entries[index];
+      if (!entry) return;
+      setSelectedDate(entry.date.toISOString().slice(0, 10));
+    },
+    [entries],
+  );
 
   const rankings = useMemo(
     () => leaderboard?.rankings[rankingType] ?? [],
@@ -57,81 +87,39 @@ export function LeaderboardRoute() {
   );
 
   const topThreeUnit = useMemo(() => {
-    switch(rankingType){
+    switch (rankingType) {
       default:
-        return "pts"
-      case "words":
-        return "w"
+        return 'pts';
+      case 'words':
+        return 'w';
     }
-  }, [rankingType])
+  }, [rankingType]);
 
   const topThree = useMemo(
-    () => rankings.slice(0, 3).map((r) => ({
-      rank: r.rank as 1 | 2 | 3,
-      displayName: r.displayName,
-      value: r.value,
-      unit: topThreeUnit,
-    })),
+    () =>
+      rankings.slice(0, 3).map((r) => ({
+        rank: r.rank as 1 | 2 | 3,
+        displayName: r.displayName,
+        value: r.value,
+        unit: topThreeUnit,
+      })),
     [rankings, topThreeUnit],
   );
-
-  // The rank on the player card should update based on the active ranking type
-  const currentUserRank = useMemo(
-    () => rankings.find((r) => r.isCurrentUser)?.rank ?? 0,
-    [rankings],
-  );
-
-  const playerCard = useMemo(() => {
-    if (!leaderboard?.currentPlayer) {
-      return {
-        points: 0,
-        wordsFound: 0,
-        longestWord: '',
-        rank: 0,
-        totalPlayers: leaderboard?.totalPlayers ?? 0,
-        topPercent: null,
-        accolade: "Play today's daily to see your stats!",
-      };
-    }
-    return {
-      ...leaderboard.currentPlayer,
-      rank: currentUserRank || leaderboard.currentPlayer.rank,
-    };
-  }, [leaderboard, currentUserRank]);
-
-  const handlePrev = useCallback(() => {
-    const idx = dailyEntries.findIndex((e) => e.date === selectedDate);
-    if (idx < dailyEntries.length - 1) setSelectedDate(dailyEntries[idx + 1].date);
-  }, [dailyEntries, selectedDate]);
-
-  const handleNext = useCallback(() => {
-    const idx = dailyEntries.findIndex((e) => e.date === selectedDate);
-    if (idx > 0) setSelectedDate(dailyEntries[idx - 1].date);
-  }, [dailyEntries, selectedDate]);
-
-  const hasNext = useMemo(() => {
-    const idx = dailyEntries.findIndex((e) => e.date === selectedDate);
-    return idx > 0;
-  }, [dailyEntries, selectedDate]);
 
   if (loading && !leaderboard) return null;
 
   return (
     <LeaderboardPage
       title={`Daily #${leaderboard?.puzzleNumber ?? ''}`}
-      dailyEntries={dailyEntries}
-      selectedDate={selectedDate}
-      onSelectDate={setSelectedDate}
-      onPrev={handlePrev}
-      onNext={handleNext}
-      hasNext={hasNext}
-      playerCard={playerCard}
+      entries={entries}
+      currentIndex={currentIndex}
+      onChangeIndex={handleChangeIndex}
       rankingType={rankingType}
       onRankingTypeChange={setRankingType}
       topThree={topThree}
       rankings={rankings}
       onMyResults={() => navigate('/daily/results')}
-      onBack={() => navigate('/')}
+      onBack={() => navigate(-1)}
     />
   );
 }

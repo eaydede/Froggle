@@ -1,8 +1,9 @@
 import { useRef, useState, useEffect, useCallback } from "react";
+import type { WordDefinition } from "../../results/hooks/useDefinition";
 
 interface DefinitionAreaProps {
   word: string;
-  definition: string;
+  definition: WordDefinition | null;
   expanded: boolean;
   onExpandChange: (expanded: boolean) => void;
   /** Override the text & chevron color. Defaults to var(--text-muted). */
@@ -25,24 +26,16 @@ export function DefinitionArea({
   const checkTruncation = useCallback(() => {
     const el = textRef.current;
     if (!el) return;
-
-    // scrollHeight reports the full content height even when
-    // overflow is hidden, so no need to temporarily remove constraints.
     setNeedsTruncation(el.scrollHeight > TRUNCATION_HEIGHT);
   }, []);
 
-  // Re-check when definition text changes
   useEffect(() => {
     checkTruncation();
   }, [checkTruncation, definition]);
 
-  // Re-check when the container resizes (e.g. carousel sets card width after
-  // initial render). This replaces a window resize listener so it fires any
-  // time the text element's layout width actually changes.
   useEffect(() => {
     const el = textRef.current;
     if (!el) return;
-
     const observer = new ResizeObserver(() => {
       checkTruncation();
     });
@@ -58,7 +51,6 @@ export function DefinitionArea({
 
   return (
     <div className="min-h-[62px]">
-      {/* Definition text with conditional truncation */}
       <div className="relative">
         <div
           ref={textRef}
@@ -78,11 +70,39 @@ export function DefinitionArea({
               : {}),
           }}
         >
-          {definition}
+          {definition ? (
+            <>
+              {definition.phonetic && (
+                <div className="not-italic text-[11px] mb-1" style={{ opacity: 0.7 }}>
+                  {definition.phonetic}
+                </div>
+              )}
+              {definition.meanings.map((meaning, i) => (
+                <div key={i} className="mb-1.5">
+                  <span className="not-italic text-[11px]" style={{ opacity: 0.7 }}>
+                    {meaning.partOfSpeech}
+                  </span>
+                  <ol className="mt-0.5 pl-[18px] not-italic">
+                    {meaning.definitions.map((def, j) => (
+                      <li key={j} className="mb-0.5 italic">
+                        {def.definition}
+                        {def.example && (
+                          <span className="block not-italic text-[11px] mt-px" style={{ opacity: 0.6 }}>
+                            "{def.example}"
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ))}
+            </>
+          ) : (
+            <span style={{ opacity: 0.6 }}>No definition available for "{word}".</span>
+          )}
         </div>
       </div>
 
-      {/* Expand/collapse chevron — only rendered when definition overflows */}
       {needsTruncation && (
         <button
           type="button"

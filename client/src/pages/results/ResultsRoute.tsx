@@ -26,5 +26,20 @@ export function ResultsRoute() {
     }
   };
 
-  return <ResultsPage results={results} onPlayAgain={handlePlayAgain} game={game} gameSeed={gameSeed} dailyNumber={dailyInfo?.number} />;
+  // Back skips the game page since navigating back into an in-progress
+  // game doesn't make sense: go to the freeplay config, or to the daily
+  // stats page if this was a daily.
+  const handleBack = async () => {
+    navigatingRef.current = true;
+    if (dailyInfo) {
+      setDailyInfo(null);
+      if (game) await cancelGame();
+      navigate('/daily');
+    } else {
+      if (game) await cancelGame();
+      navigate('/play');
+    }
+  };
+
+  return <ResultsPage results={results} onPlayAgain={handlePlayAgain} onBack={handleBack} game={game} gameSeed={gameSeed} dailyNumber={dailyInfo?.number} />;
 }

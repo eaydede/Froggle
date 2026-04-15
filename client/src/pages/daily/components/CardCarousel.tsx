@@ -19,7 +19,7 @@ interface CardCarouselProps {
   onStartPuzzle: () => void;
   onViewResults: (puzzleNumber: number) => void;
   onViewLeaderboard: (puzzleNumber: number) => void;
-  onShare: (puzzleNumber: number) => void;
+  getShareText: (puzzleNumber: number) => Promise<string>;
   onDefinitionExpand: (expanded: boolean) => void;
   /** When true, swipe gestures are ignored (e.g. picker is open) */
   disabled?: boolean;
@@ -49,7 +49,7 @@ export function CardCarousel({
   onStartPuzzle,
   onViewResults,
   onViewLeaderboard,
-  onShare,
+  getShareText,
   onDefinitionExpand,
   disabled = false,
 }: CardCarouselProps) {
@@ -234,6 +234,7 @@ export function CardCarousel({
           height: carouselHeight > 0 ? carouselHeight : "auto",
           overflowX: "clip",
           overflowY: defExpanded ? "visible" : "hidden",
+          marginInline: -20
         }}
       >
         <div
@@ -287,12 +288,12 @@ export function CardCarousel({
           place (and get covered by the blur overlay) when the current card's
           definition is expanded. */}
       {currentEntry && (
-        <div className="mx-[18px] mt-2 mb-3.5">
+        <div className="mt-2 mb-3.5">
           <CardActions
             isCompleted={currentEntry.state === "completed"}
             onResults={() => onViewResults(currentEntry.puzzleNumber)}
             onLeaderboard={() => onViewLeaderboard(currentEntry.puzzleNumber)}
-            onShare={() => onShare(currentEntry.puzzleNumber)}
+            getShareText={() => getShareText(currentEntry.puzzleNumber)}
           />
         </div>
       )}

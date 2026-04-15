@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { CompletedCard } from '../pages/daily/components/CompletedCard';
 import type { DailyEntry } from '../pages/daily/types';
+import { mockDefinition } from './mockDefinition';
 
 const meta: Meta<typeof CompletedCard> = {
   title: 'Daily/CompletedCard',
@@ -18,8 +19,10 @@ const baseEntry: DailyEntry = {
   points: 87,
   wordsFound: 23,
   longestWord: 'FROGGLE',
-  longestWordDefinition:
+  longestWordDefinition: mockDefinition(
+    'FROGGLE',
     'A playful portmanteau combining "frog" and "boggle", referring to a word puzzle game played on a grid of letters.',
+  ),
   stampTier: 'first',
   playersCount: 128,
   config: {
@@ -32,8 +35,10 @@ const baseEntry: DailyEntry = {
 const longDefinitionEntry: DailyEntry = {
   ...baseEntry,
   longestWord: 'SERENDIPITY',
-  longestWordDefinition:
+  longestWordDefinition: mockDefinition(
+    'SERENDIPITY',
     'The faculty or phenomenon of finding valuable or agreeable things not sought for. Often associated with happy accidents or pleasant surprises that occur when one is not actively searching for them. The term was coined by Horace Walpole in 1754 based on the Persian fairy tale "The Three Princes of Serendip" whose heroes were always making discoveries by accident and sagacity.',
+  ),
   stampTier: 'top30',
   points: 54,
   wordsFound: 14,

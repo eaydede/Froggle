@@ -1,0 +1,1 @@
+export { DailyPuzzleRoute } from "./DailyRoute";

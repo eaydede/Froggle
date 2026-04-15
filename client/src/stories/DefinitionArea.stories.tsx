@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { DefinitionArea } from '../pages/daily/components/DefinitionArea';
+import { mockDefinition } from './mockDefinition';
 
 const meta: Meta<typeof DefinitionArea> = {
   title: 'Daily/DefinitionArea',
@@ -12,14 +13,19 @@ type Story = StoryObj<typeof DefinitionArea>;
 
 const shortDefinition = {
   word: 'FROG',
-  definition: 'A small tailless amphibian with a short squat body and very long hind legs for leaping.',
+  definition: mockDefinition(
+    'FROG',
+    'A small tailless amphibian with a short squat body and very long hind legs for leaping.',
+  ),
   onExpandChange: () => {},
 };
 
 const longDefinition = {
   word: 'SERENDIPITY',
-  definition:
+  definition: mockDefinition(
+    'SERENDIPITY',
     'The faculty or phenomenon of finding valuable or agreeable things not sought for. Often associated with happy accidents or pleasant surprises that occur when one is not actively searching for them. The term was coined by Horace Walpole in 1754 based on the Persian fairy tale "The Three Princes of Serendip" whose heroes were always making discoveries by accident and sagacity.',
+  ),
   onExpandChange: () => {},
 };
 

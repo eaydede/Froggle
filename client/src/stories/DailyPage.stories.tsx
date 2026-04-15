@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { DailyPage } from '../pages/daily/DailyPage';
 import type { DailyEntry, DailyStats } from '../pages/daily/types';
+import { mockDefinition } from './mockDefinition';
 
 const meta: Meta<typeof DailyPage> = {
   title: 'Daily/DailyPage',
@@ -20,7 +21,7 @@ const entries: DailyEntry[] = [
     points: 44,
     wordsFound: 12,
     longestWord: 'TABLET',
-    longestWordDefinition: 'A flat slab of stone, clay, or wood, used especially for an inscription.',
+    longestWordDefinition: mockDefinition('TABLET', 'A flat slab of stone, clay, or wood, used especially for an inscription.'),
     stampTier: null,
     playersCount: 91,
     config: { boardSize: 4, timeLimit: 180, minWordLength: 3 },
@@ -40,7 +41,7 @@ const entries: DailyEntry[] = [
     points: 58,
     wordsFound: 17,
     longestWord: 'BRIDGE',
-    longestWordDefinition: 'A structure carrying a road, path, or railway across a river, road, or other obstacle.',
+    longestWordDefinition: mockDefinition('BRIDGE', 'A structure carrying a road, path, or railway across a river, road, or other obstacle.'),
     stampTier: 'first',
     playersCount: 102,
     config: { boardSize: 4, timeLimit: 180, minWordLength: 3 },
@@ -52,7 +53,7 @@ const entries: DailyEntry[] = [
     points: 35,
     wordsFound: 9,
     longestWord: 'CLAMP',
-    longestWordDefinition: 'A device used to hold things tightly together or in place.',
+    longestWordDefinition: mockDefinition('CLAMP', 'A device used to hold things tightly together or in place.'),
     stampTier: null,
     playersCount: 95,
     config: { boardSize: 4, timeLimit: 180, minWordLength: 3 },
@@ -64,8 +65,10 @@ const entries: DailyEntry[] = [
     points: 42,
     wordsFound: 14,
     longestWord: 'SERENDIPITY',
-    longestWordDefinition:
+    longestWordDefinition: mockDefinition(
+      'SERENDIPITY',
       'The faculty or phenomenon of finding valuable or agreeable things not sought for. Often associated with happy accidents or pleasant surprises that occur when one is not actively searching for them.',
+    ),
     stampTier: 'top30',
     playersCount: 110,
     config: { boardSize: 4, timeLimit: 180, minWordLength: 3 },
@@ -91,7 +94,7 @@ const callbacks = {
   onStartPuzzle: () => {},
   onViewResults: () => {},
   onViewLeaderboard: () => {},
-  onShare: () => {},
+  getShareText: async () => 'Froggle #1 0W 0pts',
   onBack: () => {},
 };
 

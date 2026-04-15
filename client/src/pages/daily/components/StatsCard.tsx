@@ -7,7 +7,7 @@ interface StatsCardProps {
 export function StatsCard({ stats }: StatsCardProps) {
   return (
     <div
-      className="flex items-center gap-2 rounded-[10px] py-2.5 px-3.5 mx-[18px] mb-2"
+      className="flex items-center gap-2 rounded-[10px] py-2.5 px-3.5 mb-2 min-h-[30px]"
       style={{ background: "var(--track)" }}
     >
       {/* Chart icon */}

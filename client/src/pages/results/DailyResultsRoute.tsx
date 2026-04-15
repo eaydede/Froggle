@@ -43,6 +43,8 @@ export function DailyResultsRoute() {
     navigate('/');
   };
 
+  const handleBack = () => navigate('/daily');
+
   return (
     <ResultsPage
       results={{
@@ -55,6 +57,7 @@ export function DailyResultsRoute() {
         missedWords: [],
       }}
       onPlayAgain={handlePlayAgain}
+      onBack={handleBack}
       game={{
         board: serverResult.board,
         startedAt: 0,

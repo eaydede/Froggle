@@ -7,7 +7,7 @@ interface StreakCardProps {
 export function StreakCard({ stats }: StreakCardProps) {
   return (
     <div
-      className="flex items-center gap-2 rounded-[10px] py-2.5 px-3.5 mx-[18px] mb-2"
+      className="flex items-center gap-2 rounded-[10px] py-2.5 px-3.5 mb-2"
       style={{ background: "var(--track)" }}
     >
       {/* Fire icon */}

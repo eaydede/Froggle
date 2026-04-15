@@ -123,6 +123,42 @@ export const fetchDaily = async (): Promise<DailyInfo> => {
   return response.json();
 };
 
+// Mirrors DailyStatsResponse in server/services/DailyService.ts.
+import type { WordDefinition } from '../../pages/results/hooks/useDefinition';
+
+export type DailyState = 'completed' | 'missed' | 'unplayed';
+export type StampTier = 'first' | 'second' | 'third' | 'top30' | null;
+
+export interface DailyStatsDay {
+  date: string;
+  puzzleNumber: number;
+  state: DailyState;
+  points: number | null;
+  wordsFound: number | null;
+  longestWord: string | null;
+  longestWordDefinition: WordDefinition | null;
+  stampTier: StampTier;
+  playersCount: number;
+}
+
+export interface DailyStatsResponse {
+  currentStreak: number;
+  streakDays: boolean[];
+  avgPoints: number;
+  avgWords: number;
+  windowStart: string;
+  windowEnd: string;
+  days: DailyStatsDay[];
+}
+
+export const fetchDailyStats = async (): Promise<DailyStatsResponse> => {
+  const response = await fetch(`${API_URL}/daily/stats`, {
+    headers: await sessionHeaders(),
+  });
+  if (!response.ok) throw new Error(`fetchDailyStats: ${response.status}`);
+  return response.json();
+};
+
 export const recordDailyResultToServer = async (date: string, foundWords: string[], board: string[][]): Promise<{ success: boolean }> => {
   const response = await fetch(`${API_URL}/daily/results`, {
     method: 'POST',

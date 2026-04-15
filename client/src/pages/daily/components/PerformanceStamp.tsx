@@ -44,7 +44,7 @@ const SIZE_CONFIG = {
     badgeText: "text-[9px]",
     badgeBorder: 1.5,
     badgeRotate: "-rotate-[4deg]",
-    checkSize: "w-[22px] h-[22px]",
+    checkSize: "w-[25px] h-[25px]",
     checkIcon: "w-3 h-3",
     checkStroke: 2,
   },
@@ -82,7 +82,7 @@ export function PerformanceStamp({ tier, size = "md" }: PerformanceStampProps) {
         </div>
       )}
       <div
-        className={`${s.checkSize} rounded-full flex items-center justify-center bg-[#c5dac5] w-[25px] h-[25px]`}
+        className={`${s.checkSize} rounded-full flex items-center justify-center bg-[#c5dac5]`}
       >
         <svg
           viewBox="0 0 16 16"

@@ -88,7 +88,7 @@ export function CompletedCard({
         {/* Expandable definition */}
         <DefinitionArea
           word={entry.longestWord ?? ""}
-          definition={entry.longestWordDefinition ?? ""}
+          definition={entry.longestWordDefinition ?? null}
           expanded={expanded}
           onExpandChange={onExpandChange}
           color={CARD_TEXT_MUTED}

@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { DateSelector } from '../pages/daily/components/DateSelector';
 import type { DailyEntry } from '../pages/daily/types';
+import { mockDefinition } from './mockDefinition';
 
 const meta: Meta<typeof DateSelector> = {
   title: 'Daily/DateSelector',
@@ -19,7 +20,7 @@ const entries: DailyEntry[] = [
     points: 65,
     wordsFound: 16,
     longestWord: 'BRIDGE',
-    longestWordDefinition: 'A structure carrying a road over a river.',
+    longestWordDefinition: mockDefinition('BRIDGE', 'A structure carrying a road over a river.'),
     stampTier: 'second',
     playersCount: 102,
     config: { boardSize: 4, timeLimit: 180, minWordLength: 3 },
@@ -39,7 +40,7 @@ const entries: DailyEntry[] = [
     points: 87,
     wordsFound: 23,
     longestWord: 'FROGGLE',
-    longestWordDefinition: 'A word puzzle game.',
+    longestWordDefinition: mockDefinition('FROGGLE', 'A word puzzle game.'),
     stampTier: 'first',
     playersCount: 128,
     config: { boardSize: 4, timeLimit: 180, minWordLength: 3 },
@@ -119,6 +120,63 @@ export const OlderDateSelectedDark: Story = {
   decorators: [
     (Story) => (
       <div data-theme="dark" className="w-[340px] relative" style={{ backgroundColor: 'var(--page-bg)', padding: '16px', borderRadius: '16px' }}>
+        <Story />
+      </div>
+    ),
+  ],
+};
+
+// 30 entries so the dropdown overflows its max-height and scrolls. Mixes
+// completed/missed/unplayed states + all stamp tiers.
+const manyEntries: DailyEntry[] = Array.from({ length: 30 }).map((_, i) => {
+  const dayIndex = i + 1;
+  const date = new Date(2026, 2, dayIndex + 14); // March 15 → April 13, 2026
+  const isLast = i === 29;
+  const state: DailyEntry['state'] =
+    isLast ? 'unplayed' : (i % 5 === 0 ? 'missed' : 'completed');
+
+  if (state !== 'completed') {
+    return {
+      puzzleNumber: dayIndex,
+      date,
+      state,
+      stampTier: null,
+      playersCount: 40 + (i % 20),
+      config: { boardSize: 4, timeLimit: 180, minWordLength: 3 },
+    };
+  }
+
+  const tierCycle: DailyEntry['stampTier'][] = ['first', 'second', 'third', 'top30', null];
+  return {
+    puzzleNumber: dayIndex,
+    date,
+    state,
+    points: 45 + (i * 3) % 70,
+    wordsFound: 8 + (i * 2) % 18,
+    longestWord: ['BRIDGE', 'TABLET', 'CLAMP', 'SEEKER', 'LAPTOP'][i % 5],
+    longestWordDefinition: null,
+    stampTier: tierCycle[i % tierCycle.length],
+    playersCount: 40 + (i % 20),
+    config: { boardSize: 4, timeLimit: 180, minWordLength: 3 },
+  };
+});
+
+export const ScrollingLight: Story = {
+  args: { entries: manyEntries, currentIndex: manyEntries.length - 1, isOpen: true, ...callbacks },
+  decorators: [
+    (Story) => (
+      <div data-theme="light" className="w-[340px] relative" style={{ backgroundColor: 'var(--page-bg)', padding: '16px', borderRadius: '16px', height: '500px' }}>
+        <Story />
+      </div>
+    ),
+  ],
+};
+
+export const ScrollingDark: Story = {
+  args: { entries: manyEntries, currentIndex: manyEntries.length - 1, isOpen: true, ...callbacks },
+  decorators: [
+    (Story) => (
+      <div data-theme="dark" className="w-[340px] relative" style={{ backgroundColor: 'var(--page-bg)', padding: '16px', borderRadius: '16px', height: '500px' }}>
         <Story />
       </div>
     ),

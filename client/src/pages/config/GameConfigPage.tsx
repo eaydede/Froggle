@@ -64,16 +64,15 @@ export function GameConfigPage({ title, subtitle, card = true, disabled = false,
               type="button"
               onClick={onBack}
               className="
-                absolute left-0 top-0.5
-                flex items-center justify-center
-                bg-transparent border-none cursor-pointer
-                text-[0.85rem] text-[var(--text-muted)] hover:text-[var(--text)]
-                transition-all duration-200 select-none
+                absolute left-0 top-1/2 -translate-y-1/2
+                bg-transparent border-none cursor-pointer leading-none flex
+                text-lg text-[var(--text-muted)] hover:text-[var(--text)]
+                transition-colors duration-200 select-none
               "
               style={{ WebkitTapHighlightColor: "transparent" }}
               aria-label="Back"
             >
-              ←
+              &#8249;
             </button>
           )}
           <div className="text-center">

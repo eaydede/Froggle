@@ -15,7 +15,7 @@ export interface DailyPageProps {
   onStartPuzzle: () => void;
   onViewResults: (puzzleNumber: number) => void;
   onViewLeaderboard: (puzzleNumber: number) => void;
-  onShare: (puzzleNumber: number) => void;
+  getShareText: (puzzleNumber: number) => Promise<string>;
   onBack: () => void;
 }
 
@@ -28,7 +28,7 @@ export function DailyPage({
   onStartPuzzle,
   onViewResults,
   onViewLeaderboard,
-  onShare,
+  getShareText,
   onBack,
 }: DailyPageProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -66,16 +66,16 @@ export function DailyPage({
 
   return (
     <div
-      className="relative rounded-2xl pt-5.5 pb-4 overflow-hidden min-h-[580px]"
+      // className="relative rounded-2xl pt-5.5 pb-4 overflow-hidden min-h-[580px]"
       style={{ background: "var(--page-bg)" }}
     >
       <BlurOverlay visible={showOverlay} onClick={handleOverlayClick} />
 
       {/* Header */}
-      <div className="text-center mb-4.5 relative px-[18px]">
+      <div className="text-center mb-4.5 relative">
         <button
           type="button"
-          className="absolute left-[18px] top-1/2 -translate-y-1/2 text-lg cursor-pointer leading-none flex bg-transparent border-none"
+          className="absolute top-1/2 -translate-y-1/2 text-lg cursor-pointer leading-none flex bg-transparent border-none"
           style={{ color: "var(--text-muted)" }}
           onClick={onBack}
         >
@@ -111,14 +111,14 @@ export function DailyPage({
         onStartPuzzle={onStartPuzzle}
         onViewResults={onViewResults}
         onViewLeaderboard={onViewLeaderboard}
-        onShare={onShare}
+        getShareText={getShareText}
         onDefinitionExpand={handleDefinitionExpand}
         disabled={pickerOpen}
       />
 
       {/* Divider */}
       <div
-        className="mx-[18px] mt-3 mb-3"
+        className="mt-3 mb-3"
         style={{ borderTop: "0.5px solid var(--dot)" }}
       />
 

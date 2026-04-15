@@ -1,106 +1,188 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "../../GameContext";
 import { DailyPage } from "./DailyPage";
 import type { DailyEntry, DailyStats } from "./types";
+import {
+  fetchDailyStats,
+  fetchDailyResult,
+  type DailyInfo,
+  type DailyStatsResponse,
+  type DailyStatsDay,
+} from "../../shared/api/gameApi";
+import { scoreWord } from "engine/scoring";
+import { generateShareText } from "../results/utils/shareResults";
+
+function adaptDay(day: DailyStatsDay, config: DailyInfo["config"]): DailyEntry {
+  return {
+    puzzleNumber: day.puzzleNumber,
+    date: new Date(day.date + "T12:00:00"),
+    state: day.state,
+    points: day.points ?? undefined,
+    wordsFound: day.wordsFound ?? undefined,
+    longestWord: day.longestWord ?? undefined,
+    longestWordDefinition: day.longestWordDefinition,
+    stampTier: day.stampTier,
+    playersCount: day.playersCount,
+    config,
+  };
+}
+
+// Countdown to next PST midnight, rendered in the user's local clock.
+function useCountdownToNextPuzzle(): string {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  return useMemo(() => {
+    const pstNowStr = new Date(now).toLocaleString("en-US", {
+      timeZone: "America/Los_Angeles",
+    });
+    const pstNow = new Date(pstNowStr);
+    const pstMidnight = new Date(pstNow);
+    pstMidnight.setHours(24, 0, 0, 0);
+    const diffMs = pstMidnight.getTime() - pstNow.getTime();
+    const hours = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60)));
+    const minutes = Math.max(
+      0,
+      Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60)),
+    );
+    return `${hours}h ${minutes}m`;
+  }, [now]);
+}
 
 export function DailyPuzzleRoute() {
   const navigate = useNavigate();
-  const game = useGame();
+  const {
+    dailyInfo,
+    setDailyInfo,
+    refreshDaily,
+    createGame,
+    startGame,
+    game,
+  } = useGame();
 
-  // ── Data mapping ─────────────────────────────────────────────
-  // TODO: Replace stubs with actual data from useGame().
-  //
-  // Build the entries array from your daily history. Each entry
-  // maps a DailyInfo + the player's result for that day into the
-  // shape the page component expects.
-  //
-  // Example:
-  //
-  // const entries: DailyEntry[] = useMemo(() => {
-  //   return game.dailyHistory.map((daily) => ({
-  //     puzzleNumber: daily.number,
-  //     date: new Date(daily.date),
-  //     state: daily.completed
-  //       ? "completed"
-  //       : daily.isToday
-  //         ? "unplayed"
-  //         : "missed",
-  //     points: daily.score,
-  //     wordsFound: daily.wordsFound,
-  //     longestWord: daily.longestWord,
-  //     longestWordDefinition: daily.longestWordDefinition,
-  //     stampTier: daily.stampTier ?? null,
-  //     playersCount: daily.playersCount,
-  //     config: daily.config,
-  //   }));
-  // }, [game.dailyHistory]);
+  const [statsResponse, setStatsResponse] = useState<DailyStatsResponse | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const entries: DailyEntry[] = useMemo(() => [], []);
+  // Fetch stats + daily info in parallel. dailyInfo may already be in context
+  // from an earlier visit; refresh so puzzle number and board are current.
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([fetchDailyStats(), refreshDaily()])
+      .then(([stats, info]) => {
+        if (cancelled) return;
+        setStatsResponse(stats);
+        setDailyInfo(info);
+      })
+      .catch((err: Error) => {
+        if (cancelled) return;
+        setLoadError(err.message);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // refreshDaily and setDailyInfo are stable context fns
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const entries: DailyEntry[] = useMemo(() => {
+    if (!statsResponse || !dailyInfo) return [];
+    return statsResponse.days.map((d) => adaptDay(d, dailyInfo.config));
+  }, [statsResponse, dailyInfo]);
 
   const stats: DailyStats = useMemo(
     () => ({
-      currentStreak: 0,
-      streakDays: [false, false, false, false, false, false, false],
-      avgPoints: 0,
-      avgWords: 0,
+      currentStreak: statsResponse?.currentStreak ?? 0,
+      streakDays: statsResponse?.streakDays ?? Array(7).fill(false),
+      avgPoints: statsResponse?.avgPoints ?? 0,
+      avgWords: statsResponse?.avgWords ?? 0,
     }),
-    [],
+    [statsResponse],
   );
 
-  // ── Index state ──────────────────────────────────────────────
-  // Start on the most recent entry (today)
-  const [currentIndex, setCurrentIndex] = useState(
-    Math.max(entries.length - 1, 0),
-  );
+  const [currentIndex, setCurrentIndex] = useState(0);
+  useEffect(() => {
+    if (entries.length > 0) setCurrentIndex(entries.length - 1);
+  }, [entries.length]);
 
-  // ── Countdown ────────────────────────────────────────────────
-  const nextPuzzleCountdown = useMemo(() => {
-    const now = new Date();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0);
-    const diff = tomorrow.getTime() - now.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor(
-      (diff % (1000 * 60 * 60)) / (1000 * 60),
-    );
-    return `${hours}h ${minutes}m`;
-  }, []);
+  const nextPuzzleCountdown = useCountdownToNextPuzzle();
 
-  // ── Handlers ─────────────────────────────────────────────────
   const handleChangeIndex = useCallback((index: number) => {
     setCurrentIndex(index);
   }, []);
 
-  const handleStartPuzzle = useCallback(() => {
-    // TODO: Adjust route to match your router config
-    navigate("/daily/play");
-  }, [navigate]);
+  // Start today's daily puzzle directly — no config step.
+  const handleStartPuzzle = useCallback(async () => {
+    if (!dailyInfo) return;
+    if (!game) await createGame();
+    await startGame(
+      dailyInfo.config.timeLimit,
+      dailyInfo.config.boardSize,
+      dailyInfo.config.minWordLength,
+      undefined,
+      dailyInfo.seed,
+    );
+    navigate("/game");
+  }, [dailyInfo, game, createGame, startGame, navigate]);
 
   const handleViewResults = useCallback(
-    (puzzleNumber: number) => {
-      navigate(`/daily/${puzzleNumber}/results`);
+    (_puzzleNumber: number) => {
+      navigate(`/daily/results`);
     },
     [navigate],
   );
 
   const handleViewLeaderboard = useCallback(
-    (puzzleNumber: number) => {
-      navigate(`/daily/${puzzleNumber}/leaderboard`);
+    (_puzzleNumber: number) => {
+      navigate(`/leaderboard`);
     },
     [navigate],
   );
 
-  const handleShare = useCallback((_puzzleNumber: number) => {
-    // TODO: Implement share (Web Share API, clipboard fallback, etc.)
-  }, []);
+  // Given a puzzle number in the current window, build the share text the
+  // same way the results page does: fetch the submission, score each word
+  // client-side, then generate the emoji histogram + link block.
+  const getShareText = useCallback(
+    async (puzzleNumber: number): Promise<string> => {
+      const entry = entries.find((e) => e.puzzleNumber === puzzleNumber);
+      if (!entry) return "";
+      const dateStr = entry.date.toISOString().slice(0, 10);
+      const result = await fetchDailyResult(dateStr);
+      if (!result) return "";
+      const scoredWords = result.found_words.map((word) => ({
+        word,
+        path: [],
+        score: scoreWord(word),
+      }));
+      return generateShareText(scoredWords, { daily: { number: puzzleNumber } });
+    },
+    [entries],
+  );
 
   const handleBack = useCallback(() => {
-    navigate(-1);
+    navigate("/");
   }, [navigate]);
 
-  // ── Render ───────────────────────────────────────────────────
+  if (loadError) {
+    return (
+      <div className="p-8 text-center" style={{ color: "var(--text-muted)" }}>
+        Couldn't load daily stats: {loadError}
+      </div>
+    );
+  }
+
+  if (!statsResponse || !dailyInfo) {
+    return (
+      <div className="p-8 text-center" style={{ color: "var(--text-muted)" }}>
+        Loading…
+      </div>
+    );
+  }
+
   return (
     <DailyPage
       entries={entries}
@@ -111,7 +193,7 @@ export function DailyPuzzleRoute() {
       onStartPuzzle={handleStartPuzzle}
       onViewResults={handleViewResults}
       onViewLeaderboard={handleViewLeaderboard}
-      onShare={handleShare}
+      getShareText={getShareText}
       onBack={handleBack}
     />
   );
