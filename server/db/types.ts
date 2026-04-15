@@ -7,6 +7,9 @@ export interface DailyResultsTable {
   found_words: string; // JSON string
   board: string; // JSON string
   completed_at: Generated<Date>;
+  points: Generated<number>;
+  word_count: Generated<number>;
+  longest_word: Generated<string>;
 }
 
 export interface Database {

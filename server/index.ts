@@ -10,6 +10,7 @@ import { scoreWord } from 'engine/scoring.js';
 import { authMiddleware, requireAuth } from './middleware/auth.js';
 import { getDb } from './db/index.js';
 import { getSupabaseAdmin } from './supabaseAdmin.js';
+import { scoreResult, getDailyStats } from './services/DailyService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -155,7 +156,7 @@ app.get('/api/game/results', (req, res) => {
 });
 
 // Daily puzzle configuration
-const DAILY_LAUNCH_DATE = '2026-03-30';
+const DAILY_LAUNCH_DATE = '2026-04-10';
 const DAILY_BOARD_SIZE = 5;
 const DAILY_TIME_LIMIT = 120;
 const DAILY_MIN_WORD_LENGTH = 4;
@@ -252,6 +253,7 @@ app.post('/api/daily/results', requireAuth, async (req, res) => {
   }
 
   try {
+    const { points, wordCount, longestWord } = scoreResult(found_words);
     const db = getDb();
     await db
       .insertInto('daily_results')
@@ -260,6 +262,9 @@ app.post('/api/daily/results', requireAuth, async (req, res) => {
         date,
         found_words: JSON.stringify(found_words),
         board: JSON.stringify(board),
+        points,
+        word_count: wordCount,
+        longest_word: longestWord,
       })
       .onConflict((oc) => oc
         .columns(['user_id', 'date'])
@@ -267,6 +272,9 @@ app.post('/api/daily/results', requireAuth, async (req, res) => {
           found_words: JSON.stringify(found_words),
           board: JSON.stringify(board),
           completed_at: new Date(),
+          points,
+          word_count: wordCount,
+          longest_word: longestWord,
         })
       )
       .execute();
@@ -502,6 +510,24 @@ app.get('/api/daily/history', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('Failed to fetch daily history:', err);
     res.status(500).json({ error: 'Failed to fetch history' });
+  }
+});
+
+// Get daily stats page payload — history, streak, averages, rankings.
+// Single endpoint per the "endpoint-per-page" pattern; the client renders
+// directly from this shape.
+app.get('/api/daily/stats', requireAuth, async (req, res) => {
+  try {
+    const db = getDb();
+    const stats = await getDailyStats(db, req.userId!, {
+      launchDate: DAILY_LAUNCH_DATE,
+      today: getDailyDatePST(),
+      getPuzzleNumber: getDailyNumber,
+    });
+    res.json(stats);
+  } catch (err) {
+    console.error('Failed to fetch daily stats:', err);
+    res.status(500).json({ error: 'Failed to fetch stats' });
   }
 });
 
