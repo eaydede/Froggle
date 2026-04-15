@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useGame } from '../../GameContext';
 import {
   fetchLeaderboard,
@@ -35,9 +35,14 @@ function adaptDay(day: DailyStatsDay, config: DailyInfo['config']): DailyEntry {
 
 export function LeaderboardRoute() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { dailyInfo } = useGame();
 
-  const [selectedDate, setSelectedDate] = useState<string>(dailyInfo?.date ?? getTodayPST());
+  // ?date=YYYY-MM-DD takes precedence so the daily page's leaderboard button
+  // can deep-link to whichever day the user was viewing.
+  const [selectedDate, setSelectedDate] = useState<string>(
+    searchParams.get('date') ?? dailyInfo?.date ?? getTodayPST(),
+  );
   const [rankingType, setRankingType] = useState<RankingType>('points');
   const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(null);
   const [stats, setStats] = useState<DailyStatsResponse | null>(null);
