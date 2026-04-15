@@ -39,7 +39,10 @@ jobs:
       - name: Backfill daily result aggregates
         run: npm run backfill:daily
         env:
-          DATABASE_URL: postgres://postgres:${{ secrets.SUPABASE_DB_PASSWORD_STAGING }}@db.${{ secrets.SUPABASE_PROJECT_REF_STAGING }}.supabase.co:5432/postgres
+          # Supavisor transaction pooler — IPv4-reachable from GitHub runners
+          # (the direct endpoint db.<ref>.supabase.co is IPv6-only). Region
+          # is hardcoded since both projects live in us-east-1.
+          DATABASE_URL: postgres://postgres.${{ secrets.SUPABASE_PROJECT_REF_STAGING }}:${{ secrets.SUPABASE_DB_PASSWORD_STAGING }}@aws-0-us-east-1.pooler.supabase.com:6543/postgres
 
       - name: Install Fly CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
