@@ -10,6 +10,7 @@ import { scoreWord } from 'engine/scoring.js';
 import { authMiddleware, requireAuth } from './middleware/auth.js';
 import { getDb } from './db/index.js';
 import { getSupabaseAdmin } from './supabaseAdmin.js';
+import { scoreResult } from './services/DailyService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -252,6 +253,7 @@ app.post('/api/daily/results', requireAuth, async (req, res) => {
   }
 
   try {
+    const { points, wordCount, longestWord } = scoreResult(found_words);
     const db = getDb();
     await db
       .insertInto('daily_results')
@@ -260,6 +262,9 @@ app.post('/api/daily/results', requireAuth, async (req, res) => {
         date,
         found_words: JSON.stringify(found_words),
         board: JSON.stringify(board),
+        points,
+        word_count: wordCount,
+        longest_word: longestWord,
       })
       .onConflict((oc) => oc
         .columns(['user_id', 'date'])
@@ -267,6 +272,9 @@ app.post('/api/daily/results', requireAuth, async (req, res) => {
           found_words: JSON.stringify(found_words),
           board: JSON.stringify(board),
           completed_at: new Date(),
+          points,
+          word_count: wordCount,
+          longest_word: longestWord,
         })
       )
       .execute();
