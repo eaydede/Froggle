@@ -10,7 +10,7 @@ import { scoreWord } from 'engine/scoring.js';
 import { authMiddleware, requireAuth } from './middleware/auth.js';
 import { getDb } from './db/index.js';
 import { getSupabaseAdmin } from './supabaseAdmin.js';
-import { scoreResult } from './services/DailyService.js';
+import { scoreResult, getDailyStats } from './services/DailyService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -510,6 +510,24 @@ app.get('/api/daily/history', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('Failed to fetch daily history:', err);
     res.status(500).json({ error: 'Failed to fetch history' });
+  }
+});
+
+// Get daily stats page payload — history, streak, averages, rankings.
+// Single endpoint per the "endpoint-per-page" pattern; the client renders
+// directly from this shape.
+app.get('/api/daily/stats', requireAuth, async (req, res) => {
+  try {
+    const db = getDb();
+    const stats = await getDailyStats(db, req.userId!, {
+      launchDate: DAILY_LAUNCH_DATE,
+      today: getDailyDatePST(),
+      getPuzzleNumber: getDailyNumber,
+    });
+    res.json(stats);
+  } catch (err) {
+    console.error('Failed to fetch daily stats:', err);
+    res.status(500).json({ error: 'Failed to fetch stats' });
   }
 });
 
