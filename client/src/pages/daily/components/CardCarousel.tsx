@@ -128,10 +128,14 @@ export function CardCarousel({
     track.style.transform = `translateX(${offset}px)`;
   }
 
-  // Animate to the current index whenever it changes
+  // Animate to the current index whenever it changes. The first transform
+  // after mount skips the transition so the carousel appears already
+  // positioned on the initial card instead of scrolling into place.
+  const hasPositioned = useRef(false);
   useEffect(() => {
     if (cardWidth > 0) {
-      applyTransform(getOffset(currentIndex), true);
+      applyTransform(getOffset(currentIndex), hasPositioned.current);
+      hasPositioned.current = true;
     }
   }, [currentIndex, cardWidth, getOffset]);
 

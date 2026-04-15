@@ -99,16 +99,34 @@ export const ResultsPage = ({ results, onPlayAgain, onBack, game, gameSeed, dail
   };
 
   return (
-    <div className="py-2.5 relative">
-      <button
-        type="button"
-        onClick={onBack}
-        aria-label="Back"
-        className="absolute left-0 top-2.5 text-lg cursor-pointer leading-none flex bg-transparent border-none z-10"
-        style={{ color: "var(--text-muted)", WebkitTapHighlightColor: "transparent" }}
-      >
-        &#8249;
-      </button>
+    <div className="py-2.5">
+      {/* Page header — matches the daily/leaderboard pattern: chevron on
+          the left, title centered. Replaces the App-level title on these
+          routes so the back button can sit inline with "Froggle". */}
+      <div className="flex items-center justify-center relative mb-2.5">
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="Back"
+          className="absolute left-[18px] top-1/2 -translate-y-1/2 text-lg cursor-pointer leading-none flex bg-transparent border-none"
+          style={{ color: "var(--text-muted)", WebkitTapHighlightColor: "transparent" }}
+        >
+          &#8249;
+        </button>
+        <h1
+          className="m-0"
+          style={{
+            fontSize: '1.35rem',
+            letterSpacing: '-0.025em',
+            fontFamily: 'var(--font-heading)',
+            fontWeight: 'var(--font-heading-weight)' as any,
+            color: 'var(--text)',
+          }}
+        >
+          Froggle
+        </h1>
+      </div>
+
       <div className={boardMinimized ? 'flex flex-row gap-4 items-start h-[440px]' : 'flex flex-col gap-4 h-auto'}>
         {/* Board section */}
         <div className={`flex flex-col min-w-0 max-h-full ${boardMinimized ? 'w-1/2 shrink-0' : 'w-full max-w-[500px]'}`}>

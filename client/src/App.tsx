@@ -14,7 +14,7 @@ function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const showTitle = ['/game', '/results', '/daily/results'].includes(location.pathname);
+  const showTitle = ['/game'].includes(location.pathname);
 
   const handleTitleClick = () => {
     if (game?.status === GameState.InProgress) {

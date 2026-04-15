@@ -104,10 +104,14 @@ export function DailyPuzzleRoute() {
     [statsResponse],
   );
 
-  const [currentIndex, setCurrentIndex] = useState(0);
+  // Seeded lazily once entries are available so the carousel mounts
+  // already pointing at today instead of animating from index 0.
+  const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   useEffect(() => {
-    if (entries.length > 0) setCurrentIndex(entries.length - 1);
-  }, [entries.length]);
+    if (currentIndex === null && entries.length > 0) {
+      setCurrentIndex(entries.length - 1);
+    }
+  }, [entries.length, currentIndex]);
 
   const nextPuzzleCountdown = useCountdownToNextPuzzle();
 
@@ -137,10 +141,16 @@ export function DailyPuzzleRoute() {
   );
 
   const handleViewLeaderboard = useCallback(
-    (_puzzleNumber: number) => {
-      navigate(`/leaderboard`);
+    (puzzleNumber: number) => {
+      const entry = entries.find((e) => e.puzzleNumber === puzzleNumber);
+      if (!entry) {
+        navigate('/leaderboard');
+        return;
+      }
+      const dateStr = entry.date.toISOString().slice(0, 10);
+      navigate(`/leaderboard?date=${dateStr}`);
     },
-    [navigate],
+    [navigate, entries],
   );
 
   // Given a puzzle number in the current window, build the share text the
@@ -175,7 +185,7 @@ export function DailyPuzzleRoute() {
     );
   }
 
-  if (!statsResponse || !dailyInfo) {
+  if (!statsResponse || !dailyInfo || currentIndex === null) {
     return (
       <div className="p-8 text-center" style={{ color: "var(--text-muted)" }}>
         Loading…
