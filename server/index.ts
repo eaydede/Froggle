@@ -155,7 +155,7 @@ app.get('/api/game/results', (req, res) => {
 });
 
 // Daily puzzle configuration
-const DAILY_LAUNCH_DATE = '2026-03-30';
+const DAILY_LAUNCH_DATE = '2026-04-10';
 const DAILY_BOARD_SIZE = 5;
 const DAILY_TIME_LIMIT = 120;
 const DAILY_MIN_WORD_LENGTH = 4;
