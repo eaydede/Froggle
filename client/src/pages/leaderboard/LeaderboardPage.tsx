@@ -1,9 +1,5 @@
 import { useState } from 'react';
 import {
-  DailyNav,
-  type DailyNavEntry,
-  PlayerCard,
-  type PlayerCardProps,
   RankingSelector,
   type RankingType,
   TopThree,
@@ -12,16 +8,14 @@ import {
   type RankingEntry,
   MyResultsCard,
 } from './components';
+import { DateSelector, BlurOverlay } from '../daily/components';
+import type { DailyEntry } from '../daily/types';
 
 interface LeaderboardPageProps {
   title: string;
-  dailyEntries: DailyNavEntry[];
-  selectedDate: string;
-  onSelectDate: (date: string) => void;
-  onPrev: () => void;
-  onNext: () => void;
-  hasNext: boolean;
-  playerCard: PlayerCardProps;
+  entries: DailyEntry[];
+  currentIndex: number;
+  onChangeIndex: (index: number) => void;
   rankingType: RankingType;
   onRankingTypeChange: (type: RankingType) => void;
   topThree: TopThreeEntry[];
@@ -32,13 +26,9 @@ interface LeaderboardPageProps {
 
 export function LeaderboardPage({
   title,
-  dailyEntries,
-  selectedDate,
-  onSelectDate,
-  onPrev,
-  onNext,
-  hasNext,
-  playerCard,
+  entries,
+  currentIndex,
+  onChangeIndex,
   rankingType,
   onRankingTypeChange,
   topThree,
@@ -46,29 +36,39 @@ export function LeaderboardPage({
   onMyResults,
   onBack,
 }: LeaderboardPageProps) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  function handlePickerSelect(index: number) {
+    onChangeIndex(index);
+    setPickerOpen(false);
+  }
   return (
     <div
-      className="flex flex-col w-full"
+      className="relative flex-1 flex flex-col"
       style={{
-        maxWidth: '400px',
-        margin: '0 auto',
-        height: '100%',
-        gap: '10px',
         fontFamily: 'var(--font-body)',
       }}
     >
+      <BlurOverlay visible={pickerOpen} onClick={() => setPickerOpen(false)} />
+
+      <div
+        className="flex flex-col w-full"
+        style={{
+          margin: '0 auto',
+          height: '100%',
+          gap: '10px',
+        }}
+      >
+
       {/* Header */}
       <div className="flex items-center justify-center relative">
         <button
+          type="button"
+          className="absolute left-[18px] top-1/2 -translate-y-1/2 text-lg cursor-pointer leading-none flex bg-transparent border-none"
+          style={{ color: "var(--text-muted)" }}
           onClick={onBack}
-          className="absolute left-0 border-none bg-transparent cursor-pointer flex items-center justify-center"
-          style={{
-            fontSize: '1.25rem',
-            color: 'var(--text)',
-            padding: '4px',
-          }}
         >
-          ←
+          &#8249;
         </button>
         <h1
           className="m-0"
@@ -84,18 +84,16 @@ export function LeaderboardPage({
         </h1>
       </div>
 
-      {/* Daily navigation */}
-      <DailyNav
-        entries={dailyEntries}
-        selectedDate={selectedDate}
-        onSelectDate={onSelectDate}
-        onPrev={onPrev}
-        onNext={onNext}
-        hasNext={hasNext}
-      />
-
-      {/* Player score card */}
-      <PlayerCard {...playerCard} />
+      {/* Date selector (matches the daily page) */}
+      {entries.length > 0 && (
+        <DateSelector
+          entries={entries}
+          currentIndex={currentIndex}
+          isOpen={pickerOpen}
+          onToggle={() => setPickerOpen((v) => !v)}
+          onSelect={handlePickerSelect}
+        />
+      )}
 
       {/* Ranking type selector */}
       <RankingSelector value={rankingType} onChange={onRankingTypeChange} />
@@ -110,6 +108,7 @@ export function LeaderboardPage({
 
       {/* My results button */}
       <MyResultsCard onClick={onMyResults} />
+      </div>
     </div>
   );
 }

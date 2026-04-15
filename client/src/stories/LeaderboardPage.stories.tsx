@@ -2,15 +2,61 @@ import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { LeaderboardPage } from '../pages/leaderboard/LeaderboardPage';
 import type { RankingType } from '../pages/leaderboard/components/RankingSelector';
-import type { DailyNavEntry } from '../pages/leaderboard/components/DailyNav';
 import type { RankingEntry } from '../pages/leaderboard/components/Rankings';
 import type { TopThreeEntry } from '../pages/leaderboard/components/TopThree';
+import type { DailyEntry } from '../pages/daily/types';
 
-const dailyEntries: DailyNavEntry[] = [
-  { date: '2026-04-08', puzzleNumber: 10, points: 98, wordsFound: 23, rank: 8, isToday: true },
-  { date: '2026-04-07', puzzleNumber: 9, points: 112, wordsFound: 29, rank: 5, isToday: false },
-  { date: '2026-04-06', puzzleNumber: 8, points: 61, wordsFound: 14, rank: 12, isToday: false },
-  { date: '2026-04-05', puzzleNumber: 7, points: 72, wordsFound: 18, rank: 8, isToday: false },
+const stubConfig = { boardSize: 5, timeLimit: 120, minWordLength: 4 };
+
+const dailyEntries: DailyEntry[] = [
+  {
+    puzzleNumber: 7,
+    date: new Date('2026-04-05T12:00:00'),
+    state: 'completed',
+    points: 72,
+    wordsFound: 18,
+    longestWord: 'BRIDGE',
+    longestWordDefinition: null,
+    stampTier: 'top30',
+    playersCount: 24,
+    config: stubConfig,
+  },
+  {
+    puzzleNumber: 8,
+    date: new Date('2026-04-06T12:00:00'),
+    state: 'completed',
+    points: 61,
+    wordsFound: 14,
+    longestWord: 'CLAMP',
+    longestWordDefinition: null,
+    stampTier: null,
+    playersCount: 26,
+    config: stubConfig,
+  },
+  {
+    puzzleNumber: 9,
+    date: new Date('2026-04-07T12:00:00'),
+    state: 'completed',
+    points: 112,
+    wordsFound: 29,
+    longestWord: 'TABLET',
+    longestWordDefinition: null,
+    stampTier: 'top30',
+    playersCount: 30,
+    config: stubConfig,
+  },
+  {
+    puzzleNumber: 10,
+    date: new Date('2026-04-08T12:00:00'),
+    state: 'completed',
+    points: 98,
+    wordsFound: 23,
+    longestWord: 'FROGGLE',
+    longestWordDefinition: null,
+    stampTier: 'top30',
+    playersCount: 32,
+    config: stubConfig,
+  },
 ];
 
 const fullRankings: RankingEntry[] = [
@@ -59,7 +105,7 @@ const Interactive = ({
   totalPlayers: number;
   rank: number;
 }) => {
-  const [selectedIdx, setSelectedIdx] = useState(0);
+  const [selectedIdx, setSelectedIdx] = useState(dailyEntries.length - 1);
   const [rankingType, setRankingType] = useState<RankingType>('points');
   const entry = dailyEntries[selectedIdx];
 
@@ -78,24 +124,9 @@ const Interactive = ({
     >
       <LeaderboardPage
         title={`Daily #${entry.puzzleNumber}`}
-        dailyEntries={dailyEntries}
-        selectedDate={entry.date}
-        onSelectDate={(date) => {
-          const idx = dailyEntries.findIndex((e) => e.date === date);
-          if (idx >= 0) setSelectedIdx(idx);
-        }}
-        onPrev={() => setSelectedIdx((i) => Math.min(i + 1, dailyEntries.length - 1))}
-        onNext={() => setSelectedIdx((i) => Math.max(i - 1, 0))}
-        hasNext={selectedIdx > 0}
-        playerCard={{
-          points: entry.points,
-          wordsFound: entry.wordsFound,
-          longestWord: 'SNOB',
-          rank,
-          totalPlayers,
-          topPercent: rank <= Math.ceil(totalPlayers * 0.3) ? Math.round((rank / totalPlayers) * 100) : null,
-          accolade: 'Only <b>6%</b> of players found <b>SNOB</b>',
-        }}
+        entries={dailyEntries}
+        currentIndex={selectedIdx}
+        onChangeIndex={setSelectedIdx}
         rankingType={rankingType}
         onRankingTypeChange={setRankingType}
         topThree={topThree}

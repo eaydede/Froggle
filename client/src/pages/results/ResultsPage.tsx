@@ -19,12 +19,13 @@ const SCORE_SQUARE_STYLES: Record<number, React.CSSProperties> = {
 interface ResultsPageProps {
   results: GameResults | null;
   onPlayAgain: () => void;
+  onBack: () => void;
   game: Game;
   gameSeed?: number | null;
   dailyNumber?: number;
 }
 
-export const ResultsPage = ({ results, onPlayAgain, game, gameSeed, dailyNumber }: ResultsPageProps) => {
+export const ResultsPage = ({ results, onPlayAgain, onBack, game, gameSeed, dailyNumber }: ResultsPageProps) => {
   const [highlightPath, setHighlightPath] = useState<Position[] | null>(null);
   const [highlightedWordInfo, setHighlightedWordInfo] = useState<{ word: string; score: number } | null>(null);
   const [boardMinimized, setBoardMinimized] = useState(true);
@@ -98,7 +99,16 @@ export const ResultsPage = ({ results, onPlayAgain, game, gameSeed, dailyNumber 
   };
 
   return (
-    <div className="py-2.5">
+    <div className="py-2.5 relative">
+      <button
+        type="button"
+        onClick={onBack}
+        aria-label="Back"
+        className="absolute left-0 top-2.5 text-lg cursor-pointer leading-none flex bg-transparent border-none z-10"
+        style={{ color: "var(--text-muted)", WebkitTapHighlightColor: "transparent" }}
+      >
+        &#8249;
+      </button>
       <div className={boardMinimized ? 'flex flex-row gap-4 items-start h-[440px]' : 'flex flex-col gap-4 h-auto'}>
         {/* Board section */}
         <div className={`flex flex-col min-w-0 max-h-full ${boardMinimized ? 'w-1/2 shrink-0' : 'w-full max-w-[500px]'}`}>

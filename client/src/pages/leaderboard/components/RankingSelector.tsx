@@ -59,7 +59,7 @@ export function RankingSelector({ value, onChange }: RankingSelectorProps) {
           <button
             key={option.value}
             onClick={() => onChange(option.value)}
-            className="relative z-10 flex-1 border-none cursor-pointer rounded-lg bg-transparent"
+            className="relative z-4 flex-1 border-none cursor-pointer rounded-lg bg-transparent"
             style={{
               padding: '6px 0',
               fontSize: '0.75rem',

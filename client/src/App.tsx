@@ -6,6 +6,7 @@ import { ConfigRoute } from './pages/config';
 import { GameRoute } from './pages/game';
 import { ResultsRoute, DailyResultsRoute } from './pages/results';
 import { LeaderboardRoute } from './pages/leaderboard';
+import { DailyPuzzleRoute } from './pages/daily';
 import './tailwind.css';
 
 function App() {
@@ -96,7 +97,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingRoute />} />
         <Route path="/play" element={<ConfigRoute mode="freeplay" />} />
-        <Route path="/daily" element={<ConfigRoute mode="daily" />} />
+        <Route path="/daily" element={<DailyPuzzleRoute />} />
         <Route path="/daily/results" element={<DailyResultsRoute />} />
         <Route path="/game" element={<GameRoute />} />
         <Route path="/results" element={<ResultsRoute />} />
