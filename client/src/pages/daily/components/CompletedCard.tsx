@@ -25,7 +25,7 @@ export function CompletedCard({
 
   return (
     <div
-      className="rounded-[14px] flex-1 flex flex-col overflow-hidden"
+      className="rounded-[14px] flex-1 flex flex-col"
       style={{
         background: CARD_BG,
         border: `0.5px solid ${CARD_BORDER}`,

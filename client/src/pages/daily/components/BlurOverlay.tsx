@@ -8,8 +8,10 @@ export function BlurOverlay({ visible, onClick }: BlurOverlayProps) {
 
   return (
     <div
-      className="absolute inset-0 z-5 rounded-2xl backdrop-blur-sm"
-      style={{ background: "var(--page-bg)", opacity: 0.7 }}
+      className="absolute inset-0 z-5 rounded-2xl backdrop-blur-xs"
+      style={{
+        background: "color-mix(in srgb, var(--page-bg) 40%, transparent)",
+      }}
       onClick={onClick}
     />
   );

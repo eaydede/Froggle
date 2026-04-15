@@ -223,69 +223,79 @@ export function CardCarousel({
   }, [handleDragMove, handleDragEnd]);
 
   // ── Render ───────────────────────────────────────────────────
+  const currentEntry = entries[currentIndex];
+
   return (
-    <div
-      ref={carouselRef}
-      className={`relative mb-3.5 ${defExpanded ? "z-12" : "z-1"}`}
-      style={{
-        height: carouselHeight > 0 ? carouselHeight : "auto",
-        overflowX: "clip",
-        overflowY: defExpanded ? "visible" : "hidden",
-      }}
-    >
+    <>
       <div
-        ref={trackRef}
-        className="flex will-change-transform select-none"
-        style={{ gap: `${GAP}px` }}
-        onMouseDown={onMouseDown}
-        onTouchStart={onTouchStart}
+        ref={carouselRef}
+        className={`relative ${defExpanded ? "z-12" : "z-1"}`}
+        style={{
+          height: carouselHeight > 0 ? carouselHeight : "auto",
+          overflowX: "clip",
+          overflowY: defExpanded ? "visible" : "hidden",
+        }}
       >
-        {entries.map((entry, index) => {
-          let card: ReactNode;
+        <div
+          ref={trackRef}
+          className="flex will-change-transform select-none"
+          style={{ gap: `${GAP}px` }}
+          onMouseDown={onMouseDown}
+          onTouchStart={onTouchStart}
+        >
+          {entries.map((entry, index) => {
+            let card: ReactNode;
 
-          if (entry.state === "unplayed") {
-            card = (
-              <UnplayedCard
-                config={entry.config}
-                onStart={onStartPuzzle}
-              />
-            );
-          } else if (entry.state === "missed") {
-            card = (
-              <MissedCard
-                puzzleNumber={entry.puzzleNumber}
-                playersCount={entry.playersCount}
-              />
-            );
-          } else {
-            card = (
-              <CompletedCard
-                entry={entry}
-                expanded={defExpanded && index === currentIndex}
-                onExpandChange={onDefinitionExpand}
-              />
-            );
-          }
-
-          return (
-            <div
-              key={entry.puzzleNumber}
-              data-card-slot
-              className="shrink-0 flex flex-col"
-            >
-              <div className="flex-1 flex flex-col">
-                {card}
-                <CardActions
-                  isCompleted={entry.state === "completed"}
-                  onResults={() => onViewResults(entry.puzzleNumber)}
-                  onLeaderboard={() => onViewLeaderboard(entry.puzzleNumber)}
-                  onShare={() => onShare(entry.puzzleNumber)}
+            if (entry.state === "unplayed") {
+              card = (
+                <UnplayedCard
+                  config={entry.config}
+                  onStart={onStartPuzzle}
                 />
+              );
+            } else if (entry.state === "missed") {
+              card = (
+                <MissedCard
+                  puzzleNumber={entry.puzzleNumber}
+                  playersCount={entry.playersCount}
+                />
+              );
+            } else {
+              card = (
+                <CompletedCard
+                  entry={entry}
+                  expanded={defExpanded && index === currentIndex}
+                  onExpandChange={onDefinitionExpand}
+                />
+              );
+            }
+
+            return (
+              <div
+                key={entry.puzzleNumber}
+                data-card-slot
+                className="shrink-0 flex flex-col"
+              >
+                {card}
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-    </div>
+
+      {/* Card actions — rendered outside the carousel so they stay fixed in
+          place (and get covered by the blur overlay) when the current card's
+          definition is expanded. */}
+      {currentEntry && (
+        <div className="mx-[18px] mt-2 mb-3.5">
+          <CardActions
+            isCompleted={currentEntry.state === "completed"}
+            onResults={() => onViewResults(currentEntry.puzzleNumber)}
+            onLeaderboard={() => onViewLeaderboard(currentEntry.puzzleNumber)}
+            onShare={() => onShare(currentEntry.puzzleNumber)}
+          />
+        </div>
+      )}
+    </>
   );
 }
