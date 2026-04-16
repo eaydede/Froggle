@@ -129,13 +129,18 @@ export function CardCarousel({
   }
 
   // Animate to the current index whenever it changes. The first transform
-  // after mount skips the transition so the carousel appears already
-  // positioned on the initial card instead of scrolling into place.
+  // after mount skips the transition AND keeps the track hidden until the
+  // transform is actually applied — otherwise there's a one-frame flash
+  // of the first card at translateX(0) before the effect runs.
   const hasPositioned = useRef(false);
+  const [positioned, setPositioned] = useState(false);
   useEffect(() => {
     if (cardWidth > 0) {
       applyTransform(getOffset(currentIndex), hasPositioned.current);
-      hasPositioned.current = true;
+      if (!hasPositioned.current) {
+        hasPositioned.current = true;
+        setPositioned(true);
+      }
     }
   }, [currentIndex, cardWidth, getOffset]);
 
@@ -244,7 +249,7 @@ export function CardCarousel({
         <div
           ref={trackRef}
           className="flex will-change-transform select-none"
-          style={{ gap: `${GAP}px` }}
+          style={{ gap: `${GAP}px`, visibility: positioned ? "visible" : "hidden" }}
           onMouseDown={onMouseDown}
           onTouchStart={onTouchStart}
         >

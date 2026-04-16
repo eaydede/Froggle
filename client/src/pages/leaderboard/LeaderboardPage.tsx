@@ -44,7 +44,7 @@ export function LeaderboardPage({
   }
   return (
     <div
-      className="relative flex-1 flex flex-col"
+      className="relative flex-1 flex flex-col min-h-0"
       style={{
         fontFamily: 'var(--font-body)',
       }}
@@ -52,7 +52,7 @@ export function LeaderboardPage({
       <BlurOverlay visible={pickerOpen} onClick={() => setPickerOpen(false)} />
 
       <div
-        className="flex flex-col w-full"
+        className="flex flex-col w-full min-h-0"
         style={{
           margin: '0 auto',
           height: '100%',
