@@ -68,3 +68,10 @@ disagree, the client rule wins within this workspace.
   The goal is to make the refactored component reachable in one click, so
   the verification rule above is cheap to honour. See
   `pages/results/__fixtures__/` for the pattern.
+- **Screenshots go to `/tmp`, never to the repo.** When using Playwright
+  MCP (or any screenshot tool) for visual verification, pass an absolute
+  path under `/tmp/` as the `filename` — relative filenames resolve to the
+  repo root with the MCP's default output dir and leak artefacts into the
+  working tree. `/tmp` is ephemeral, self-cleaning across reboots, and
+  invisible to git. Repo-root `*.png` is gitignored as a safety net, but
+  the right default is not to write there in the first place.
