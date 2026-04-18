@@ -172,9 +172,9 @@ export const ResultsPage = ({ results, onPlayAgain, onBack, game, gameSeed, dail
             <>
               <div className="flex items-start gap-1.5 mt-2">
                 <div className="flex flex-wrap gap-1">
-                  {sortedFoundWords.map((w, i) => (
+                  {sortedFoundWords.map((w) => (
                     <div
-                      key={i}
+                      key={w.word}
                       className="h-[12px] w-[12px] rounded-[2px] transition-transform duration-200"
                       style={{
                         ...(SCORE_SQUARE_STYLES[w.score] || { backgroundColor: '#8BA89B' }),
