@@ -1,0 +1,4 @@
+- generic [ref=e4]:
+  - button "Switch to dark mode" [ref=e5] [cursor=pointer]:
+    - img [ref=e6]
+  - heading "Froggle" [level=1] [ref=e10]

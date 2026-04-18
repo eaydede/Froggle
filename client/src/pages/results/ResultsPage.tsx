@@ -150,7 +150,7 @@ export const ResultsPage = ({ results, onPlayAgain, onBack, game, gameSeed, dail
                 }
               }}
             >
-              <span className="text-[11px]" style={{ color: 'var(--accent-gold)' }}>★</span>
+              <span className="text-[var(--text-caption)]" style={{ color: 'var(--accent-gold)' }}>★</span>
               <div className="flex gap-0.5">
                 {longestFoundWordData.word.split('').map((letter, i) => (
                   <Cell
@@ -163,7 +163,7 @@ export const ResultsPage = ({ results, onPlayAgain, onBack, game, gameSeed, dail
                   />
                 ))}
               </div>
-              <span className="text-[11px]" style={{ color: 'var(--accent-gold)' }}>★</span>
+              <span className="text-[var(--text-caption)]" style={{ color: 'var(--accent-gold)' }}>★</span>
             </div>
           )}
 
@@ -189,7 +189,7 @@ export const ResultsPage = ({ results, onPlayAgain, onBack, game, gameSeed, dail
 
           {/* Definition */}
           {boardMinimized && highlightedWordInfo && (
-            <div className="p-3 text-[13px] text-[var(--text-mid)] flex-1 overflow-y-auto min-h-0" style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, lineHeight: '19.5px' }}>
+            <div className="p-3 text-[var(--text-small)] text-[var(--text-mid)] flex-1 overflow-y-auto min-h-0" style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, lineHeight: '19.5px' }}>
               {definitionLoading ? (
                 <div className="text-[var(--text-faint)] italic">...</div>
               ) : definition ? (
@@ -197,7 +197,7 @@ export const ResultsPage = ({ results, onPlayAgain, onBack, game, gameSeed, dail
                   <div className="flex items-baseline gap-2 mb-2">
                     <span className="font-black text-base text-[var(--text)]">{definition.word}</span>
                     {definition.phonetic && (
-                      <span className="text-[13px] text-[var(--text-muted)] italic">{definition.phonetic}</span>
+                      <span className="text-[var(--text-small)] text-[var(--text-muted)] italic">{definition.phonetic}</span>
                     )}
                   </div>
                   {definition.meanings.map((meaning, i) => (
@@ -243,7 +243,7 @@ export const ResultsPage = ({ results, onPlayAgain, onBack, game, gameSeed, dail
       <div className="flex flex-col items-center gap-2.5 mt-5">
         <button
           onClick={onPlayAgain}
-          className="w-full max-w-[400px] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white border-none rounded-xl py-3.5 text-[0.85rem] cursor-pointer select-none transition-all duration-200"
+          className="w-full max-w-[400px] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white border-none rounded-xl py-3.5 text-[var(--text-body)] cursor-pointer select-none transition-all duration-200"
           style={{ WebkitTapHighlightColor: "transparent", fontFamily: 'var(--font-button)', fontWeight: 'var(--font-button-weight)' as any }}
         >
           {isDaily ? 'Home' : 'Play Again'}
@@ -251,7 +251,7 @@ export const ResultsPage = ({ results, onPlayAgain, onBack, game, gameSeed, dail
         <div className="relative" ref={shareRef}>
           <button
             onClick={() => setShareOpen(!shareOpen)}
-            className="flex items-center gap-1.5 py-2 px-4 text-[13px] bg-transparent border border-[#ddd] rounded-md text-[#888] cursor-pointer transition-all duration-150 hover:border-[#aaa] hover:text-[#555]"
+            className="flex items-center gap-1.5 py-2 px-4 text-[var(--text-small)] bg-transparent border border-[#ddd] rounded-md text-[#888] cursor-pointer transition-all duration-150 hover:border-[#aaa] hover:text-[#555]"
             style={{ fontFamily: 'var(--font-serif)', fontWeight: 600 }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -264,7 +264,7 @@ export const ResultsPage = ({ results, onPlayAgain, onBack, game, gameSeed, dail
             <div className="absolute bottom-[calc(100%+6px)] left-1/2 -translate-x-1/2 bg-white border border-[#e0e0e0] rounded-[10px] shadow-[0_4px_16px_rgba(0,0,0,0.1),0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden min-w-[170px] z-10">
               {canNativeShare && (
                 <button
-                  className="flex items-center gap-2 w-full py-2.5 px-3.5 bg-transparent border-none text-[13px] font-semibold text-[#555] cursor-pointer transition-colors duration-100 text-left whitespace-nowrap hover:bg-[#f5f5f5] active:bg-[#eee]"
+                  className="flex items-center gap-2 w-full py-2.5 px-3.5 bg-transparent border-none text-[var(--text-small)] font-semibold text-[#555] cursor-pointer transition-colors duration-100 text-left whitespace-nowrap hover:bg-[#f5f5f5] active:bg-[#eee]"
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                   onClick={handleNativeShare}
                 >
@@ -276,7 +276,7 @@ export const ResultsPage = ({ results, onPlayAgain, onBack, game, gameSeed, dail
                 </button>
               )}
               <button
-                className={`flex items-center gap-2 w-full py-2.5 px-3.5 bg-transparent border-none text-[13px] font-semibold text-[#555] cursor-pointer transition-colors duration-100 text-left whitespace-nowrap hover:bg-[#f5f5f5] active:bg-[#eee] ${canNativeShare ? 'border-t border-t-[#f0f0f0]' : ''}`}
+                className={`flex items-center gap-2 w-full py-2.5 px-3.5 bg-transparent border-none text-[var(--text-small)] font-semibold text-[#555] cursor-pointer transition-colors duration-100 text-left whitespace-nowrap hover:bg-[#f5f5f5] active:bg-[#eee] ${canNativeShare ? 'border-t border-t-[#f0f0f0]' : ''}`}
                 style={{ WebkitTapHighlightColor: 'transparent' }}
                 onClick={handleCopyResults}
               >

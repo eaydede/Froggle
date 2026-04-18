@@ -59,6 +59,16 @@ button, input, select, textarea {
   --score-fallback: #8BA89B;
   --accent-gold: #F5C518;
 
+  /* Typography scale — reference via `text-[var(--text-*)]`. Prefer these
+   * over arbitrary `text-[Npx]` values so typography stays coherent. When a
+   * new size is genuinely needed, add it to this scale first. */
+  --text-title: 1.35rem;
+  --text-heading: 1.15rem;
+  --text-body-lg: 0.95rem;
+  --text-body: 0.85rem;
+  --text-small: 0.8125rem;   /* 13px */
+  --text-caption: 0.6875rem; /* 11px */
+
   /* Font families — single source of truth */
   --font-serif: "Merriweather", Georgia, serif;
   --font-sans: "Outfit", system-ui, sans-serif;

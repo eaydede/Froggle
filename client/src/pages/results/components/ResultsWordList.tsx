@@ -54,7 +54,7 @@ const WordRow = ({ word, path, score, found, isHighlighted, onTap }: {
       onClick={onTap}
     >
       <span
-        className="text-[13px] uppercase tracking-wide"
+        className="text-[var(--text-small)] uppercase tracking-wide"
         style={{ ...WORD_FONT, color: found ? 'var(--text)' : 'var(--text-muted)' }}
       >
         {word}
@@ -177,7 +177,7 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord, onWordSe
                   onClick={() => handleWordTap(fw.word, fw.path, fw.score)}
                 >
                   <div className="flex items-center">
-                    <span className="text-[13px] uppercase tracking-wide text-[var(--text)]" style={WORD_FONT}>
+                    <span className="text-[var(--text-small)] uppercase tracking-wide text-[var(--text)]" style={WORD_FONT}>
                       {fw.word}
                     </span>
                     {hasRelated && (

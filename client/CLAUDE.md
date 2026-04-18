@@ -23,3 +23,9 @@ disagree, the client rule wins within this workspace.
   `var(--token)`. Palettes that are reused across a feature (score tiers,
   semantic states, etc.) should get a named token family rather than living
   as private per-file constants.
+- **Typography goes through the scale, not arbitrary sizes.** Use
+  `text-[var(--text-*)]` (see `--text-title`, `--text-heading`,
+  `--text-body-lg`, `--text-body`, `--text-small`, `--text-caption` in
+  `tailwind.css`) instead of `text-[Npx]` or `text-[Nrem]`. If a required
+  size genuinely isn't on the scale, add a new token to the scale first —
+  don't scatter one-off arbitrary values across components.
