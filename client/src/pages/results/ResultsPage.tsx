@@ -84,7 +84,7 @@ export const ResultsPage = ({ results, onPlayAgain, onBack, game, gameSeed, dail
         >
           &#8249;
         </button>
-        <h1 className="m-0 text-[length:var(--text-title)] tracking-[-0.025em] text-[var(--text)] font-[family-name:var(--font-heading)] [font-weight:var(--font-heading-weight)]">
+        <h1 className="m-0 text-title tracking-[-0.025em] text-[var(--text)] font-[family-name:var(--font-heading)] [font-weight:var(--font-heading-weight)]">
           Froggle
         </h1>
       </div>
@@ -132,7 +132,7 @@ export const ResultsPage = ({ results, onPlayAgain, onBack, game, gameSeed, dail
       <div className="flex flex-col items-center gap-2.5 mt-5">
         <button
           onClick={onPlayAgain}
-          className="w-full max-w-[400px] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white border-none rounded-xl py-3.5 text-[length:var(--text-body)] cursor-pointer select-none transition-all duration-200 font-[family-name:var(--font-button)] [font-weight:var(--font-button-weight)]"
+          className="w-full max-w-[400px] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white border-none rounded-xl py-3.5 text-body cursor-pointer select-none transition-all duration-200 font-[family-name:var(--font-button)] [font-weight:var(--font-button-weight)]"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           {isDaily ? 'Home' : 'Play Again'}

@@ -23,20 +23,25 @@ disagree, the client rule wins within this workspace.
   `var(--token)`. Palettes that are reused across a feature (score tiers,
   semantic states, etc.) should get a named token family rather than living
   as private per-file constants.
-- **Typography goes through the scale, not arbitrary sizes.** Use
-  `text-[length:var(--text-*)]` (see `--text-title`, `--text-heading`,
-  `--text-body-lg`, `--text-body`, `--text-small`, `--text-caption` in
-  `tailwind.css`) instead of `text-[Npx]` or `text-[Nrem]`. If a required
-  size genuinely isn't on the scale, add a new token to the scale first —
-  don't scatter one-off arbitrary values across components.
-- **Arbitrary `text-[…]` utilities with CSS variables require a type
-  hint.** Tailwind cannot statically infer whether `text-[var(--foo)]` is
-  a font-size or a color, so it defaults to color and silently emits
-  invalid CSS when the variable holds a length. Always disambiguate:
-  `text-[length:var(--text-small)]` for sizes,
-  `text-[color:var(--text-muted)]` for colors. The same applies to any
-  other utility whose property name covers multiple value types
-  (`bg-[…]`, `border-[…]`, etc.) when the value is a variable.
+- **Typography uses the scale — Tailwind defaults first, then the
+  project scale.** Reach for Tailwind's built-ins (`text-xs`, `text-sm`,
+  `text-base`, `text-lg`, `text-xl`, ...) whenever they fit; add a custom
+  token under `@theme` in `tailwind.css` only when no default matches the
+  required size. Custom tokens (`text-title`, `text-heading`,
+  `text-body-lg`, `text-body`, `text-small`, `text-caption`) are invoked
+  as plain utility classes — do not fall back to
+  `text-[length:var(--text-*)]`, and never reintroduce `text-[Npx]` or
+  `text-[Nrem]`.
+- **Arbitrary `text-[…]` / `bg-[…]` / `border-[…]` utilities wrapping a
+  CSS variable need a type hint.** Tailwind cannot statically infer
+  whether `text-[var(--foo)]` is a font-size or a color, so it defaults to
+  color and silently emits invalid CSS when the variable holds a length.
+  When you genuinely need an arbitrary utility with a CSS variable (for
+  example because the token is theme-dependent and hasn't been moved to
+  `@theme` yet), disambiguate with `text-[color:var(--text-muted)]`,
+  `text-[length:var(--some-size)]`, etc. For typography sizes, the
+  preferred path is not arbitrary utilities at all — it's the `@theme`
+  scale above.
 - **Prefer Tailwind classes over `style={{}}` for static values.** Inline
   `style` is reserved for values that change at runtime — transforms,
   computed positions, animated offsets, etc. — and for CSS properties

@@ -16,7 +16,7 @@ export function LongestWordBanner({ word, highlighted, onToggle }: LongestWordBa
       style={{ WebkitTapHighlightColor: 'transparent' }}
       onClick={onToggle}
     >
-      <span className="text-[length:var(--text-caption)]" style={{ color: 'var(--accent-gold)' }}>★</span>
+      <span className="text-caption" style={{ color: 'var(--accent-gold)' }}>★</span>
       <div className="flex gap-0.5">
         {word.split('').map((letter, i) => (
           <Cell
@@ -29,7 +29,7 @@ export function LongestWordBanner({ word, highlighted, onToggle }: LongestWordBa
           />
         ))}
       </div>
-      <span className="text-[length:var(--text-caption)]" style={{ color: 'var(--accent-gold)' }}>★</span>
+      <span className="text-caption" style={{ color: 'var(--accent-gold)' }}>★</span>
     </div>
   );
 }

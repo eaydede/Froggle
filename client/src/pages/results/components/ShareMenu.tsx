@@ -41,7 +41,7 @@ export function ShareMenu({ getText }: ShareMenuProps) {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 py-2 px-4 text-[length:var(--text-small)] bg-transparent border border-[#ddd] rounded-md text-[#888] cursor-pointer transition-all duration-150 hover:border-[#aaa] hover:text-[#555] font-[family-name:var(--font-serif)] font-semibold"
+        className="flex items-center gap-1.5 py-2 px-4 text-small bg-transparent border border-[#ddd] rounded-md text-[#888] cursor-pointer transition-all duration-150 hover:border-[#aaa] hover:text-[#555] font-[family-name:var(--font-serif)] font-semibold"
       >
         <ShareIcon />
         Share Results
@@ -50,7 +50,7 @@ export function ShareMenu({ getText }: ShareMenuProps) {
         <div className="absolute bottom-[calc(100%+6px)] left-1/2 -translate-x-1/2 bg-white border border-[#e0e0e0] rounded-[10px] shadow-[0_4px_16px_rgba(0,0,0,0.1),0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden min-w-[170px] z-10">
           {canNativeShare && (
             <button
-              className="flex items-center gap-2 w-full py-2.5 px-3.5 bg-transparent border-none text-[length:var(--text-small)] font-semibold text-[#555] cursor-pointer transition-colors duration-100 text-left whitespace-nowrap hover:bg-[#f5f5f5] active:bg-[#eee]"
+              className="flex items-center gap-2 w-full py-2.5 px-3.5 bg-transparent border-none text-small font-semibold text-[#555] cursor-pointer transition-colors duration-100 text-left whitespace-nowrap hover:bg-[#f5f5f5] active:bg-[#eee]"
               style={{ WebkitTapHighlightColor: 'transparent' }}
               onClick={handleNativeShare}
             >
@@ -59,7 +59,7 @@ export function ShareMenu({ getText }: ShareMenuProps) {
             </button>
           )}
           <button
-            className={`flex items-center gap-2 w-full py-2.5 px-3.5 bg-transparent border-none text-[length:var(--text-small)] font-semibold text-[#555] cursor-pointer transition-colors duration-100 text-left whitespace-nowrap hover:bg-[#f5f5f5] active:bg-[#eee] ${canNativeShare ? 'border-t border-t-[#f0f0f0]' : ''}`}
+            className={`flex items-center gap-2 w-full py-2.5 px-3.5 bg-transparent border-none text-small font-semibold text-[#555] cursor-pointer transition-colors duration-100 text-left whitespace-nowrap hover:bg-[#f5f5f5] active:bg-[#eee] ${canNativeShare ? 'border-t border-t-[#f0f0f0]' : ''}`}
             style={{ WebkitTapHighlightColor: 'transparent' }}
             onClick={handleCopy}
           >
