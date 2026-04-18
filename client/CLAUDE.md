@@ -39,3 +39,16 @@ disagree, the client rule wins within this workspace.
   `[font-weight:var(--font-heading-weight)]`) when necessary. Private
   `CSSProperties` constants that exist only to spread into `style={}` are a
   smell — collapse them into className strings or shared Tailwind classes.
+
+## Structure
+
+- **Component size is a refactor signal, not a hard limit.** Once a
+  component crosses ~250 lines, default to decomposing it unless every
+  concern is genuinely coupled. Look for natural seams: visual sub-regions
+  that can become child components, interaction logic that can become a
+  hook (measurement, drag/swipe, click-outside, timers). The goal isn't a
+  line-count target — it's that each file answers one question.
+- **Context values are domain-scoped.** If a new field doesn't fit the
+  existing context's domain (game, auth, preferences, daily, etc.), start a
+  new context instead of piling the field onto the nearest one. Contexts
+  are cheap; god-contexts are not.
