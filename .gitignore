@@ -26,3 +26,7 @@ npm-debug.log*
 
 # Superpowers brainstorming
 .superpowers/
+
+# Playwright MCP artefacts (local dev only)
+.playwright-mcp/
+/*.png
