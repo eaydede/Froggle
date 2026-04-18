@@ -108,21 +108,12 @@ export const ResultsPage = ({ results, onPlayAgain, onBack, game, gameSeed, dail
           type="button"
           onClick={onBack}
           aria-label="Back"
-          className="absolute left-[18px] top-1/2 -translate-y-1/2 text-lg cursor-pointer leading-none flex bg-transparent border-none"
-          style={{ color: "var(--text-muted)", WebkitTapHighlightColor: "transparent" }}
+          className="absolute left-[18px] top-1/2 -translate-y-1/2 text-lg cursor-pointer leading-none flex bg-transparent border-none text-[var(--text-muted)]"
+          style={{ WebkitTapHighlightColor: "transparent" }}
         >
           &#8249;
         </button>
-        <h1
-          className="m-0"
-          style={{
-            fontSize: '1.35rem',
-            letterSpacing: '-0.025em',
-            fontFamily: 'var(--font-heading)',
-            fontWeight: 'var(--font-heading-weight)' as any,
-            color: 'var(--text)',
-          }}
-        >
+        <h1 className="m-0 text-[var(--text-title)] tracking-[-0.025em] text-[var(--text)] font-[family-name:var(--font-heading)] [font-weight:var(--font-heading-weight)]">
           Froggle
         </h1>
       </div>
@@ -189,7 +180,7 @@ export const ResultsPage = ({ results, onPlayAgain, onBack, game, gameSeed, dail
 
           {/* Definition */}
           {boardMinimized && highlightedWordInfo && (
-            <div className="p-3 text-[var(--text-small)] text-[var(--text-mid)] flex-1 overflow-y-auto min-h-0" style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, lineHeight: '19.5px' }}>
+            <div className="p-3 text-[var(--text-small)] text-[var(--text-mid)] flex-1 overflow-y-auto min-h-0 font-[family-name:var(--font-serif)] font-normal leading-[19.5px]">
               {definitionLoading ? (
                 <div className="text-[var(--text-faint)] italic">...</div>
               ) : definition ? (
@@ -243,16 +234,15 @@ export const ResultsPage = ({ results, onPlayAgain, onBack, game, gameSeed, dail
       <div className="flex flex-col items-center gap-2.5 mt-5">
         <button
           onClick={onPlayAgain}
-          className="w-full max-w-[400px] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white border-none rounded-xl py-3.5 text-[var(--text-body)] cursor-pointer select-none transition-all duration-200"
-          style={{ WebkitTapHighlightColor: "transparent", fontFamily: 'var(--font-button)', fontWeight: 'var(--font-button-weight)' as any }}
+          className="w-full max-w-[400px] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white border-none rounded-xl py-3.5 text-[var(--text-body)] cursor-pointer select-none transition-all duration-200 font-[family-name:var(--font-button)] [font-weight:var(--font-button-weight)]"
+          style={{ WebkitTapHighlightColor: "transparent" }}
         >
           {isDaily ? 'Home' : 'Play Again'}
         </button>
         <div className="relative" ref={shareRef}>
           <button
             onClick={() => setShareOpen(!shareOpen)}
-            className="flex items-center gap-1.5 py-2 px-4 text-[var(--text-small)] bg-transparent border border-[#ddd] rounded-md text-[#888] cursor-pointer transition-all duration-150 hover:border-[#aaa] hover:text-[#555]"
-            style={{ fontFamily: 'var(--font-serif)', fontWeight: 600 }}
+            className="flex items-center gap-1.5 py-2 px-4 text-[var(--text-small)] bg-transparent border border-[#ddd] rounded-md text-[#888] cursor-pointer transition-all duration-150 hover:border-[#aaa] hover:text-[#555] font-[family-name:var(--font-serif)] font-semibold"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />

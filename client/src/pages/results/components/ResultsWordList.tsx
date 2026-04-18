@@ -27,10 +27,7 @@ export const getScoreColor = (score: number): string => {
   return SCORE_COLORS[score] || 'var(--score-fallback)';
 };
 
-const WORD_FONT: React.CSSProperties = {
-  fontFamily: 'var(--font-serif)',
-  fontWeight: 800,
-};
+const WORD_FONT_CLASSES = 'font-[family-name:var(--font-serif)] font-extrabold';
 
 const SCORE_DOT_STYLES: Record<number, React.CSSProperties> = {
   1: { backgroundColor: 'var(--score-1)' },
@@ -54,8 +51,8 @@ const WordRow = ({ word, path, score, found, isHighlighted, onTap }: {
       onClick={onTap}
     >
       <span
-        className="text-[var(--text-small)] uppercase tracking-wide"
-        style={{ ...WORD_FONT, color: found ? 'var(--text)' : 'var(--text-muted)' }}
+        className={`text-[var(--text-small)] uppercase tracking-wide ${WORD_FONT_CLASSES}`}
+        style={{ color: found ? 'var(--text)' : 'var(--text-muted)' }}
       >
         {word}
       </span>
@@ -67,8 +64,8 @@ const WordRow = ({ word, path, score, found, isHighlighted, onTap }: {
           />
         )}
         <span
-          className="text-xs min-w-[14px] text-right"
-          style={{ ...WORD_FONT, color: found ? getScoreColor(score) : 'var(--dot)' }}
+          className={`text-xs min-w-[14px] text-right ${WORD_FONT_CLASSES}`}
+          style={{ color: found ? getScoreColor(score) : 'var(--dot)' }}
         >
           {score}
         </span>
@@ -129,7 +126,7 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord, onWordSe
         onClick={() => setShowAll(!showAll)}
       >
         <div className="flex items-center gap-3">
-          <span className="text-sm text-[var(--text)]" style={WORD_FONT}>
+          <span className={`text-sm text-[var(--text)] ${WORD_FONT_CLASSES}`}>
             {showAll
               ? `${foundWords.length}/${foundWords.length + missedWords.length}`
               : compact
@@ -137,7 +134,7 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord, onWordSe
                 : `${foundWords.length} Words`
             }
           </span>
-          <span className="text-sm text-[hsl(122,32%,55%)]" style={WORD_FONT}>
+          <span className={`text-sm text-[hsl(122,32%,55%)] ${WORD_FONT_CLASSES}`}>
             {compact ? `${totalScore}pts` : `${totalScore} pts`}
           </span>
         </div>
@@ -177,7 +174,7 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord, onWordSe
                   onClick={() => handleWordTap(fw.word, fw.path, fw.score)}
                 >
                   <div className="flex items-center">
-                    <span className="text-[var(--text-small)] uppercase tracking-wide text-[var(--text)]" style={WORD_FONT}>
+                    <span className={`text-[var(--text-small)] uppercase tracking-wide text-[var(--text)] ${WORD_FONT_CLASSES}`}>
                       {fw.word}
                     </span>
                     {hasRelated && (
@@ -194,7 +191,7 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord, onWordSe
                       className="w-[7px] h-[7px] rounded-full shrink-0"
                       style={SCORE_DOT_STYLES[fw.score] || { backgroundColor: 'var(--score-fallback)' }}
                     />
-                    <span className="text-xs min-w-[14px] text-right" style={{ ...WORD_FONT, color: getScoreColor(fw.score) }}>
+                    <span className={`text-xs min-w-[14px] text-right ${WORD_FONT_CLASSES}`} style={{ color: getScoreColor(fw.score) }}>
                       {fw.score}
                     </span>
                   </div>

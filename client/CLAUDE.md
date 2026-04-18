@@ -29,3 +29,13 @@ disagree, the client rule wins within this workspace.
   `tailwind.css`) instead of `text-[Npx]` or `text-[Nrem]`. If a required
   size genuinely isn't on the scale, add a new token to the scale first —
   don't scatter one-off arbitrary values across components.
+- **Prefer Tailwind classes over `style={{}}` for static values.** Inline
+  `style` is reserved for values that change at runtime — transforms,
+  computed positions, animated offsets, etc. — and for CSS properties
+  Tailwind cannot express (e.g. `WebkitTapHighlightColor`,
+  `WebkitOverflowScrolling`). Static typography, static colors, and static
+  sizing flow through className, using arbitrary utilities
+  (`text-[var(--text-body)]`, `font-[family-name:var(--font-heading)]`,
+  `[font-weight:var(--font-heading-weight)]`) when necessary. Private
+  `CSSProperties` constants that exist only to spread into `style={}` are a
+  smell — collapse them into className strings or shared Tailwind classes.
