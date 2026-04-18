@@ -52,3 +52,19 @@ disagree, the client rule wins within this workspace.
   existing context's domain (game, auth, preferences, daily, etc.), start a
   new context instead of piling the field onto the nearest one. Contexts
   are cheap; god-contexts are not.
+
+## Verification
+
+- **If you changed a component's rendered output, you must look at that
+  specific component rendered** — in the real app or via a dev-only
+  fixture. Type-check and smoke-testing adjacent pages are necessary but
+  not sufficient. "Tokens map to identical values" is a reasoning proof,
+  not a rendering proof, and is the exact class of argument that hides
+  regressions.
+- **Dev-only route fixtures for stateful pages.** Pages that require game
+  state to reach (results, mid-game, daily post-play) should expose a
+  `?mock=<name>` query param behind `import.meta.env.DEV`. Fixtures live
+  under the page at `__fixtures__/` and get registered in an index lookup.
+  The goal is to make the refactored component reachable in one click, so
+  the verification rule above is cheap to honour. See
+  `pages/results/__fixtures__/` for the pattern.

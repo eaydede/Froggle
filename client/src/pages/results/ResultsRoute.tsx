@@ -1,18 +1,31 @@
 import { useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useGame } from '../../GameContext';
 import { ResultsPage } from './ResultsPage';
+import { getResultsFixture } from './__fixtures__';
 
 export function ResultsRoute() {
   const { game, results, gameSeed, dailyInfo, setDailyInfo, createGame, cancelGame } = useGame();
   const navigate = useNavigate();
   const navigatingRef = useRef(false);
+  const [searchParams] = useSearchParams();
+
+  // Dev-only fixture injection — `?mock=default` bypasses the GameContext
+  // requirement so visual-regression work can render the page without
+  // playing a game. Stripped from production bundles.
+  const mockFixture = import.meta.env.DEV
+    ? getResultsFixture(searchParams.get('mock'))
+    : null;
+
+  const effectiveResults = mockFixture?.results ?? results;
+  const effectiveGame = mockFixture?.game ?? game;
 
   useEffect(() => {
+    if (mockFixture) return;
     if ((!results || !game) && !navigatingRef.current) navigate('/');
-  }, [results, game, navigate]);
+  }, [results, game, navigate, mockFixture]);
 
-  if (!results || !game) return null;
+  if (!effectiveResults || !effectiveGame) return null;
 
   const handlePlayAgain = async () => {
     navigatingRef.current = true;
@@ -41,5 +54,5 @@ export function ResultsRoute() {
     }
   };
 
-  return <ResultsPage results={results} onPlayAgain={handlePlayAgain} onBack={handleBack} game={game} gameSeed={gameSeed} dailyNumber={dailyInfo?.number} />;
+  return <ResultsPage results={effectiveResults} onPlayAgain={handlePlayAgain} onBack={handleBack} game={effectiveGame} gameSeed={gameSeed} dailyNumber={dailyInfo?.number} />;
 }
