@@ -9,11 +9,11 @@ import { useDefinition } from './hooks/useDefinition';
 import { encodeGameLink } from '../../shared/utils/gameLink';
 
 const SCORE_SQUARE_STYLES: Record<number, React.CSSProperties> = {
-  1: { backgroundColor: '#B0B0B0' },
-  2: { backgroundColor: '#6AAB6A' },
-  3: { background: 'linear-gradient(135deg, #7DA8F7, #5B8AF7)' },
-  5: { background: 'linear-gradient(135deg, #B96EF7, #9333EA)', boxShadow: '0 0 3px rgba(168,85,247,0.35)' },
-  11: { background: 'linear-gradient(135deg, #E8BD50, #C4900A)', boxShadow: '0 0 4px rgba(212,160,48,0.45)', animation: 'gold-glow-square 3s ease-in-out infinite', position: 'relative', overflow: 'visible' },
+  1: { backgroundColor: 'var(--score-1)' },
+  2: { backgroundColor: 'var(--score-2)' },
+  3: { background: 'linear-gradient(135deg, var(--score-3-from), var(--score-3-to))' },
+  5: { background: 'linear-gradient(135deg, var(--score-5-from), var(--score-5-to))', boxShadow: '0 0 3px var(--score-5-shadow)' },
+  11: { background: 'linear-gradient(135deg, var(--score-11-from), var(--score-11-to))', boxShadow: '0 0 4px var(--score-11-shadow)', animation: 'gold-glow-square 3s ease-in-out infinite', position: 'relative', overflow: 'visible' },
 };
 
 interface ResultsPageProps {
@@ -63,7 +63,7 @@ export const ResultsPage = ({ results, onPlayAgain, onBack, game, gameSeed, dail
   }, [results]);
 
   if (!results) {
-    return <div className="text-center p-10 text-lg text-[#555]">Loading results...</div>;
+    return <div className="text-center p-10 text-lg text-[var(--text-mid)]">Loading results...</div>;
   }
 
   const isDaily = dailyNumber !== undefined;
@@ -150,7 +150,7 @@ export const ResultsPage = ({ results, onPlayAgain, onBack, game, gameSeed, dail
                 }
               }}
             >
-              <span className="text-[11px]" style={{ color: '#F5C518' }}>★</span>
+              <span className="text-[11px]" style={{ color: 'var(--accent-gold)' }}>★</span>
               <div className="flex gap-0.5">
                 {longestFoundWordData.word.split('').map((letter, i) => (
                   <Cell
@@ -163,7 +163,7 @@ export const ResultsPage = ({ results, onPlayAgain, onBack, game, gameSeed, dail
                   />
                 ))}
               </div>
-              <span className="text-[11px]" style={{ color: '#F5C518' }}>★</span>
+              <span className="text-[11px]" style={{ color: 'var(--accent-gold)' }}>★</span>
             </div>
           )}
 
@@ -177,7 +177,7 @@ export const ResultsPage = ({ results, onPlayAgain, onBack, game, gameSeed, dail
                       key={w.word}
                       className="h-[12px] w-[12px] rounded-[2px] transition-transform duration-200"
                       style={{
-                        ...(SCORE_SQUARE_STYLES[w.score] || { backgroundColor: '#8BA89B' }),
+                        ...(SCORE_SQUARE_STYLES[w.score] || { backgroundColor: 'var(--score-fallback)' }),
                         ...(highlightedWordInfo?.word === w.word ? { transform: 'scale(1.2)', zIndex: 1 } : {}),
                       }}
                     />
@@ -191,24 +191,24 @@ export const ResultsPage = ({ results, onPlayAgain, onBack, game, gameSeed, dail
           {boardMinimized && highlightedWordInfo && (
             <div className="p-3 text-[13px] text-[var(--text-mid)] flex-1 overflow-y-auto min-h-0" style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, lineHeight: '19.5px' }}>
               {definitionLoading ? (
-                <div className="text-[#aaa] italic">...</div>
+                <div className="text-[var(--text-faint)] italic">...</div>
               ) : definition ? (
                 <>
                   <div className="flex items-baseline gap-2 mb-2">
                     <span className="font-black text-base text-[var(--text)]">{definition.word}</span>
                     {definition.phonetic && (
-                      <span className="text-[13px] text-[#888] italic">{definition.phonetic}</span>
+                      <span className="text-[13px] text-[var(--text-muted)] italic">{definition.phonetic}</span>
                     )}
                   </div>
                   {definition.meanings.map((meaning, i) => (
                     <div key={i} className="mb-2">
-                      <span className="italic text-[#666] text-xs">{meaning.partOfSpeech}</span>
+                      <span className="italic text-[var(--text-mid)] text-xs">{meaning.partOfSpeech}</span>
                       <ol className="mt-0.5 pl-[18px] font-normal">
                         {meaning.definitions.map((def, j) => (
                           <li key={j} className="mb-0.5">
                             {def.definition}
                             {def.example && (
-                              <span className="block italic text-[#888] mt-px text-xs">"{def.example}"</span>
+                              <span className="block italic text-[var(--text-muted)] mt-px text-xs">"{def.example}"</span>
                             )}
                           </li>
                         ))}
@@ -219,7 +219,7 @@ export const ResultsPage = ({ results, onPlayAgain, onBack, game, gameSeed, dail
               ) : (
                 <div className="flex flex-col gap-1">
                   <span className="font-black text-base text-[var(--text)]">{highlightedWordInfo.word.toLowerCase()}</span>
-                  <span className="italic text-[#aaa] text-xs">Definition not available</span>
+                  <span className="italic text-[var(--text-faint)] text-xs">Definition not available</span>
                 </div>
               )}
             </div>

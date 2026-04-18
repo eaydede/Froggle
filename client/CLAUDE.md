@@ -12,3 +12,14 @@ disagree, the client rule wins within this workspace.
   use a stable domain key (id, unique string). Index keys silently misassign
   DOM nodes on reorder, which corrupts animations, transitions, and
   uncontrolled child state.
+
+## Styling
+
+- **No raw color values in component code.** Colors are expressed as CSS
+  variables declared in `client/src/tailwind.css`. That includes hex, rgb,
+  hsl, and named colors used in `className`, `style={{}}`, or constant
+  objects. If a needed color isn't in the theme, add it to the shared `:root`
+  or to the light/dark theme blocks first, then reference it as
+  `var(--token)`. Palettes that are reused across a feature (score tiers,
+  semantic states, etc.) should get a named token family rather than living
+  as private per-file constants.
