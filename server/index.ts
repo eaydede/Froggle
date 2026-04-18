@@ -10,7 +10,7 @@ import { scoreWord } from 'engine/scoring.js';
 import { authMiddleware, requireAuth } from './middleware/auth.js';
 import { getDb } from './db/index.js';
 import { getSupabaseAdmin } from './supabaseAdmin.js';
-import { scoreResult, getDailyStats } from './services/DailyService.js';
+import { scoreResult, scoreWords, getDailyStats } from './services/DailyService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -367,7 +367,7 @@ app.get('/api/daily/leaderboard/:date', async (req, res) => {
 
     // Score each player
     const scored = parsedResults.map((r) => {
-      const points = r.words.reduce((sum, w) => sum + scoreWord(w), 0);
+      const points = scoreWords(r.words);
       const wordCount = r.words.length;
       const rarityScore = Math.round(
         r.words.reduce((sum, w) => {
@@ -500,7 +500,7 @@ app.get('/api/daily/history', requireAuth, async (req, res) => {
       return {
         date: result.date,
         puzzleNumber: getDailyNumber(result.date),
-        points: words.reduce((sum, w) => sum + scoreWord(w), 0),
+        points: scoreWords(words),
         wordsFound: words.length,
         isToday: result.date === today,
       };
