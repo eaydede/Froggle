@@ -24,11 +24,19 @@ disagree, the client rule wins within this workspace.
   semantic states, etc.) should get a named token family rather than living
   as private per-file constants.
 - **Typography goes through the scale, not arbitrary sizes.** Use
-  `text-[var(--text-*)]` (see `--text-title`, `--text-heading`,
+  `text-[length:var(--text-*)]` (see `--text-title`, `--text-heading`,
   `--text-body-lg`, `--text-body`, `--text-small`, `--text-caption` in
   `tailwind.css`) instead of `text-[Npx]` or `text-[Nrem]`. If a required
   size genuinely isn't on the scale, add a new token to the scale first —
   don't scatter one-off arbitrary values across components.
+- **Arbitrary `text-[…]` utilities with CSS variables require a type
+  hint.** Tailwind cannot statically infer whether `text-[var(--foo)]` is
+  a font-size or a color, so it defaults to color and silently emits
+  invalid CSS when the variable holds a length. Always disambiguate:
+  `text-[length:var(--text-small)]` for sizes,
+  `text-[color:var(--text-muted)]` for colors. The same applies to any
+  other utility whose property name covers multiple value types
+  (`bg-[…]`, `border-[…]`, etc.) when the value is a variable.
 - **Prefer Tailwind classes over `style={{}}` for static values.** Inline
   `style` is reserved for values that change at runtime — transforms,
   computed positions, animated offsets, etc. — and for CSS properties
@@ -68,10 +76,10 @@ disagree, the client rule wins within this workspace.
   The goal is to make the refactored component reachable in one click, so
   the verification rule above is cheap to honour. See
   `pages/results/__fixtures__/` for the pattern.
-- **Screenshots go to `/tmp`, never to the repo.** When using Playwright
-  MCP (or any screenshot tool) for visual verification, pass an absolute
-  path under `/tmp/` as the `filename` — relative filenames resolve to the
-  repo root with the MCP's default output dir and leak artefacts into the
-  working tree. `/tmp` is ephemeral, self-cleaning across reboots, and
-  invisible to git. Repo-root `*.png` is gitignored as a safety net, but
-  the right default is not to write there in the first place.
+- **Playwright screenshots go under `.playwright-mcp/`.** The MCP sandboxes
+  writes to the repo tree (paths outside the repo are rejected), so the
+  usable location is `.playwright-mcp/<name>.png`, which is gitignored.
+  A bare filename like `foo.png` resolves to the repo root and leaves a
+  tracked artefact behind — always prefix with `.playwright-mcp/`. Repo-
+  root `*.png` is gitignored as a safety net, but the right default is
+  not to write there in the first place.

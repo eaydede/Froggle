@@ -36,7 +36,7 @@ function App() {
       {showTitle && (
         <h1
           onClick={handleTitleClick}
-          className="text-center text-[var(--text-title)] tracking-[-0.025em] m-0 mb-2.5 cursor-pointer select-none transition-all duration-200 hover:scale-105 font-[family-name:var(--font-heading)] [font-weight:var(--font-heading-weight)]"
+          className="text-center text-[length:var(--text-title)] tracking-[-0.025em] m-0 mb-2.5 cursor-pointer select-none transition-all duration-200 hover:scale-105 font-[family-name:var(--font-heading)] [font-weight:var(--font-heading-weight)]"
         >
           Froggle
         </h1>
