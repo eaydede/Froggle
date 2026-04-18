@@ -23,3 +23,6 @@ storybook-static/
 # Logs
 *.log
 npm-debug.log*
+
+# Superpowers brainstorming
+.superpowers/
