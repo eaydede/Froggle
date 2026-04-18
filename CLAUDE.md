@@ -42,6 +42,21 @@ Apply to every change. When a principle conflicts with expedient code, the princ
 - **Server**: controllers at `server/` root, business logic in `server/services/`, DB access in `server/db/`.
 - **Shared types**: `models/`.
 
+## Layer boundaries
+
+Imports flow one direction across workspace seams:
+
+- `engine/` depends only on `models/` and the standard library.
+- `models/` depends on nothing (types and trivial pure helpers only).
+- `server/` may import from `engine/` and `models/`.
+- `client/` may import from `models/` directly. It must **not** import from
+  `engine/` outside of `client/src/shared/` — route components and pages
+  consume engine helpers through `client/src/shared/utils/` re-exports so the
+  shared module is the single seam where the boundary is crossed.
+
+The point is to keep each layer replaceable at its seam. If a future engine
+change affects the client, the blast radius should stop at `shared/`.
+
 ## Styling
 
 - Tailwind v4 utility classes, applied directly on elements.

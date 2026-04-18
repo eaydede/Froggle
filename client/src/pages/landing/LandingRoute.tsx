@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useGame } from '../../GameContext';
 import { LandingPage } from './LandingPage';
 import { fetchDaily } from '../../shared/api/gameApi';
-import { scoreWord } from 'engine/scoring';
+import { scoreWord } from '../../shared/utils/score';
 import type { DailyResults } from './types';
 
 export function LandingRoute() {
