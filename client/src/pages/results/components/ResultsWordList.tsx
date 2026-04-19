@@ -16,28 +16,25 @@ interface CombinedWord extends ScoredWord {
 }
 
 export const SCORE_COLORS: Record<number, string> = {
-  1: '#B0B0B0',
-  2: '#6AAB6A',
-  3: '#6B9BF7',
-  5: '#A855F7',
-  11: '#D4A030',
+  1: 'var(--score-1)',
+  2: 'var(--score-2)',
+  3: 'var(--score-3-solid)',
+  5: 'var(--score-5-solid)',
+  11: 'var(--score-11-solid)',
 };
 
 export const getScoreColor = (score: number): string => {
-  return SCORE_COLORS[score] || '#8BA89B';
+  return SCORE_COLORS[score] || 'var(--score-fallback)';
 };
 
-const WORD_FONT: React.CSSProperties = {
-  fontFamily: 'var(--font-serif)',
-  fontWeight: 800,
-};
+const WORD_FONT_CLASSES = 'font-[family-name:var(--font-serif)] font-extrabold';
 
 const SCORE_DOT_STYLES: Record<number, React.CSSProperties> = {
-  1: { backgroundColor: '#B0B0B0' },
-  2: { backgroundColor: '#6AAB6A' },
-  3: { background: 'linear-gradient(135deg, #7DA8F7, #5B8AF7)' },
-  5: { background: 'linear-gradient(135deg, #B96EF7, #9333EA)', boxShadow: '0 0 3px rgba(168,85,247,0.3)' },
-  11: { background: 'linear-gradient(135deg, #E8BD50, #C4900A)', boxShadow: '0 0 3px rgba(212,160,48,0.4)', animation: 'gold-glow-dot 3s ease-in-out infinite' },
+  1: { backgroundColor: 'var(--score-1)' },
+  2: { backgroundColor: 'var(--score-2)' },
+  3: { background: 'linear-gradient(135deg, var(--score-3-from), var(--score-3-to))' },
+  5: { background: 'linear-gradient(135deg, var(--score-5-from), var(--score-5-to))', boxShadow: '0 0 3px var(--score-5-shadow-dot)' },
+  11: { background: 'linear-gradient(135deg, var(--score-11-from), var(--score-11-to))', boxShadow: '0 0 3px var(--score-11-shadow-dot)', animation: 'gold-glow-dot 3s ease-in-out infinite' },
 };
 
 const WordRow = ({ word, path, score, found, isHighlighted, onTap }: {
@@ -54,8 +51,8 @@ const WordRow = ({ word, path, score, found, isHighlighted, onTap }: {
       onClick={onTap}
     >
       <span
-        className="text-[13px] uppercase tracking-wide"
-        style={{ ...WORD_FONT, color: found ? 'var(--text)' : 'var(--text-muted)' }}
+        className={`text-small uppercase tracking-wide ${WORD_FONT_CLASSES}`}
+        style={{ color: found ? 'var(--text)' : 'var(--text-muted)' }}
       >
         {word}
       </span>
@@ -63,12 +60,12 @@ const WordRow = ({ word, path, score, found, isHighlighted, onTap }: {
         {found && (
           <span
             className="w-[7px] h-[7px] rounded-full shrink-0"
-            style={SCORE_DOT_STYLES[score] || { backgroundColor: '#8BA89B' }}
+            style={SCORE_DOT_STYLES[score] || { backgroundColor: 'var(--score-fallback)' }}
           />
         )}
         <span
-          className="text-xs min-w-[14px] text-right"
-          style={{ ...WORD_FONT, color: found ? getScoreColor(score) : '#ddd' }}
+          className={`text-xs min-w-[14px] text-right ${WORD_FONT_CLASSES}`}
+          style={{ color: found ? getScoreColor(score) : 'var(--dot)' }}
         >
           {score}
         </span>
@@ -129,7 +126,7 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord, onWordSe
         onClick={() => setShowAll(!showAll)}
       >
         <div className="flex items-center gap-3">
-          <span className="text-sm text-[var(--text)]" style={WORD_FONT}>
+          <span className={`text-sm text-[var(--text)] ${WORD_FONT_CLASSES}`}>
             {showAll
               ? `${foundWords.length}/${foundWords.length + missedWords.length}`
               : compact
@@ -137,12 +134,12 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord, onWordSe
                 : `${foundWords.length} Words`
             }
           </span>
-          <span className="text-sm text-[hsl(122,32%,55%)]" style={WORD_FONT}>
+          <span className={`text-sm text-[hsl(122,32%,55%)] ${WORD_FONT_CLASSES}`}>
             {compact ? `${totalScore}pts` : `${totalScore} pts`}
           </span>
         </div>
         <span
-          className="text-sm text-[#999] transition-transform duration-200"
+          className="text-sm text-[var(--text-muted)] transition-transform duration-200"
           style={{ transform: showAll ? 'rotate(180deg)' : 'rotate(0deg)' }}
         >
           ▾
@@ -177,12 +174,12 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord, onWordSe
                   onClick={() => handleWordTap(fw.word, fw.path, fw.score)}
                 >
                   <div className="flex items-center">
-                    <span className="text-[13px] uppercase tracking-wide text-[var(--text)]" style={WORD_FONT}>
+                    <span className={`text-small uppercase tracking-wide ${WORD_FONT_CLASSES} `}>
                       {fw.word}
                     </span>
                     {hasRelated && (
                       <button
-                        className={`bg-transparent border-none cursor-pointer text-xs text-[#999] py-0.5 px-1 leading-none transition-all duration-200 hover:text-[#666] ${isExpanded ? 'rotate-180' : ''}`}
+                        className={`bg-transparent border-none cursor-pointer text-xs text-[var(--text-muted)] py-0.5 px-1 leading-none transition-all duration-200 hover:text-[var(--text-mid)] ${isExpanded ? 'rotate-180' : ''}`}
                         onClick={(e) => { e.stopPropagation(); setExpandedWord(isExpanded ? null : fw.word); }}
                       >
                         ▾
@@ -192,9 +189,9 @@ export const ResultsWordList = ({ foundWords, missedWords, onHoverWord, onWordSe
                   <div className="flex items-center gap-[3px]">
                     <span
                       className="w-[7px] h-[7px] rounded-full shrink-0"
-                      style={SCORE_DOT_STYLES[fw.score] || { backgroundColor: '#8BA89B' }}
+                      style={SCORE_DOT_STYLES[fw.score] || { backgroundColor: 'var(--score-fallback)' }}
                     />
-                    <span className="text-xs min-w-[14px] text-right" style={{ ...WORD_FONT, color: getScoreColor(fw.score) }}>
+                    <span className={`text-xs min-w-[14px] text-right ${WORD_FONT_CLASSES}`} style={{ color: getScoreColor(fw.score) }}>
                       {fw.score}
                     </span>
                   </div>

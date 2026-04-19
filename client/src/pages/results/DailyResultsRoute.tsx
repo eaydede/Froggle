@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { GameState } from 'models';
 import { useGame } from '../../GameContext';
 import { fetchDailyResult } from '../../shared/api/gameApi';
-import { scoreWord } from 'engine/scoring';
+import { scoreWord } from '../../shared/utils/score';
 import { ResultsPage } from './ResultsPage';
 
 export function DailyResultsRoute() {

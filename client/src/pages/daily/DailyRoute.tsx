@@ -10,7 +10,7 @@ import {
   type DailyStatsResponse,
   type DailyStatsDay,
 } from "../../shared/api/gameApi";
-import { scoreWord } from "engine/scoring";
+import { scoreWord } from "../../shared/utils/score";
 import { generateShareText } from "../results/utils/shareResults";
 
 function adaptDay(day: DailyStatsDay, config: DailyInfo["config"]): DailyEntry {

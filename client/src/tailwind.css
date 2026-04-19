@@ -1,6 +1,21 @@
 @import "tailwindcss/theme";
 @import "tailwindcss/utilities";
 
+/*
+ * Typography scale — registered as Tailwind theme tokens so each size is a
+ * first-class utility (e.g. `text-title`, `text-small`). Tailwind's defaults
+ * (`text-xs`, `text-sm`, `text-base`, `text-lg`, `text-xl`, ...) stay
+ * available; only add a token here when no default covers the need.
+ */
+@theme {
+  --text-title: 1.35rem;
+  --text-heading: 1.15rem;
+  --text-body-lg: 0.95rem;
+  --text-body: 0.85rem;
+  --text-small: 0.8125rem;   /* 13px */
+  --text-caption: 0.6875rem; /* 11px */
+}
+
 /* Base resets */
 body {
   background-color: var(--page-bg);
@@ -36,6 +51,29 @@ button, input, select, textarea {
   --color-invalid: hsl(4, 60%, 63%);
   --color-duplicate: hsl(45, 65%, 60%);
 
+  /* Score palette — shared by results page (squares) and word list (dots).
+   * Tiers 3, 5, 11 are rendered as gradients in the squares view and as solid
+   * fills in the dots view, so each tier defines both a `from`/`to` gradient
+   * pair and a `solid` single-value variant. The fallback covers any score
+   * value that isn't in the palette. */
+  --score-1: #B0B0B0;
+  --score-2: #6AAB6A;
+  --score-3-from: #7DA8F7;
+  --score-3-to: #5B8AF7;
+  --score-3-solid: #6B9BF7;
+  --score-5-from: #B96EF7;
+  --score-5-to: #9333EA;
+  --score-5-solid: #A855F7;
+  --score-5-shadow: rgba(168, 85, 247, 0.35);
+  --score-5-shadow-dot: rgba(168, 85, 247, 0.3);
+  --score-11-from: #E8BD50;
+  --score-11-to: #C4900A;
+  --score-11-solid: #D4A030;
+  --score-11-shadow: rgba(212, 160, 48, 0.45);
+  --score-11-shadow-dot: rgba(212, 160, 48, 0.4);
+  --score-fallback: #8BA89B;
+  --accent-gold: #F5C518;
+
   /* Font families — single source of truth */
   --font-serif: "Merriweather", Georgia, serif;
   --font-sans: "Outfit", system-ui, sans-serif;
@@ -53,6 +91,7 @@ button, input, select, textarea {
   --font-button-weight: 700;
   --font-cell: var(--font-sans);
   --font-cell-weight: 800;
+  --font-result-list-word-weight: 800;
 }
 
 /*
@@ -64,6 +103,7 @@ button, input, select, textarea {
   --text: #1a1a1a;
   --text-muted: #999999;
   --text-mid: #666666;
+  --text-faint: #aaaaaa;
   --track: #f2f2f2;
   --dot: #d4d4d4;
   --dot-hi: #333333;
@@ -80,6 +120,7 @@ button, input, select, textarea {
   --text: #E5E5E7;
   --text-muted: rgba(255,255,255,0.45);
   --text-mid: rgba(255,255,255,0.6);
+  --text-faint: rgba(255,255,255,0.35);
   --track: #48484A;
   --dot: #555558;
   --dot-hi: #E5E5E7;
