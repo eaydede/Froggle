@@ -136,12 +136,12 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
         }}
       >
         {wordFeedback === 'valid' && BOARD_STYLE.validAnim === 3
-          ? displayWord.split('').map((letter, i) => (
+          ? displayWord.toUpperCase().split('').map((letter, i) => (
               <span key={i} className="inline-block" style={{ animation: 'letter-wave 0.4s ease both', animationDelay: `${i * 0.04}s` }}>
                 {letter}
               </span>
             ))
-          : displayWord
+          : displayWord.toUpperCase()
         }
       </div>
 
