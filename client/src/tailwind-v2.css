@@ -1,11 +1,13 @@
 /*
- * Design tokens for the redesigned pages (landing first, more to follow).
- * Co-exists with the legacy tokens in `tailwind.css`. New code should reach
- * for these tokens; pages still on the old design keep their existing
- * variables until they're migrated.
+ * Design tokens for the redesigned pages (landing + daily confirm, more
+ * to follow). Co-exists with the legacy tokens in `tailwind.css`. New
+ * code should reach for these tokens; pages still on the old design
+ * keep their existing variables until they're migrated.
  *
- * Palette: warm paper / ink, no accent color. Streak uses a single muted
- * green. Dark mode mirrors with cream-on-near-black.
+ * Palette: warm paper / near-white panels with floating cards that sit
+ * a half-shade brighter than the panel. Ink is a warm near-black; dark
+ * mode inverts with cream text on warm near-black. Dark cards are
+ * slightly LIGHTER than the panel (same floating logic as light mode).
  */
 
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
@@ -26,56 +28,74 @@
 
 /* Light theme (default) */
 :root, [data-theme="light"] {
-  --surface-bg: #D9CEB0;       /* outer page wash — deepest */
-  --surface-panel: #E4DBC2;    /* page / panel background */
-  --surface-card: #FBF6E6;     /* card surface — brightest */
+  --surface-bg: #E5E3DD;       /* outer page wash */
+  --surface-panel: #FAFAF8;    /* page / panel background */
+  --surface-card: #FCFCFA;     /* card surface — half-shade brighter */
 
-  --ink: #1E1A16;
-  --ink-inverse: #FAF5E8;
-  --ink-muted: rgba(30, 26, 22, 0.72);
-  --ink-mid: rgba(30, 26, 22, 0.58);
-  --ink-soft: rgba(30, 26, 22, 0.55);
-  --ink-faint: rgba(30, 26, 22, 0.22);
-  --ink-trace: rgba(30, 26, 22, 0.12);
-  --ink-border: rgba(30, 26, 22, 0.20);
-  --ink-border-subtle: rgba(30, 26, 22, 0.08);
-  --ink-whisper: rgba(30, 26, 22, 0.05);
+  --ink: #22201C;
+  --ink-inverse: #FCFCFA;
+  --ink-muted: rgba(34, 32, 28, 0.72);
+  --ink-mid: rgba(34, 32, 28, 0.58);
+  --ink-soft: rgba(34, 32, 28, 0.55);
+  --ink-faint: rgba(34, 32, 28, 0.22);
+  --ink-trace: rgba(34, 32, 28, 0.12);
+  --ink-border: rgba(34, 32, 28, 0.22);
+  --ink-border-subtle: rgba(34, 32, 28, 0.06);
+  --ink-whisper: rgba(34, 32, 28, 0.05);
 
   --streak-green: #6B8E4E;
   --streak-green-soft: rgba(107, 142, 78, 0.30);
   --streak-green-glow: rgba(107, 142, 78, 0.22);
   --logo-dot: #7A9B5E;
 
-  --shadow-card: 0 1px 2px rgba(30, 26, 22, 0.02), 0 4px 16px rgba(30, 26, 22, 0.03);
-  --shadow-btn-primary: 0 1px 0 rgba(0, 0, 0, 0.08), 0 2px 8px rgba(30, 26, 22, 0.18);
-  --shadow-btn-primary-hover: 0 2px 0 rgba(0, 0, 0, 0.08), 0 6px 16px rgba(30, 26, 22, 0.25);
+  /* Layered floating-card shadows — three-stop stack creates depth
+     without any single dark halo. */
+  --shadow-card:
+    0 1px 2px rgba(34, 32, 28, 0.04),
+    0 8px 20px rgba(34, 32, 28, 0.08),
+    0 2px 6px rgba(34, 32, 28, 0.03);
+  --shadow-card-hover:
+    0 1px 2px rgba(34, 32, 28, 0.04),
+    0 10px 24px rgba(34, 32, 28, 0.10),
+    0 2px 8px rgba(34, 32, 28, 0.04);
+
+  --shadow-btn-primary: 0 1px 0 rgba(0, 0, 0, 0.08), 0 2px 8px rgba(34, 32, 28, 0.20);
+  --shadow-btn-primary-hover: 0 2px 0 rgba(0, 0, 0, 0.08), 0 6px 16px rgba(34, 32, 28, 0.25);
   --shadow-toggle: 0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-toggle-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 /* Dark theme */
 [data-theme="dark"] {
-  --surface-bg: #0C0A07;
-  --surface-panel: #141109;
-  --surface-card: #2B2620;
+  --surface-bg: #14120F;
+  --surface-panel: #1C1A15;
+  --surface-card: #221F1A;     /* LIGHTER than panel — same floating logic */
 
-  --ink: #F0E8DA;
-  --ink-inverse: #1A1813;
-  --ink-muted: rgba(240, 232, 218, 0.68);
-  --ink-mid: rgba(240, 232, 218, 0.55);
-  --ink-soft: rgba(240, 232, 218, 0.50);
-  --ink-faint: rgba(240, 232, 218, 0.22);
-  --ink-trace: rgba(240, 232, 218, 0.12);
-  --ink-border: rgba(240, 232, 218, 0.22);
-  --ink-border-subtle: rgba(240, 232, 218, 0.08);
-  --ink-whisper: rgba(240, 232, 218, 0.05);
+  --ink: #EEE8DC;
+  --ink-inverse: #1C1A15;
+  --ink-muted: rgba(238, 232, 220, 0.68);
+  --ink-mid: rgba(238, 232, 220, 0.55);
+  --ink-soft: rgba(238, 232, 220, 0.50);
+  --ink-faint: rgba(238, 232, 220, 0.22);
+  --ink-trace: rgba(238, 232, 220, 0.12);
+  --ink-border: rgba(238, 232, 220, 0.22);
+  --ink-border-subtle: rgba(238, 232, 220, 0.07);
+  --ink-whisper: rgba(238, 232, 220, 0.05);
 
   --streak-green: #8BB366;
   --streak-green-soft: rgba(139, 179, 102, 0.32);
   --streak-green-glow: rgba(139, 179, 102, 0.22);
   --logo-dot: #8FB06E;
 
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.20), 0 4px 16px rgba(0, 0, 0, 0.25);
+  --shadow-card:
+    0 1px 2px rgba(0, 0, 0, 0.25),
+    0 8px 20px rgba(0, 0, 0, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.20);
+  --shadow-card-hover:
+    0 1px 2px rgba(0, 0, 0, 0.25),
+    0 10px 24px rgba(0, 0, 0, 0.40),
+    0 2px 8px rgba(0, 0, 0, 0.25);
+
   --shadow-btn-primary: 0 1px 0 rgba(0, 0, 0, 0.20), 0 2px 8px rgba(0, 0, 0, 0.30);
   --shadow-btn-primary-hover: 0 2px 0 rgba(0, 0, 0, 0.20), 0 6px 16px rgba(0, 0, 0, 0.40);
   --shadow-toggle: 0 1px 2px rgba(0, 0, 0, 0.30);
