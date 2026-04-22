@@ -30,3 +30,6 @@ npm-debug.log*
 # Playwright MCP artefacts (local dev only)
 .playwright-mcp/
 /*.png
+
+# Design mockups (local reference only, not source of truth)
+.mockups/

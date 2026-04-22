@@ -1,49 +1,60 @@
-import { DailyCard, FreePlayCard } from "./components";
-import { ProfileDisplay } from "../../shared/components/ProfileDisplay";
-import type { DailyPuzzleConfig, DailyResults } from "./types";
+import { AppHeader, DailyCard, FreePlayCard, ThemeTogglePill } from "./components";
+import type { DailyResults } from "./types";
 
 interface LandingPageProps {
-  dailyConfig: DailyPuzzleConfig;
+  dateLabel: string;
+  streak: number;
+  streakDays: boolean[];
   dailyResults: DailyResults | null;
-  onDailyClick: () => void;
-  onFreePlayClick: () => void;
   displayName: string;
   onDisplayNameChange: (name: string) => void;
+  onCalendarClick: () => void;
+  onDailyPlay: () => void;
+  onDailySeeResult: () => void;
+  onDailyLeaderboard: () => void;
+  onFreePlayClick: () => void;
+  theme: "light" | "dark";
+  onToggleTheme: () => void;
 }
 
 export function LandingPage({
-  dailyConfig,
+  dateLabel,
+  streak,
+  streakDays,
   dailyResults,
-  onDailyClick,
-  onFreePlayClick,
   displayName,
   onDisplayNameChange,
+  onCalendarClick,
+  onDailyPlay,
+  onDailySeeResult,
+  onDailyLeaderboard,
+  onFreePlayClick,
+  theme,
+  onToggleTheme,
 }: LandingPageProps) {
   return (
-    <div className="w-full max-w-[400px]">
-      {/* Header */}
-      <div className="text-center mb-6">
-        <h1 className="text-[1.35rem] tracking-[-0.025em]" style={{ fontFamily: 'var(--font-heading)', fontWeight: 'var(--font-heading-weight)' as any }}>
-          Froggle
-        </h1>
-        <p className="text-[0.75rem] font-medium text-[var(--text-muted)] mt-0.5">
-          Choose a game mode
-        </p>
-      </div>
+    <div className="fixed inset-0 flex items-start justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] overflow-y-auto">
+      <ThemeTogglePill theme={theme} onToggle={onToggleTheme} />
 
-      {/* Mode cards */}
-      <div className="flex flex-col gap-2.5">
-        <DailyCard
-          config={dailyConfig}
-          results={dailyResults}
-          onClick={onDailyClick}
+      <div className="w-full max-w-[360px] min-h-full flex flex-col px-[22px] pt-[24px] pb-[22px]">
+        <AppHeader
+          displayName={displayName}
+          onDisplayNameChange={onDisplayNameChange}
+          onCalendarClick={onCalendarClick}
         />
-        <FreePlayCard onClick={onFreePlayClick} />
-      </div>
 
-      {/* Profile */}
-      <div className="flex justify-center mt-5">
-        <ProfileDisplay displayName={displayName} onSave={onDisplayNameChange} />
+        <div className="flex-1 flex flex-col justify-center gap-[14px]">
+          <DailyCard
+            dateLabel={dateLabel}
+            streak={streak}
+            streakDays={streakDays}
+            results={dailyResults}
+            onPlay={onDailyPlay}
+            onSeeResult={onDailySeeResult}
+            onSeeLeaderboard={onDailyLeaderboard}
+          />
+          <FreePlayCard onClick={onFreePlayClick} />
+        </div>
       </div>
     </div>
   );

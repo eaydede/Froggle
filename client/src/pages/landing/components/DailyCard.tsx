@@ -1,129 +1,158 @@
-import type { DailyPuzzleConfig, DailyResults } from "../types";
-
-type CardMode = 'light' | 'dark';
+import { StreakBar } from "./StreakBar";
+import type { DailyResults } from "../types";
 
 interface DailyCardProps {
-  config: DailyPuzzleConfig;
+  /** Today's display date, already formatted (e.g. "Tue · Apr 21"). */
+  dateLabel: string;
+  streak: number;
+  streakDays: boolean[];
   results: DailyResults | null;
-  onClick: () => void;
-  mode?: CardMode;
+  onPlay: () => void;
+  onSeeResult: () => void;
+  onSeeLeaderboard: () => void;
 }
 
-function formatTimer(seconds: number): string {
-  if (!isFinite(seconds)) return "∞";
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-export function DailyCard({ config, results, onClick, mode = 'light' }: DailyCardProps) {
+export function DailyCard({
+  dateLabel,
+  streak,
+  streakDays,
+  results,
+  onPlay,
+  onSeeResult,
+  onSeeLeaderboard,
+}: DailyCardProps) {
   const completed = results !== null;
-  const dark = mode === 'dark';
-
-  const bg = completed
-    ? dark ? '#3A3A3C' : 'var(--card)'
-    : 'var(--accent)';
-
-  const textColor = completed
-    ? dark ? '#E5E5E7' : 'var(--text)'
-    : 'white';
-
-  const subtitleColor = completed
-    ? dark ? 'rgba(255,255,255,0.45)' : 'var(--text-muted)'
-    : 'rgba(255,255,255,0.5)';
-
-  const watermarkColor = completed
-    ? dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
-    : 'rgba(255,255,255,0.15)';
-
-  const shadow = completed
-    ? dark
-      ? '0 0 0 1px rgba(255,255,255,0.06), 0 4px 24px rgba(0,0,0,0.3)'
-      : '0 0 0 1px rgba(0,0,0,0.04), 0 4px 24px rgba(107,155,125,0.18)'
-    : dark
-      ? '0 4px 24px rgba(0,0,0,0.4)'
-      : '0 4px 24px rgba(107,155,125,0.30)';
-
-  const borderLeft = completed
-    ? '3px solid var(--accent)'
-    : undefined;
-
-  const resultBoxBg = dark ? 'rgba(255,255,255,0.08)' : 'var(--track)';
-  const resultValueColor = dark ? '#E5E5E7' : 'var(--text)';
-  const resultLabelColor = dark ? 'rgba(255,255,255,0.4)' : 'var(--text-muted)';
-
-  const tagBg = 'rgba(255,255,255,0.12)';
-  const tagColor = 'rgba(255,255,255,0.7)';
 
   return (
-    <div
-      onClick={onClick}
-      className="rounded-2xl relative overflow-hidden select-none transition-all duration-200 active:scale-[0.985] active:duration-[60ms] cursor-pointer sm:p-6"
-      style={{
-        padding: '1.35rem',
-        WebkitTapHighlightColor: 'transparent',
-        backgroundColor: bg,
-        color: textColor,
-        boxShadow: shadow,
-        borderLeft,
-      }}
-    >
-      {/* Watermark */}
-      <span
-        className="absolute top-4 right-5 text-[2rem] font-bold leading-none tracking-[-0.03em]"
-        style={{ color: watermarkColor }}
-      >
-        #{config.puzzleNumber}
-      </span>
-
-      {/* Title */}
-      <div className="mb-3">
-        <div className="text-[0.95rem] font-bold">
-          {completed ? `Daily Puzzle #${config.puzzleNumber}` : 'Daily Puzzle'}
-        </div>
-        <div className="text-[0.68rem] font-medium mt-0.5" style={{ color: subtitleColor }}>
-          {completed ? 'Completed today' : 'A new board every day'}
-        </div>
+    <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] flex flex-col overflow-hidden">
+      <div className="flex justify-between items-center px-5 pt-[18px]">
+        <span
+          className="text-caption uppercase tracking-[0.06em] text-[color:var(--ink-muted)] leading-none font-[family-name:var(--font-structure)]"
+          style={{ fontWeight: 700 }}
+        >
+          Timed Daily
+        </span>
+        <span
+          className="text-caption text-[color:var(--ink-soft)] tabular-nums leading-none"
+          style={{ fontWeight: 500 }}
+        >
+          {dateLabel}
+        </span>
       </div>
 
-      {/* Config tags (unplayed) */}
-      {!completed && (
-        <div className="flex gap-1.5 flex-wrap">
-          <span className="text-[0.6rem] font-semibold rounded-md" style={{ padding: '0.22rem 0.5rem', background: tagBg, color: tagColor }}>
-            {config.boardSize}×{config.boardSize}
-          </span>
-          <span className="text-[0.6rem] font-semibold rounded-md" style={{ padding: '0.22rem 0.5rem', background: tagBg, color: tagColor }}>
-            {formatTimer(config.timer)}
-          </span>
-          <span className="text-[0.6rem] font-semibold rounded-md" style={{ padding: '0.22rem 0.5rem', background: tagBg, color: tagColor }}>
-            {config.minWordLength}+ letters
-          </span>
-        </div>
-      )}
+      <div className="px-5 pt-[14px] pb-5 flex flex-col gap-[14px]">
+        <StreakBar streak={streak} days={streakDays} todayUnplayed={!completed} />
 
-      {/* Results (completed) */}
-      {completed && (
-        <div className="flex gap-1.5">
-          <ResultBox value={String(results.words)} label="Words" shrinkable bg={resultBoxBg} valueColor={resultValueColor} labelColor={resultLabelColor} />
-          <ResultBox value={String(results.points)} label="Points" shrinkable bg={resultBoxBg} valueColor={resultValueColor} labelColor={resultLabelColor} />
-          <ResultBox value={results.longestWord} label="Longest" bg={resultBoxBg} valueColor={resultValueColor} labelColor={resultLabelColor} />
-        </div>
-      )}
+        {completed && results ? (
+          <>
+            <ScoreBlock points={results.points} words={results.words} />
+            <div className="grid grid-cols-2 gap-2">
+              <SecondaryButton onClick={onSeeResult}>See result</SecondaryButton>
+              <SecondaryButton onClick={onSeeLeaderboard}>Leaderboard</SecondaryButton>
+            </div>
+          </>
+        ) : (
+          <>
+            <PrimaryPlayButton onClick={onPlay} />
+            <LeaderboardLink onClick={onSeeLeaderboard} />
+          </>
+        )}
+      </div>
     </div>
   );
 }
 
-function ResultBox({ value, label, shrinkable, bg, valueColor, labelColor }: {
-  value: string; label: string; shrinkable?: boolean;
-  bg: string; valueColor: string; labelColor: string;
-}) {
+function ScoreBlock({ points, words }: { points: number; words: number }) {
   return (
     <div
-      className={`rounded-[10px] text-center ${shrinkable ? 'flex-1 min-w-0' : 'flex-1 shrink-0'}`}
-      style={{ padding: shrinkable ? '0.55rem 0.3rem' : '0.55rem 0.75rem', backgroundColor: bg }}
+      className="flex items-baseline justify-between py-0.5"
+      style={{ animation: "v2-fade-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1)" }}
     >
-      <div className="text-[1rem] font-bold leading-[1.1] truncate" style={{ color: valueColor }}>{value}</div>
-      <div className="text-[0.48rem] font-semibold uppercase tracking-[0.04em] mt-0.5" style={{ color: labelColor }}>{label}</div>
+      <div className="flex items-baseline gap-[5px]">
+        <span
+          className="text-display-lg leading-none font-[family-name:var(--font-structure)] tracking-[-0.03em] tabular-nums"
+          style={{ fontWeight: 800 }}
+        >
+          {points}
+        </span>
+        <span className="text-small text-[color:var(--ink-muted)]" style={{ fontWeight: 600 }}>
+          pts
+        </span>
+      </div>
+      <span className="text-small text-[color:var(--ink-muted)] tabular-nums" style={{ fontWeight: 500 }}>
+        {words} {words === 1 ? "word" : "words"}
+      </span>
     </div>
+  );
+}
+
+function PrimaryPlayButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex items-center justify-center gap-2 border-none cursor-pointer select-none rounded-xl px-[18px] py-[14px] text-sm bg-[var(--ink)] text-[color:var(--ink-inverse)] shadow-[var(--shadow-btn-primary)] hover:-translate-y-px hover:shadow-[var(--shadow-btn-primary-hover)] active:scale-[0.98] transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] font-[family-name:var(--font-ui)]"
+      style={{ fontWeight: 700, letterSpacing: "-0.005em", WebkitTapHighlightColor: "transparent" }}
+    >
+      Play daily
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="transition-transform duration-200 group-hover:translate-x-[3px]"
+      >
+        <path d="M5 12h14M13 5l7 7-7 7" />
+      </svg>
+    </button>
+  );
+}
+
+function SecondaryButton({
+  children,
+  onClick,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center justify-center gap-2 rounded-xl py-3 px-3 text-small text-[color:var(--ink)] bg-transparent border border-[var(--ink-border)] cursor-pointer select-none hover:bg-[var(--ink-whisper)] hover:border-[var(--ink-muted)] active:scale-[0.98] transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] font-[family-name:var(--font-ui)]"
+      style={{ fontWeight: 600, WebkitTapHighlightColor: "transparent" }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function LeaderboardLink({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex items-center justify-center gap-1.5 text-small text-[color:var(--ink-muted)] hover:text-[color:var(--ink)] bg-transparent border-none cursor-pointer py-1.5 font-[family-name:var(--font-ui)] transition-colors duration-200"
+      style={{ fontWeight: 500 }}
+    >
+      See today's leaderboard
+      <svg
+        width="11"
+        height="11"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="transition-transform duration-200 group-hover:translate-x-[2px]"
+      >
+        <path d="M9 18l6-6-6-6" />
+      </svg>
+    </button>
   );
 }

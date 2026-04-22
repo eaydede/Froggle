@@ -1,5 +1,6 @@
 @import "tailwindcss/theme";
 @import "tailwindcss/utilities";
+@import "./tailwind-v2.css";
 
 /*
  * Typography scale — registered as Tailwind theme tokens so each size is a

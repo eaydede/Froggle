@@ -1,0 +1,89 @@
+/*
+ * Design tokens for the redesigned pages (landing first, more to follow).
+ * Co-exists with the legacy tokens in `tailwind.css`. New code should reach
+ * for these tokens; pages still on the old design keep their existing
+ * variables until they're migrated.
+ *
+ * Palette: warm paper / ink, no accent color. Streak uses a single muted
+ * green. Dark mode mirrors with cream-on-near-black.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+@theme {
+  /* Font families used across the new design */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-structure: 'Outfit', system-ui, sans-serif;
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Typography sizes not covered by Tailwind defaults or the legacy scale */
+  --text-label-xs: 0.625rem;  /* 10px — streak window label */
+  --text-logo: 1.5625rem;     /* 25px — brand wordmark */
+  --text-display-sm: 2rem;     /* 32px — hero question */
+  --text-display-md: 2.125rem; /* 34px — streak numeral */
+  --text-display-lg: 2.875rem; /* 46px — score numeral */
+}
+
+/* Light theme (default) */
+:root, [data-theme="light"] {
+  --surface-bg: #E6E1D4;       /* outer page wash */
+  --surface-panel: #F1EDE2;    /* inner panel / phone frame */
+  --surface-card: #FAF5E8;     /* card surface */
+
+  --ink: #1E1A16;
+  --ink-inverse: #FAF5E8;
+  --ink-muted: rgba(30, 26, 22, 0.72);
+  --ink-mid: rgba(30, 26, 22, 0.58);
+  --ink-soft: rgba(30, 26, 22, 0.55);
+  --ink-faint: rgba(30, 26, 22, 0.22);
+  --ink-trace: rgba(30, 26, 22, 0.12);
+  --ink-border: rgba(30, 26, 22, 0.20);
+  --ink-border-subtle: rgba(30, 26, 22, 0.08);
+  --ink-whisper: rgba(30, 26, 22, 0.05);
+
+  --streak-green: #6B8E4E;
+  --streak-green-soft: rgba(107, 142, 78, 0.30);
+  --streak-green-glow: rgba(107, 142, 78, 0.22);
+  --logo-dot: #7A9B5E;
+
+  --shadow-card: 0 1px 2px rgba(30, 26, 22, 0.02), 0 4px 16px rgba(30, 26, 22, 0.03);
+  --shadow-btn-primary: 0 1px 0 rgba(0, 0, 0, 0.08), 0 2px 8px rgba(30, 26, 22, 0.18);
+  --shadow-btn-primary-hover: 0 2px 0 rgba(0, 0, 0, 0.08), 0 6px 16px rgba(30, 26, 22, 0.25);
+  --shadow-toggle: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-toggle-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Dark theme */
+[data-theme="dark"] {
+  --surface-bg: #12100C;
+  --surface-panel: #1A1813;
+  --surface-card: #23201B;
+
+  --ink: #F0E8DA;
+  --ink-inverse: #1A1813;
+  --ink-muted: rgba(240, 232, 218, 0.68);
+  --ink-mid: rgba(240, 232, 218, 0.55);
+  --ink-soft: rgba(240, 232, 218, 0.50);
+  --ink-faint: rgba(240, 232, 218, 0.22);
+  --ink-trace: rgba(240, 232, 218, 0.12);
+  --ink-border: rgba(240, 232, 218, 0.22);
+  --ink-border-subtle: rgba(240, 232, 218, 0.08);
+  --ink-whisper: rgba(240, 232, 218, 0.05);
+
+  --streak-green: #8BB366;
+  --streak-green-soft: rgba(139, 179, 102, 0.32);
+  --streak-green-glow: rgba(139, 179, 102, 0.22);
+  --logo-dot: #8FB06E;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.20), 0 4px 16px rgba(0, 0, 0, 0.25);
+  --shadow-btn-primary: 0 1px 0 rgba(0, 0, 0, 0.20), 0 2px 8px rgba(0, 0, 0, 0.30);
+  --shadow-btn-primary-hover: 0 2px 0 rgba(0, 0, 0, 0.20), 0 6px 16px rgba(0, 0, 0, 0.40);
+  --shadow-toggle: 0 1px 2px rgba(0, 0, 0, 0.30);
+  --shadow-toggle-hover: 0 4px 12px rgba(0, 0, 0, 0.40);
+}
+
+/* Score fade-in used on the complete-state daily card. */
+@keyframes v2-fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
