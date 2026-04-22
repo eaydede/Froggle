@@ -8,7 +8,6 @@ interface LandingPageProps {
   dailyResults: DailyResults | null;
   displayName: string;
   onDisplayNameChange: (name: string) => void;
-  onCalendarClick: () => void;
   onDailyPlay: () => void;
   onDailySeeResult: () => void;
   onDailyLeaderboard: () => void;
@@ -24,7 +23,6 @@ export function LandingPage({
   dailyResults,
   displayName,
   onDisplayNameChange,
-  onCalendarClick,
   onDailyPlay,
   onDailySeeResult,
   onDailyLeaderboard,
@@ -40,7 +38,6 @@ export function LandingPage({
         <AppHeader
           displayName={displayName}
           onDisplayNameChange={onDisplayNameChange}
-          onCalendarClick={onCalendarClick}
         />
 
         <div className="flex-1 flex flex-col justify-center gap-[14px]">

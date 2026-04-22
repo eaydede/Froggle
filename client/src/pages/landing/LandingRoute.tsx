@@ -68,7 +68,12 @@ export function LandingRoute() {
     navigate('/daily');
   };
 
-  const handleDailySeeResult = () => navigate('/daily/results');
+  const handleDailySeeResult = () => {
+    // DailyResultsRoute reads the puzzle out of context; without it the
+    // page redirects back home.
+    if (cachedDaily) setDailyInfo(cachedDaily);
+    navigate('/daily/results');
+  };
 
   const handleDailyLeaderboard = () => {
     if (cachedDaily) {
@@ -77,8 +82,6 @@ export function LandingRoute() {
       navigate('/leaderboard');
     }
   };
-
-  const handleCalendar = () => navigate('/daily');
 
   if (mockFixture) {
     return (
@@ -89,7 +92,6 @@ export function LandingRoute() {
         dailyResults={mockFixture.dailyResults}
         displayName={mockFixture.displayName}
         onDisplayNameChange={() => {}}
-        onCalendarClick={() => {}}
         onDailyPlay={() => {}}
         onDailySeeResult={() => {}}
         onDailyLeaderboard={() => {}}
@@ -136,7 +138,6 @@ export function LandingRoute() {
       dailyResults={dailyResultsData}
       displayName={displayName}
       onDisplayNameChange={updateDisplayName}
-      onCalendarClick={handleCalendar}
       onDailyPlay={handleDailyPlay}
       onDailySeeResult={handleDailySeeResult}
       onDailyLeaderboard={handleDailyLeaderboard}

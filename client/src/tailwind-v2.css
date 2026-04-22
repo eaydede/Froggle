@@ -26,9 +26,9 @@
 
 /* Light theme (default) */
 :root, [data-theme="light"] {
-  --surface-bg: #E6E1D4;       /* outer page wash */
-  --surface-panel: #F1EDE2;    /* inner panel / phone frame */
-  --surface-card: #FAF5E8;     /* card surface */
+  --surface-bg: #D9CEB0;       /* outer page wash — deepest */
+  --surface-panel: #E4DBC2;    /* page / panel background */
+  --surface-card: #FBF6E6;     /* card surface — brightest */
 
   --ink: #1E1A16;
   --ink-inverse: #FAF5E8;
@@ -55,9 +55,9 @@
 
 /* Dark theme */
 [data-theme="dark"] {
-  --surface-bg: #12100C;
-  --surface-panel: #1A1813;
-  --surface-card: #23201B;
+  --surface-bg: #0C0A07;
+  --surface-panel: #141109;
+  --surface-card: #2B2620;
 
   --ink: #F0E8DA;
   --ink-inverse: #1A1813;

@@ -56,7 +56,6 @@ function InContextWrapper({ completed }: { completed: boolean }) {
         dailyResults={results}
         displayName={name}
         onDisplayNameChange={setName}
-        onCalendarClick={fn()}
         onDailyPlay={fn()}
         onDailySeeResult={fn()}
         onDailyLeaderboard={fn()}

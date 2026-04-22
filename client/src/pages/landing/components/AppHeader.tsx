@@ -3,22 +3,22 @@ import { ProfileAvatar } from "./ProfileAvatar";
 interface AppHeaderProps {
   displayName: string;
   onDisplayNameChange: (name: string) => void;
-  onCalendarClick: () => void;
 }
 
-export function AppHeader({
-  displayName,
-  onDisplayNameChange,
-  onCalendarClick,
-}: AppHeaderProps) {
+// Calendar slot is intentionally inert while the hub-style daily page is
+// being phased out — clicking it used to route into the daily confirm
+// flow, which let mid-play users start a fresh attempt. Left as a
+// disabled affordance so the header balance is preserved.
+export function AppHeader({ displayName, onDisplayNameChange }: AppHeaderProps) {
   return (
     <div className="flex justify-between items-center py-[18px] pb-[22px]">
       <button
         type="button"
-        onClick={onCalendarClick}
-        aria-label="Calendar"
-        className="w-[34px] h-[34px] rounded-[10px] flex items-center justify-center bg-transparent border-none cursor-pointer text-[color:var(--ink-muted)] hover:bg-[var(--ink-whisper)] hover:text-[color:var(--ink)] transition-colors duration-200"
-        style={{ WebkitTapHighlightColor: "transparent" }}
+        disabled
+        aria-label="Calendar (coming soon)"
+        aria-disabled="true"
+        tabIndex={-1}
+        className="w-[34px] h-[34px] rounded-[10px] flex items-center justify-center bg-transparent border-none text-[color:var(--ink-soft)] opacity-50 cursor-not-allowed"
       >
         <svg
           width="18"
