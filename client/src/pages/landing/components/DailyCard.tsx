@@ -1,4 +1,5 @@
 import { StreakBar } from "./StreakBar";
+import { InkButton } from "../../../shared/components/InkButton";
 import type { DailyResults } from "../types";
 
 interface DailyCardProps {
@@ -88,12 +89,7 @@ function ScoreBlock({ points, words }: { points: number; words: number }) {
 
 function PrimaryPlayButton({ onClick }: { onClick: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group flex items-center justify-center gap-2 border-none cursor-pointer select-none rounded-xl px-[18px] py-[14px] text-sm bg-[var(--ink)] text-[color:var(--ink-inverse)] shadow-[var(--shadow-btn-primary)] hover:-translate-y-px hover:shadow-[var(--shadow-btn-primary-hover)] active:scale-[0.98] transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] font-[family-name:var(--font-ui)]"
-      style={{ fontWeight: 700, letterSpacing: "-0.005em", WebkitTapHighlightColor: "transparent" }}
-    >
+    <InkButton onClick={onClick}>
       Play daily
       <svg
         width="14"
@@ -108,7 +104,7 @@ function PrimaryPlayButton({ onClick }: { onClick: () => void }) {
       >
         <path d="M5 12h14M13 5l7 7-7 7" />
       </svg>
-    </button>
+    </InkButton>
   );
 }
 

@@ -7,7 +7,7 @@ import { decodeGameParams } from '../../shared/utils/gameLink';
 import { fetchDaily } from '../../shared/api/gameApi';
 
 export function ConfigRoute({ mode }: { mode: 'freeplay' | 'daily' }) {
-  const { game, dailyInfo, cachedDailyResult, startGame, cancelGame, createGame, sharedSeed, boardCode, handleCodeChange, setBoardCode, lastConfig, setLastConfig, setDailyInfo } = useGame();
+  const { game, dailyInfo, cachedDailyResult, startGame, cancelGame, createGame, sharedSeed, boardCode, handleCodeChange, setBoardCode, lastConfig, setLastConfig, setDailyInfo, theme, toggleTheme } = useGame();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isDaily = mode === 'daily';
@@ -96,19 +96,18 @@ export function ConfigRoute({ mode }: { mode: 'freeplay' | 'daily' }) {
   const configKey = defaults ? `${defaults.boardSize}-${defaults.timer}-${defaults.minWordLength}` : 'default';
 
   return (
-    <div className="flex flex-1 items-center justify-center">
-      <GameConfigPage
-        key={configKey}
-        title={title}
-        subtitle="Choose your settings"
-        card={false}
-        onBack={handleBack}
-        onStart={isLocked ? () => handleStart() : handleStart}
-        disabled={isLocked}
-        defaultValues={defaults}
-        code={isLocked ? undefined : boardCode}
-        onCodeChange={isLocked ? undefined : handleCodeChange}
-      />
-    </div>
+    <GameConfigPage
+      key={configKey}
+      title={title}
+      subtitle="Choose your settings"
+      onBack={handleBack}
+      onStart={isLocked ? () => handleStart() : handleStart}
+      disabled={isLocked}
+      defaultValues={defaults}
+      code={isLocked ? undefined : boardCode}
+      onCodeChange={isLocked ? undefined : handleCodeChange}
+      theme={theme}
+      onToggleTheme={toggleTheme}
+    />
   );
 }

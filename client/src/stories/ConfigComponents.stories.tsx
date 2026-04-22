@@ -2,7 +2,6 @@ import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { BoardConfigCards } from '../pages/config/components/BoardConfigCards';
 import type { BoardSize } from '../pages/config/types';
-const DARK_BG = '#2C2C2E'; // matches --page-bg in dark theme
 
 const boardMeta: Meta<typeof BoardConfigCards> = {
   title: 'Components/BoardConfig',
@@ -13,26 +12,27 @@ const boardMeta: Meta<typeof BoardConfigCards> = {
 export default boardMeta;
 type Story = StoryObj<typeof BoardConfigCards>;
 
-function BoardWrapper({ initial = 4 as BoardSize, disabled = false, mode = 'light' as 'light' | 'dark' }) {
+function BoardWrapper({ initial = 4 as BoardSize, disabled = false }) {
   const [value, setValue] = useState<BoardSize>(initial);
-  return <BoardConfigCards value={value} onChange={setValue} disabled={disabled} mode={mode} />;
+  return <BoardConfigCards value={value} onChange={setValue} disabled={disabled} />;
+}
+
+function Frame({ theme, children }: { theme: 'light' | 'dark'; children: React.ReactNode }) {
+  return (
+    <div
+      data-theme={theme}
+      className="w-[340px] p-6 rounded-2xl bg-[var(--surface-panel)]"
+    >
+      {children}
+    </div>
+  );
 }
 
 export const BoardDefault: Story = {
   render: () => (
     <div className="flex gap-8">
-      <div className="w-[340px]">
-        <div className="text-xs text-[#999] font-semibold mb-3 uppercase tracking-wider">Light</div>
-        <div className="p-6 rounded-2xl bg-[#FAFAF8] border border-[#eee]">
-          <BoardWrapper />
-        </div>
-      </div>
-      <div className="w-[340px]">
-        <div className="text-xs text-[#999] font-semibold mb-3 uppercase tracking-wider">Dark</div>
-        <div className="p-6 rounded-2xl" style={{ backgroundColor: DARK_BG }}>
-          <BoardWrapper mode="dark" />
-        </div>
-      </div>
+      <Frame theme="light"><BoardWrapper /></Frame>
+      <Frame theme="dark"><BoardWrapper /></Frame>
     </div>
   ),
 };
@@ -40,18 +40,8 @@ export const BoardDefault: Story = {
 export const BoardDisabled: Story = {
   render: () => (
     <div className="flex gap-8">
-      <div className="w-[340px]">
-        <div className="text-xs text-[#999] font-semibold mb-3 uppercase tracking-wider">Light (disabled)</div>
-        <div className="p-6 rounded-2xl bg-[#FAFAF8] border border-[#eee]">
-          <BoardWrapper initial={5} disabled />
-        </div>
-      </div>
-      <div className="w-[340px]">
-        <div className="text-xs text-[#999] font-semibold mb-3 uppercase tracking-wider">Dark (disabled)</div>
-        <div className="p-6 rounded-2xl" style={{ backgroundColor: DARK_BG }}>
-          <BoardWrapper initial={5} disabled mode="dark" />
-        </div>
-      </div>
+      <Frame theme="light"><BoardWrapper initial={5} disabled /></Frame>
+      <Frame theme="dark"><BoardWrapper initial={5} disabled /></Frame>
     </div>
   ),
 };

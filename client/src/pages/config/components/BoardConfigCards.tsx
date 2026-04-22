@@ -22,12 +22,11 @@ interface BoardConfigCardsProps {
   value: BoardSize;
   onChange: (size: BoardSize) => void;
   disabled?: boolean;
-  mode?: 'light' | 'dark';
   code?: string;
   onCodeChange?: (code: string) => void;
 }
 
-export function BoardConfigCards({ value, onChange, disabled, mode = 'light', code, onCodeChange }: BoardConfigCardsProps) {
+export function BoardConfigCards({ value, onChange, disabled, code, onCodeChange }: BoardConfigCardsProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [codeOpen, setCodeOpen] = useState(false);
   const [internalCode, setInternalCode] = useState("");
@@ -64,15 +63,15 @@ export function BoardConfigCards({ value, onChange, disabled, mode = 'light', co
   }, [codeOpen]);
 
   return (
-    <div data-theme={mode === 'dark' ? 'dark' : undefined}>
+    <div>
       {/* Label row with code toggle */}
-      <div className="flex items-center justify-between mb-2">
-        <div
-          className="text-[0.68rem] text-[var(--label-color)] uppercase tracking-[0.06em]"
-          style={{ fontFamily: "var(--font-label)", fontWeight: "var(--font-label-weight)" as any }}
+      <div className="flex items-center justify-between mb-2.5">
+        <span
+          className="text-caption uppercase tracking-[0.06em] text-[color:var(--ink-muted)] leading-none font-[family-name:var(--font-structure)]"
+          style={{ fontWeight: 700 }}
         >
           Board
-        </div>
+        </span>
 
         <div className="flex items-center gap-1.5">
           <div
@@ -92,27 +91,15 @@ export function BoardConfigCards({ value, onChange, disabled, mode = 'light', co
               onChange={(e) => setCodeValue(formatCode(e.target.value))}
               placeholder="XXXX-XXXX-XXXX"
               maxLength={14}
-              className="
-                w-full bg-transparent border-none outline-none
-                text-[0.68rem] tracking-[0.06em] text-[var(--text)]
-                text-right
-                placeholder:text-[var(--text-muted)] placeholder:opacity-40
-              "
-              style={{ fontFamily: "var(--font-option)", fontWeight: "var(--font-option-weight)" as any }}
+              className="w-full bg-transparent border-none outline-none text-caption tracking-[0.06em] text-[color:var(--ink)] text-right placeholder:text-[color:var(--ink-soft)] font-[family-name:var(--font-structure)]"
+              style={{ fontWeight: 600 }}
             />
           </div>
 
           <button
             type="button"
             onClick={toggleCode}
-            className="
-              flex items-center justify-center
-              size-[1.5rem] rounded-full
-              bg-transparent border-none cursor-pointer
-              text-[var(--text-muted)] hover:text-[var(--text)]
-              transition-all duration-200
-              select-none
-            "
+            className="flex items-center justify-center size-[1.5rem] rounded-full bg-transparent border-none cursor-pointer text-[color:var(--ink-soft)] hover:text-[color:var(--ink)] transition-colors duration-200 select-none"
             style={{ WebkitTapHighlightColor: "transparent" }}
             aria-label={codeOpen ? "Close code input" : "Enter board code"}
           >
@@ -141,22 +128,18 @@ export function BoardConfigCards({ value, onChange, disabled, mode = 'light', co
               key={opt.size}
               type="button"
               onClick={() => handleSelect(opt.size)}
-              className={`
-                rounded-xl border-2 cursor-pointer
-                flex flex-col items-center text-center select-none
-                py-4 px-2 gap-[0.3rem]
-                transition-all duration-200
-                ${isSelected
-                  ? "border-[var(--accent)] bg-[var(--card)] shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
-                  : "border-transparent bg-[var(--track)] hover:bg-[var(--card)] hover:shadow-[0_1px_6px_rgba(0,0,0,0.04)]"
-                }
-                ${disabled && isSelected ? "opacity-70" : ""}
-                ${disabled && !isSelected ? "opacity-30" : ""}
-              `}
+              className={[
+                "rounded-xl flex flex-col items-center text-center select-none py-4 px-2 gap-[0.3rem] transition-all duration-200 cursor-pointer",
+                "bg-[var(--surface-card)]",
+                isSelected
+                  ? "border border-[var(--ink)] shadow-[var(--shadow-card)]"
+                  : "border border-[var(--ink-border-subtle)] hover:shadow-[var(--shadow-card)]",
+                disabled && isSelected ? "opacity-70" : "",
+                disabled && !isSelected ? "opacity-40" : "",
+              ].join(" ")}
               style={{
                 WebkitTapHighlightColor: "transparent",
-                fontFamily: "var(--font-option)",
-                fontWeight: "var(--font-option-weight)" as any,
+                fontFamily: "var(--font-ui)",
               }}
             >
               <div className="flex-1 flex items-center">
@@ -167,14 +150,21 @@ export function BoardConfigCards({ value, onChange, disabled, mode = 'light', co
                   disabled={disabled}
                 />
               </div>
-              <span className={`text-[0.78rem] leading-none mt-[0.3rem] ${isSelected ? "text-[var(--text)]" : "text-[var(--text-muted)]"}`}>
+              <span
+                className={[
+                  "text-small leading-none mt-[0.3rem] font-[family-name:var(--font-structure)] tabular-nums",
+                  isSelected ? "text-[color:var(--ink)]" : "text-[color:var(--ink-muted)]",
+                ].join(" ")}
+                style={{ fontWeight: 700 }}
+              >
                 {opt.label}
               </span>
               <span
-                className={`
-                  text-[0.52rem] mt-[0.05rem] transition-colors duration-200
-                  ${isSelected ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}
-                `}
+                className={[
+                  "text-label-xs uppercase tracking-[0.04em] transition-colors duration-200",
+                  isSelected ? "text-[color:var(--ink-muted)]" : "text-[color:var(--ink-soft)]",
+                ].join(" ")}
+                style={{ fontWeight: 600 }}
               >
                 {opt.sub}
               </span>
