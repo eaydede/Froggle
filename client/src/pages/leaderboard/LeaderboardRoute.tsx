@@ -151,10 +151,12 @@ export function LeaderboardRoute() {
         // Only wire self-click on today's leaderboard — DailyResultsRoute
         // reads dailyInfo from context, and cachedDaily is today's entry.
         // Historical self-results aren't browseable from here yet.
+        // The `from=leaderboard` hint tells the results page's Close to
+        // route back here instead of the landing page.
         leaderboard?.currentPlayer && cachedDaily && selectedDate === cachedDaily.date
           ? () => {
               setDailyInfo(cachedDaily);
-              navigate('/daily/results');
+              navigate('/daily/results?from=leaderboard');
             }
           : undefined
       }

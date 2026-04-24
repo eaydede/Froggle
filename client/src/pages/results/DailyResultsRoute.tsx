@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { GameState } from 'models';
 import { useGame } from '../../GameContext';
 import {
@@ -28,6 +28,11 @@ function toTeaserEntry(
 export function DailyResultsRoute() {
   const { dailyInfo, setDailyInfo, cancelGame, game, results } = useGame();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Source hint drives where Close navigates. Callers pass
+  // `?from=leaderboard` when the user arrived from the leaderboard so
+  // Close round-trips back; anything else defaults to landing.
+  const fromSource = searchParams.get('from');
   const [serverResult, setServerResult] = useState<DailyResultResponse | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,8 +51,12 @@ export function DailyResultsRoute() {
   }, [dailyInfo, results]);
 
   useEffect(() => {
-    if (!dailyInfo || fetchedRef.current) {
-      if (!dailyInfo) navigate('/');
+    // Once we've started loading we stop reacting to dailyInfo changes —
+    // otherwise a handleClose that clears dailyInfo would re-enter this
+    // effect and redirect to / before our own navigate lands.
+    if (fetchedRef.current) return;
+    if (!dailyInfo) {
+      navigate('/');
       return;
     }
     fetchedRef.current = true;
@@ -92,9 +101,13 @@ export function DailyResultsRoute() {
   };
 
   const handleClose = async () => {
+    const backToLeaderboard = fromSource === 'leaderboard' && dailyInfo;
+    const backTarget = backToLeaderboard
+      ? `/leaderboard?date=${dailyInfo!.date}`
+      : '/';
     setDailyInfo(null);
     if (game) await cancelGame();
-    navigate('/');
+    navigate(backTarget);
   };
 
   const handleOpenLeaderboard = () => {
