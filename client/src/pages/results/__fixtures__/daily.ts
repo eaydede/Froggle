@@ -1,6 +1,7 @@
 import { GameState, type Game } from 'models';
 import type { GameResults } from '../../../shared/types';
 import type { DailyResultsExtras } from '../ResultsPage';
+import type { DailyEntry } from '../../daily/types';
 
 // Canned daily-results payload used by the dev-only `?mock=daily` branch in
 // ResultsRoute. Words span every rarity tier so the stripes are visible.
@@ -48,6 +49,87 @@ export const dailyDefaultGame: Game = {
   },
 };
 
+const stubConfig = { boardSize: 5, timeLimit: 120, minWordLength: 3 };
+
+const pickerEntries: DailyEntry[] = [
+  {
+    puzzleNumber: 14,
+    date: new Date('2026-04-21T12:00:00'),
+    state: 'completed',
+    points: 142,
+    wordsFound: 19,
+    longestWord: 'CAPTIONS',
+    longestWordDefinition: null,
+    stampTier: 'top30',
+    playersCount: 38,
+    config: stubConfig,
+  },
+  {
+    puzzleNumber: 13,
+    date: new Date('2026-04-20T12:00:00'),
+    state: 'completed',
+    points: 91,
+    wordsFound: 15,
+    longestWord: 'BRIDGE',
+    longestWordDefinition: null,
+    stampTier: null,
+    playersCount: 42,
+    config: stubConfig,
+  },
+  {
+    puzzleNumber: 12,
+    date: new Date('2026-04-19T12:00:00'),
+    state: 'missed',
+    stampTier: null,
+    playersCount: 29,
+    config: stubConfig,
+  },
+  {
+    puzzleNumber: 11,
+    date: new Date('2026-04-18T12:00:00'),
+    state: 'completed',
+    points: 78,
+    wordsFound: 12,
+    longestWord: 'CANDLE',
+    longestWordDefinition: null,
+    stampTier: 'first',
+    playersCount: 31,
+    config: stubConfig,
+  },
+  {
+    puzzleNumber: 10,
+    date: new Date('2026-04-17T12:00:00'),
+    state: 'completed',
+    points: 104,
+    wordsFound: 17,
+    longestWord: 'PLATES',
+    longestWordDefinition: null,
+    stampTier: 'top30',
+    playersCount: 47,
+    config: stubConfig,
+  },
+  {
+    puzzleNumber: 9,
+    date: new Date('2026-04-16T12:00:00'),
+    state: 'missed',
+    stampTier: null,
+    playersCount: 35,
+    config: stubConfig,
+  },
+  {
+    puzzleNumber: 8,
+    date: new Date('2026-04-15T12:00:00'),
+    state: 'completed',
+    points: 88,
+    wordsFound: 14,
+    longestWord: 'CLAMP',
+    longestWordDefinition: null,
+    stampTier: null,
+    playersCount: 26,
+    config: stubConfig,
+  },
+];
+
 export const dailyDefaultExtras: DailyResultsExtras = {
   dateLabel: 'Tuesday, Apr 21',
   leaderboardTop: [
@@ -56,4 +138,8 @@ export const dailyDefaultExtras: DailyResultsExtras = {
   ],
   leaderboardYou: { rank: 47, name: 'you', score: 142 },
   onOpenLeaderboard: () => {},
+  pickerEntries,
+  onPickerSelect: () => {},
+  todayDate: '2026-04-21',
+  selectedDate: '2026-04-21',
 };

@@ -262,22 +262,25 @@ function DayCard({
     >
       <DateSquare day={day} wday={wday} missed={missed} isToday={isToday} />
       <div className="flex flex-col gap-[3px] min-w-0">
-        <div
-          className={[
-            'italic text-[13px] tracking-[-0.01em] leading-[1.1] font-[family-name:var(--font-display)]',
-            missed ? 'text-[color:var(--ink-soft)]' : 'text-[color:var(--ink)]',
-          ].join(' ')}
-          style={{ fontWeight: 500 }}
-        >
-          {headline}
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span
+            className={[
+              'italic text-[13px] tracking-[-0.01em] leading-[1.1] font-[family-name:var(--font-display)] truncate',
+              missed ? 'text-[color:var(--ink-soft)]' : 'text-[color:var(--ink)]',
+            ].join(' ')}
+            style={{ fontWeight: 500 }}
+          >
+            {headline}
+          </span>
           {isToday && (
             <span
-              className="inline-flex items-center ml-1.5 px-1.5 rounded-full bg-[var(--ink)] text-[color:var(--ink-inverse)] text-[8px] uppercase tracking-[0.08em] align-middle not-italic font-[family-name:var(--font-structure)]"
+              className="shrink-0 inline-flex items-center px-1.5 rounded-full bg-[var(--ink)] text-[color:var(--ink-inverse)] text-[8px] uppercase tracking-[0.08em] font-[family-name:var(--font-structure)]"
               style={{ fontWeight: 700, lineHeight: '1.4' }}
             >
               Now
             </span>
           )}
+          <PlayerCount count={entry.playersCount} />
         </div>
         {missed ? (
           <div
@@ -313,6 +316,24 @@ function DayCard({
         <span aria-hidden />
       )}
     </button>
+  );
+}
+
+function PlayerCount({ count }: { count: number }) {
+  return (
+    <span
+      className="shrink-0 flex items-center gap-[3px] text-[10px] tabular-nums text-[color:var(--ink-faint)] font-[family-name:var(--font-structure)]"
+      style={{ fontWeight: 600 }}
+      aria-label={`${count} ${count === 1 ? 'player' : 'players'}`}
+    >
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M17 20v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 20v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+      {count}
+    </span>
   );
 }
 
