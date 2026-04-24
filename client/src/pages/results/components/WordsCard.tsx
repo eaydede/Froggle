@@ -27,13 +27,20 @@ export function WordsCard({
   const listRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(false);
 
-  const active = mode === 'found' ? foundWords : missedWords;
-  const activeTotal = active.reduce((sum, w) => sum + w.score, 0);
   const foundTotal = foundWords.reduce((sum, w) => sum + w.score, 0);
 
-  // Sort by score descending, ties alphabetical — matches the mockup where
-  // the legendary / epic rows lead and commons tail.
-  const sorted = [...active].sort(
+  // In reveal mode we show the full solve — found + missed together —
+  // with missed rows styled muted so the user sees what they missed in
+  // context rather than a bare list of failures. Found mode stays
+  // focused on what the user actually found.
+  type Row = ScoredWord & { found: boolean };
+  const rows: Row[] = mode === 'found'
+    ? foundWords.map((w) => ({ ...w, found: true }))
+    : [
+        ...foundWords.map((w) => ({ ...w, found: true })),
+        ...missedWords.map((w) => ({ ...w, found: false })),
+      ];
+  const sorted: Row[] = [...rows].sort(
     (a, b) => b.score - a.score || a.word.localeCompare(b.word),
   );
 
@@ -74,9 +81,9 @@ export function WordsCard({
   return (
     <div className="flex flex-col min-h-0 rounded-xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] overflow-hidden">
       <SectionHeader
-        label={mode === 'found' ? 'Found' : 'Missed'}
-        count={active.length}
-        trailing={mode === 'found' ? String(foundTotal) : null}
+        label={mode === 'found' ? 'Found' : 'All words'}
+        count={mode === 'found' ? foundWords.length : foundWords.length + missedWords.length}
+        trailing={mode === 'found' ? String(foundTotal) : `${foundWords.length}/${foundWords.length + missedWords.length}`}
       />
 
       <div
@@ -94,11 +101,11 @@ export function WordsCard({
       >
         {sorted.map((w, i) => (
           <WordRow
-            key={`${w.word}-${i}`}
+            key={`${w.word}-${w.found ? 'f' : 'm'}-${i}`}
             word={w.word}
             score={w.score}
             first={i === 0}
-            found={mode === 'found'}
+            found={w.found}
             highlighted={highlightedWord === w.word}
             onTap={() => tapWord(w.word, w.path)}
           />
