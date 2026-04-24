@@ -66,24 +66,24 @@ function Row({
   return (
     <div
       className={[
-        'flex justify-between items-center tabular-nums text-xs',
+        'flex items-center gap-2 tabular-nums text-xs',
         separated ? 'py-[5px] border-t border-b border-[var(--ink-border-subtle)]' : '',
       ].join(' ')}
     >
       <span
         className={[
-          'min-w-6 text-[11px] font-[family-name:var(--font-structure)]',
+          'shrink-0 min-w-6 text-[11px] font-[family-name:var(--font-structure)]',
           you ? 'text-[color:var(--ink)]' : 'text-[color:var(--ink-soft)]',
         ].join(' ')}
         style={{ fontWeight: 700, letterSpacing: '0.02em' }}
       >
         #{entry.rank}
       </span>
-      <span className={`flex-1 truncate ${nameColor}`} style={{ fontWeight: nameWeight }}>
+      <span className={`flex-1 min-w-0 truncate ${nameColor}`} style={{ fontWeight: nameWeight }}>
         {you ? 'you' : entry.name}
       </span>
       <span
-        className="text-[color:var(--ink)] font-[family-name:var(--font-structure)]"
+        className="shrink-0 text-[color:var(--ink)] font-[family-name:var(--font-structure)]"
         style={{ fontWeight: 700 }}
       >
         {entry.score}
