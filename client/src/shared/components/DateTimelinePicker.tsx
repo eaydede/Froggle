@@ -248,7 +248,7 @@ function DayCard({
       disabled={disabled}
       data-date={iso}
       className={[
-        'relative grid items-center gap-3.5 p-2.5 rounded-lg w-full text-left cursor-pointer border-none transition-colors duration-150',
+        'relative grid items-center gap-5 p-2.5 rounded-lg w-full text-left cursor-pointer border-none transition-colors duration-150',
         missed
           ? 'bg-transparent opacity-60 hover:opacity-85 hover:bg-[var(--ink-whisper)]'
           : 'bg-[var(--ink-whisper)] hover:bg-[var(--ink-trace)]',
