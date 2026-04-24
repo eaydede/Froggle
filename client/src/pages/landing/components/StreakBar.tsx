@@ -10,12 +10,8 @@ interface StreakBarProps {
 
 export function StreakBar({ streak, days, todayUnplayed }: StreakBarProps) {
   const windowSize = days.length;
-  const pastFilled = todayUnplayed
-    ? "bg-[var(--ink-mid)]"
-    : "bg-[var(--streak-green-soft)]";
-  const pastEmpty = todayUnplayed
-    ? "bg-[var(--ink-trace)]"
-    : "bg-[var(--streak-green-soft)]";
+  const pastFilled = "bg-[var(--streak-green-filled)]";
+  const pastEmpty = "bg-[var(--ink-trace)]";
 
   return (
     <div className="flex flex-col gap-[10px]">
