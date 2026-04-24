@@ -34,7 +34,7 @@ function toTeaserEntry(
 }
 
 export function DailyResultsRoute() {
-  const { dailyInfo, setDailyInfo, cancelGame, game, results } = useGame();
+  const { dailyInfo, setDailyInfo, cancelGame, game, results, cachedDailyResult } = useGame();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const fromSource = searchParams.get('from');
@@ -80,16 +80,14 @@ export function DailyResultsRoute() {
     const fetchResult = liveDailyResults
       ? Promise.resolve(null)
       : fetchDailyResult(targetDate);
-    const fetchLb = fetchLeaderboard(targetDate).catch(() => null);
 
-    Promise.all([fetchResult, fetchLb])
-      .then(([result, lb]) => {
+    fetchResult
+      .then((result) => {
         if (!liveDailyResults && !result) {
           navigate('/');
           return;
         }
         setServerResult(result);
-        setLeaderboard(lb);
         setLoading(false);
       })
       .catch(() => {
@@ -97,6 +95,19 @@ export function DailyResultsRoute() {
         setLoading(false);
       });
   }, [targetDate, liveDailyResults, navigate]);
+
+  // Leaderboard fetch is decoupled from the result fetch. On a fresh daily
+  // completion (liveDailyResults truthy) the server hasn't yet recorded
+  // the player's row — firing `fetchLeaderboard` immediately would return
+  // a teaser that omits the current user. Wait for GameContext to confirm
+  // the server record via `cachedDailyResult` before fetching.
+  useEffect(() => {
+    if (!targetDate) return;
+    if (liveDailyResults && !cachedDailyResult) return;
+    fetchLeaderboard(targetDate)
+      .then(setLeaderboard)
+      .catch(() => setLeaderboard(null));
+  }, [targetDate, liveDailyResults, cachedDailyResult]);
 
   // Stats for the picker entries — fetched once, independent of the
   // current target date.
