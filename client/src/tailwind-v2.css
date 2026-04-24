@@ -10,7 +10,12 @@
  * slightly LIGHTER than the panel (same floating logic as light mode).
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
+/*
+ * Fonts (Fraunces / Inter / Outfit) are loaded via <link> tags in
+ * index.html rather than @import, because when Tailwind's generated CSS
+ * precedes this file in the bundle, the @import ends up after other
+ * statements and Vite rejects it per the CSS spec.
+ */
 
 @theme {
   /* Font families used across the new design */
@@ -23,7 +28,8 @@
   --text-logo: 1.5625rem;     /* 25px — brand wordmark */
   --text-display-sm: 2rem;     /* 32px — hero question */
   --text-display-md: 2.125rem; /* 34px — streak numeral */
-  --text-display-lg: 2.875rem; /* 46px — score numeral */
+  --text-display-lg: 2.875rem; /* 46px — score numeral on the landing card */
+  --text-display-xl: 3.625rem; /* 58px — results hero score */
 }
 
 /* Light theme (default) */
@@ -47,6 +53,16 @@
   --streak-green-soft: rgba(107, 142, 78, 0.30);
   --streak-green-glow: rgba(107, 142, 78, 0.22);
   --logo-dot: #7A9B5E;
+
+  /* Word-rarity palette — used as 4px left stripes on word rows.
+     Tiers are score-driven: 1→common, 2→uncommon, 3→rare, 5→epic,
+     11+→legendary. Kept intentionally muted so they read as an
+     accent, not as the primary visual. */
+  --rarity-common:    #8F8A80;
+  --rarity-uncommon:  #4E9B3A;
+  --rarity-rare:      #2B7DB8;
+  --rarity-epic:      #9B4AAC;
+  --rarity-legendary: #D17A28;
 
   /* Layered floating-card shadows — three-stop stack creates depth
      without any single dark halo. */
@@ -86,6 +102,12 @@
   --streak-green-soft: rgba(139, 179, 102, 0.32);
   --streak-green-glow: rgba(139, 179, 102, 0.22);
   --logo-dot: #8FB06E;
+
+  --rarity-common:    #A39C8F;
+  --rarity-uncommon:  #8BB366;
+  --rarity-rare:      #6FA3C8;
+  --rarity-epic:      #B086C0;
+  --rarity-legendary: #E09A5C;
 
   --shadow-card:
     0 1px 2px rgba(0, 0, 0, 0.25),

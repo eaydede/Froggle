@@ -1,4 +1,3 @@
-import { ThemeTogglePill } from "../landing/components";
 import { InkButton } from "../../shared/components/InkButton";
 
 interface DailyConfirmPageProps {
@@ -9,8 +8,10 @@ interface DailyConfirmPageProps {
   playersCount: number | null;
   onStart: () => void;
   onBack: () => void;
-  theme: "light" | "dark";
-  onToggleTheme: () => void;
+  /** When the user has already completed today's daily, swap the Start
+   *  button for a See result affordance and disable the replay path. */
+  alreadyPlayed?: boolean;
+  onSeeResult?: () => void;
 }
 
 function formatTimer(seconds: number): string {
@@ -28,26 +29,30 @@ export function DailyConfirmPage({
   playersCount,
   onStart,
   onBack,
-  theme,
-  onToggleTheme,
+  alreadyPlayed = false,
+  onSeeResult,
 }: DailyConfirmPageProps) {
   return (
     <div className="fixed inset-0 flex items-start justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] overflow-y-auto">
-      <ThemeTogglePill theme={theme} onToggle={onToggleTheme} />
-
       <div className="w-full max-w-[360px] min-h-full flex flex-col px-[22px] pt-[24px] pb-[22px]">
         <div className="flex items-center pt-[18px]">
           <BackButton onClick={onBack} />
         </div>
 
         <div className="flex-1 flex flex-col justify-center gap-[26px] px-1">
-          <Hero dateLabel={dateLabel} />
+          <Hero dateLabel={dateLabel} alreadyPlayed={alreadyPlayed} />
           <ConfigCard boardSize={boardSize} timeLimit={timeLimit} minWordLength={minWordLength} />
           <p className="text-small text-[color:var(--ink-muted)] text-center leading-[1.5]">
-            One attempt only. Timer starts when you tap start.
+            {alreadyPlayed
+              ? "You've already played today. Come back tomorrow for a fresh puzzle."
+              : 'One attempt only. Timer starts when you tap start.'}
           </p>
           <div className="flex flex-col gap-1">
-            <StartButton onClick={onStart} />
+            {alreadyPlayed ? (
+              <SeeResultButton onClick={onSeeResult ?? onBack} />
+            ) : (
+              <StartButton onClick={onStart} />
+            )}
             <PlayersCount count={playersCount} />
             <button
               type="button"
@@ -55,7 +60,7 @@ export function DailyConfirmPage({
               className="bg-transparent border-none py-3 text-small text-[color:var(--ink-soft)] hover:text-[color:var(--ink)] cursor-pointer text-center transition-colors duration-200 font-[family-name:var(--font-ui)]"
               style={{ fontWeight: 500, WebkitTapHighlightColor: "transparent" }}
             >
-              Not yet
+              Back to home
             </button>
           </div>
         </div>
@@ -90,7 +95,7 @@ function BackButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-function Hero({ dateLabel }: { dateLabel: string }) {
+function Hero({ dateLabel, alreadyPlayed }: { dateLabel: string; alreadyPlayed: boolean }) {
   return (
     <div className="text-center">
       <div
@@ -103,7 +108,7 @@ function Hero({ dateLabel }: { dateLabel: string }) {
         className="text-display-sm italic leading-[1.1] tracking-[-0.015em] font-[family-name:var(--font-display)]"
         style={{ fontWeight: 500 }}
       >
-        Ready to play?
+        {alreadyPlayed ? 'Already played.' : 'Ready to play?'}
       </div>
     </div>
   );
@@ -174,6 +179,27 @@ function StartButton({ onClick }: { onClick: () => void }) {
   return (
     <InkButton onClick={onClick}>
       Start
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="transition-transform duration-200 group-hover:translate-x-[3px]"
+      >
+        <path d="M5 12h14M13 5l7 7-7 7" />
+      </svg>
+    </InkButton>
+  );
+}
+
+function SeeResultButton({ onClick }: { onClick: () => void }) {
+  return (
+    <InkButton onClick={onClick}>
+      See result
       <svg
         width="14"
         height="14"

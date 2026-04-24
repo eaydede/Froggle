@@ -168,7 +168,21 @@ export const recordDailyResultToServer = async (date: string, foundWords: string
   return response.json();
 };
 
-export const fetchDailyResult = async (date: string): Promise<{ found_words: string[]; board: string[][] } | null> => {
+export interface DailyResultMissedWord {
+  word: string;
+  path: { row: number; col: number }[];
+  score: number;
+}
+
+export interface DailyResultResponse {
+  found_words: string[];
+  board: string[][];
+  /** Computed server-side at read time; absent in very old stored results
+   *  but always present from the current endpoint. */
+  missed_words?: DailyResultMissedWord[];
+}
+
+export const fetchDailyResult = async (date: string): Promise<DailyResultResponse | null> => {
   const response = await fetch(`${API_URL}/daily/results/${date}`, {
     headers: await sessionHeaders(),
   });

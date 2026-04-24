@@ -17,6 +17,7 @@ interface DailyConfirmFixture {
   timeLimit: number;
   minWordLength: number;
   playersCount: number | null;
+  alreadyPlayed?: boolean;
 }
 
 const FIXTURES: Record<string, DailyConfirmFixture> = {
@@ -27,6 +28,14 @@ const FIXTURES: Record<string, DailyConfirmFixture> = {
     minWordLength: 3,
     playersCount: 1247,
   },
+  played: {
+    dateLabel: 'Tuesday · April 21',
+    boardSize: 5,
+    timeLimit: 120,
+    minWordLength: 3,
+    playersCount: 1247,
+    alreadyPlayed: true,
+  },
 };
 
 export function DailyConfirmRoute() {
@@ -34,13 +43,13 @@ export function DailyConfirmRoute() {
   const [searchParams] = useSearchParams();
   const {
     cachedDaily,
+    cachedDailyResult,
+    dailyResultLoaded,
     authReady,
     createGame,
     startGame,
     game,
     setDailyInfo,
-    theme,
-    toggleTheme,
   } = useGame();
   const [playersCount, setPlayersCount] = useState<number | null>(null);
 
@@ -75,6 +84,14 @@ export function DailyConfirmRoute() {
 
   const handleStart = async () => {
     if (mockFixture || !cachedDaily) return;
+    // Safety net — the UI already swaps Start for See result in the
+    // already-played state, but a mis-click/keyboard path shouldn't
+    // create a second attempt.
+    if (cachedDailyResult) {
+      setDailyInfo(cachedDaily);
+      navigate('/daily/results');
+      return;
+    }
     setDailyInfo(cachedDaily);
     if (!game) await createGame();
     await startGame(
@@ -87,6 +104,12 @@ export function DailyConfirmRoute() {
     navigate('/game');
   };
 
+  const handleSeeResult = () => {
+    if (!cachedDaily) return;
+    setDailyInfo(cachedDaily);
+    navigate('/daily/results');
+  };
+
   if (mockFixture) {
     return (
       <DailyConfirmPage
@@ -97,13 +120,17 @@ export function DailyConfirmRoute() {
         playersCount={mockFixture.playersCount}
         onStart={() => {}}
         onBack={handleBack}
-        theme={theme}
-        onToggleTheme={toggleTheme}
+        alreadyPlayed={mockFixture.alreadyPlayed}
+        onSeeResult={() => {}}
       />
     );
   }
 
-  if (!cachedDaily) {
+  // Wait for both the daily payload and the "has the user already played"
+  // lookup to settle before rendering. Otherwise we'd briefly flash the
+  // Start button for a user who has already played, then swap it to See
+  // result once the cache fills in.
+  if (!cachedDaily || !dailyResultLoaded) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)]" />
     );
@@ -118,8 +145,8 @@ export function DailyConfirmRoute() {
       playersCount={playersCount}
       onStart={handleStart}
       onBack={handleBack}
-      theme={theme}
-      onToggleTheme={toggleTheme}
+      alreadyPlayed={cachedDailyResult !== null}
+      onSeeResult={handleSeeResult}
     />
   );
 }

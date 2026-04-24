@@ -7,7 +7,7 @@ import { decodeGameParams } from '../../shared/utils/gameLink';
 import { fetchDaily } from '../../shared/api/gameApi';
 
 export function ConfigRoute({ mode }: { mode: 'freeplay' | 'daily' }) {
-  const { game, dailyInfo, cachedDailyResult, startGame, cancelGame, createGame, sharedSeed, boardCode, handleCodeChange, setBoardCode, lastConfig, setLastConfig, setDailyInfo, theme, toggleTheme } = useGame();
+  const { game, dailyInfo, cachedDailyResult, startGame, cancelGame, createGame, sharedSeed, boardCode, handleCodeChange, setBoardCode, lastConfig, setLastConfig, setDailyInfo } = useGame();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isDaily = mode === 'daily';
@@ -106,8 +106,6 @@ export function ConfigRoute({ mode }: { mode: 'freeplay' | 'daily' }) {
       defaultValues={defaults}
       code={isLocked ? undefined : boardCode}
       onCodeChange={isLocked ? undefined : handleCodeChange}
-      theme={theme}
-      onToggleTheme={toggleTheme}
     />
   );
 }

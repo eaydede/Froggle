@@ -39,10 +39,10 @@ export function ResultsRoute() {
     }
   };
 
-  // Back skips the game page since navigating back into an in-progress
-  // game doesn't make sense: go to the freeplay config, or to the daily
-  // stats page if this was a daily.
-  const handleBack = async () => {
+  // Close bails to the freeplay config (or the daily confirm page if this
+  // was a daily). Skips /game since navigating back into an in-progress
+  // game doesn't make sense.
+  const handleClose = async () => {
     navigatingRef.current = true;
     if (dailyInfo) {
       setDailyInfo(null);
@@ -54,5 +54,14 @@ export function ResultsRoute() {
     }
   };
 
-  return <ResultsPage results={effectiveResults} onPlayAgain={handlePlayAgain} onBack={handleBack} game={effectiveGame} gameSeed={gameSeed} dailyNumber={dailyInfo?.number} />;
+  return (
+    <ResultsPage
+      results={effectiveResults}
+      game={effectiveGame}
+      gameSeed={gameSeed}
+      onClose={handleClose}
+      onPlayAgain={handlePlayAgain}
+      daily={mockFixture?.daily}
+    />
+  );
 }

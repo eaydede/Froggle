@@ -1,8 +1,11 @@
 import { Router } from 'express';
 import { getDailySeed } from 'models/seedCode';
 import { generateSeededBoard } from 'engine/board.js';
+import { findAllWords } from 'engine/solver.js';
+import { scoreWord } from 'engine/scoring.js';
 import { requireAuth } from '../middleware/auth.js';
 import { getDb } from '../db/index.js';
+import { dictionary } from '../services/dictionary.js';
 import { scoreResult, scoreWords, getDailyStats } from '../services/DailyService.js';
 import {
   DAILY_BOARD_SIZE,
@@ -87,11 +90,30 @@ dailyRouter.get('/results/:date', requireAuth, async (req, res) => {
       return res.json({ result: null });
     }
 
+    // Compute missed words on demand. The found_words column is canonical;
+    // we re-solve the board each time rather than storing the full solution
+    // so old results automatically pick up any future dictionary or
+    // scoring changes. The 5x5 board + ~170k-word dictionary runs in a
+    // couple of ms so the compute cost is negligible at this endpoint's
+    // volume.
+    const board: string[][] = typeof result.board === 'string'
+      ? JSON.parse(result.board)
+      : result.board;
+    const foundWords: string[] = typeof result.found_words === 'string'
+      ? JSON.parse(result.found_words)
+      : result.found_words;
+    const foundSet = new Set(foundWords.map((w) => w.toUpperCase()));
+    const missedWords = findAllWords(board, dictionary, DAILY_MIN_WORD_LENGTH)
+      .filter((w) => !foundSet.has(w.word))
+      .map((w) => ({ word: w.word, path: w.path, score: scoreWord(w.word) }))
+      .sort((a, b) => b.score - a.score || b.word.length - a.word.length);
+
     res.json({
       result: {
         date: result.date,
-        found_words: result.found_words,
-        board: result.board,
+        found_words: foundWords,
+        board,
+        missed_words: missedWords,
         completed_at: result.completed_at,
       },
     });

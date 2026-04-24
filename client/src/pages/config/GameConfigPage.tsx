@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { BoardConfigCards, TimerConfig, LetterConfig } from "./components";
 import { InkButton } from "../../shared/components/InkButton";
-import { ThemeTogglePill } from "../landing/components";
 import type { GameConfig, BoardSize, TimerOption, MinWordLength } from "./types";
 import { decodeSeedCode } from "models/seedCode";
 
@@ -18,8 +17,6 @@ interface GameConfigPageProps {
   onCodeChange?: (code: string) => void;
   onBack?: () => void;
   onStart?: (config: GameConfig) => void;
-  theme: "light" | "dark";
-  onToggleTheme: () => void;
 }
 
 export function GameConfigPage({
@@ -31,8 +28,6 @@ export function GameConfigPage({
   onCodeChange,
   onBack,
   onStart,
-  theme,
-  onToggleTheme,
 }: GameConfigPageProps) {
   const [boardSize, setBoardSize] = useState<BoardSize>(defaultValues?.boardSize ?? 4);
   const [timer, setTimer] = useState<TimerOption>(defaultValues?.timer ?? 60);
@@ -56,8 +51,6 @@ export function GameConfigPage({
 
   return (
     <div className="fixed inset-0 flex items-start justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] overflow-y-auto">
-      <ThemeTogglePill theme={theme} onToggle={onToggleTheme} />
-
       <div className="w-full max-w-[360px] flex flex-col px-[22px] pt-[24px] pb-[22px] gap-6">
         {onBack && (
           <div className="flex items-center pt-[18px]">
