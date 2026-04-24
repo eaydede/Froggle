@@ -42,7 +42,7 @@ export function DailyCard({
         </span>
       </div>
 
-      <div className="px-5 pt-[14px] pb-5 flex flex-col gap-[14px]">
+      <div className="px-5 pt-[14px] pb-3 flex flex-col gap-[14px]">
         <StreakBar streak={streak} days={streakDays} todayUnplayed={!completed} />
 
         {completed && results ? (
