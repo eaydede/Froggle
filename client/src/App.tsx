@@ -6,11 +6,12 @@ import { ConfigRoute } from './pages/config';
 import { GameRoute } from './pages/game';
 import { ResultsRoute, DailyResultsRoute } from './pages/results';
 import { LeaderboardRoute } from './pages/leaderboard';
-import { DailyPuzzleRoute } from './pages/daily';
+import { DailyConfirmRoute } from './pages/daily';
+import { DailyCompareRoute } from './pages/compare';
 import './tailwind.css';
 
 function App() {
-  const { game, showHomeConfirm, setShowHomeConfirm, cancelGame, setDailyInfo, theme, toggleTheme } = useGame();
+  const { game, showHomeConfirm, setShowHomeConfirm, cancelGame, setDailyInfo } = useGame();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -32,13 +33,15 @@ function App() {
   };
 
   return (
-    <div className="max-w-[800px] mx-auto p-5 bg-[var(--page-bg)] text-[var(--text)] h-dvh box-border overflow-y-auto flex flex-col touch-pan-y font-[family-name:var(--font-body)]" style={{ WebkitOverflowScrolling: 'touch' }}>
+    <div className="max-w-[800px] mx-auto p-5 bg-[var(--surface-panel)] text-[color:var(--ink)] h-dvh box-border overflow-y-auto flex flex-col touch-pan-y font-[family-name:var(--font-ui)]" style={{ WebkitOverflowScrolling: 'touch' }}>
       {showTitle && (
         <h1
           onClick={handleTitleClick}
-          className="text-center text-title tracking-[-0.025em] m-0 mb-2.5 cursor-pointer select-none transition-all duration-200 hover:scale-105 font-[family-name:var(--font-heading)] [font-weight:var(--font-heading-weight)]"
+          className="text-center text-logo italic leading-none tracking-[-0.02em] m-0 mb-2.5 cursor-pointer select-none transition-all duration-200 hover:scale-105 font-[family-name:var(--font-display)]"
+          style={{ fontWeight: 600 }}
         >
           Froggle
+          <span className="inline-block w-[5px] h-[5px] rounded-full bg-[var(--logo-dot)] ml-[2px] align-baseline mb-[3px]" />
         </h1>
       )}
 
@@ -64,41 +67,15 @@ function App() {
         </div>
       )}
 
-      {location.pathname === '/' && (
-        <button
-          onClick={toggleTheme}
-          className="fixed bottom-5 right-5 w-9 h-9 rounded-full bg-[var(--card)] border-none cursor-pointer flex items-center justify-center shadow-[0_2px_8px_rgba(0,0,0,0.1)] transition-all duration-200 hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:scale-105 z-10 text-[var(--text-muted)]"
-          aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-          style={{ WebkitTapHighlightColor: 'transparent' }}
-        >
-          {theme === 'light' ? (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-            </svg>
-          ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="5" />
-              <line x1="12" y1="1" x2="12" y2="3" />
-              <line x1="12" y1="21" x2="12" y2="23" />
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-              <line x1="1" y1="12" x2="3" y2="12" />
-              <line x1="21" y1="12" x2="23" y2="12" />
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-            </svg>
-          )}
-        </button>
-      )}
-
       <Routes>
         <Route path="/" element={<LandingRoute />} />
         <Route path="/play" element={<ConfigRoute mode="freeplay" />} />
-        <Route path="/daily" element={<DailyPuzzleRoute />} />
+        <Route path="/daily" element={<DailyConfirmRoute />} />
         <Route path="/daily/results" element={<DailyResultsRoute />} />
         <Route path="/game" element={<GameRoute />} />
         <Route path="/results" element={<ResultsRoute />} />
         <Route path="/leaderboard" element={<LeaderboardRoute />} />
+        <Route path="/daily/compare" element={<DailyCompareRoute />} />
       </Routes>
     </div>
   );

@@ -90,6 +90,7 @@ leaderboardRouter.get('/:date', async (req, res) => {
       const sorted = [...scored].sort((a, b) => b[sortKey] - a[sortKey]);
       return sorted.map((p, i) => ({
         rank: i + 1,
+        userId: p.userId,
         displayName: p.displayName,
         value: Math.round(p[sortKey]),
         subLabel: `${p[subLabelKey]} ${subLabelSuffix}`,
@@ -154,9 +155,14 @@ leaderboardRouter.get('/:date', async (req, res) => {
       }
     }
 
+    const avgScore = scored.length === 0
+      ? 0
+      : Math.round(scored.reduce((sum, p) => sum + p.points, 0) / scored.length);
+
     res.json({
       puzzleNumber: getDailyNumber(date),
       totalPlayers,
+      avgScore,
       rankings,
       currentPlayer,
     });

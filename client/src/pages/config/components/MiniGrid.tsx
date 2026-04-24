@@ -49,18 +49,17 @@ export function MiniGrid({ size, selected, animationKey, disabled }: MiniGridPro
         const isHi = hi.includes(i);
         const isHi2 = hi2.includes(i);
 
-        let colorClass = "bg-[var(--dot)]";
+        let bg = "var(--ink-faint)";
         if (selected) {
-          if (isHi) colorClass = "bg-[var(--dot-hi)]";
-          else if (isHi2) colorClass = "bg-[var(--dot-hi2)]";
-          // Non-highlighted cells stay at --dot when selected
+          if (isHi) bg = "var(--ink)";
+          else if (isHi2) bg = "var(--ink-mid)";
         }
 
         return (
           <div
             key={i}
-            className={`cell size-1.5 rounded-[1.5px] transition-all duration-350 ${colorClass}`}
-            style={{ animationDelay: `${i * 0.015}s` }}
+            className="cell size-1.5 rounded-[1.5px] transition-all duration-350"
+            style={{ background: bg, animationDelay: `${i * 0.015}s` }}
           />
         );
       })}

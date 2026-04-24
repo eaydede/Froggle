@@ -96,19 +96,16 @@ export function ConfigRoute({ mode }: { mode: 'freeplay' | 'daily' }) {
   const configKey = defaults ? `${defaults.boardSize}-${defaults.timer}-${defaults.minWordLength}` : 'default';
 
   return (
-    <div className="flex flex-1 items-center justify-center">
-      <GameConfigPage
-        key={configKey}
-        title={title}
-        subtitle="Choose your settings"
-        card={false}
-        onBack={handleBack}
-        onStart={isLocked ? () => handleStart() : handleStart}
-        disabled={isLocked}
-        defaultValues={defaults}
-        code={isLocked ? undefined : boardCode}
-        onCodeChange={isLocked ? undefined : handleCodeChange}
-      />
-    </div>
+    <GameConfigPage
+      key={configKey}
+      title={title}
+      subtitle="Choose your settings"
+      onBack={handleBack}
+      onStart={isLocked ? () => handleStart() : handleStart}
+      disabled={isLocked}
+      defaultValues={defaults}
+      code={isLocked ? undefined : boardCode}
+      onCodeChange={isLocked ? undefined : handleCodeChange}
+    />
   );
 }

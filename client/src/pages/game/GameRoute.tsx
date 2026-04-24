@@ -15,16 +15,16 @@ export function GameRoute() {
     } else if (game.status === GameState.Finished && results && !navigatingRef.current) {
       // Game finished (timer expired or server-side end) and results are ready
       navigatingRef.current = true;
-      navigate('/results');
+      navigate(dailyInfo ? '/daily/results' : '/results');
     }
-  }, [game, game?.status, results, navigate]);
+  }, [game, game?.status, results, navigate, dailyInfo]);
 
   if (!game || game.status !== GameState.InProgress) return null;
 
   const handleEndGame = async () => {
     navigatingRef.current = true;
     await endGame();
-    navigate('/results');
+    navigate(dailyInfo ? '/daily/results' : '/results');
   };
 
   return (

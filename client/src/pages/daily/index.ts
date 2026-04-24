@@ -1,1 +1,1 @@
-export { DailyPuzzleRoute } from "./DailyRoute";
+export { DailyConfirmRoute } from "./DailyConfirmRoute";

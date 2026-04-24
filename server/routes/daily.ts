@@ -1,8 +1,12 @@
 import { Router } from 'express';
 import { getDailySeed } from 'models/seedCode';
 import { generateSeededBoard } from 'engine/board.js';
+import { findAllWords } from 'engine/solver.js';
+import { scoreWord } from 'engine/scoring.js';
 import { requireAuth } from '../middleware/auth.js';
 import { getDb } from '../db/index.js';
+import { getSupabaseAdmin } from '../supabaseAdmin.js';
+import { dictionary } from '../services/dictionary.js';
 import { scoreResult, scoreWords, getDailyStats } from '../services/DailyService.js';
 import {
   DAILY_BOARD_SIZE,
@@ -87,17 +91,127 @@ dailyRouter.get('/results/:date', requireAuth, async (req, res) => {
       return res.json({ result: null });
     }
 
+    // Compute missed words on demand. The found_words column is canonical;
+    // we re-solve the board each time rather than storing the full solution
+    // so old results automatically pick up any future dictionary or
+    // scoring changes. The 5x5 board + ~170k-word dictionary runs in a
+    // couple of ms so the compute cost is negligible at this endpoint's
+    // volume.
+    const board: string[][] = typeof result.board === 'string'
+      ? JSON.parse(result.board)
+      : result.board;
+    const foundWords: string[] = typeof result.found_words === 'string'
+      ? JSON.parse(result.found_words)
+      : result.found_words;
+    const foundSet = new Set(foundWords.map((w) => w.toUpperCase()));
+    const missedWords = findAllWords(board, dictionary, DAILY_MIN_WORD_LENGTH)
+      .filter((w) => !foundSet.has(w.word))
+      .map((w) => ({ word: w.word, path: w.path, score: scoreWord(w.word) }))
+      .sort((a, b) => b.score - a.score || b.word.length - a.word.length);
+
     res.json({
       result: {
         date: result.date,
-        found_words: result.found_words,
-        board: result.board,
+        found_words: foundWords,
+        board,
+        missed_words: missedWords,
         completed_at: result.completed_at,
       },
     });
   } catch (err) {
     console.error('Failed to fetch daily result:', err);
     res.status(500).json({ error: 'Failed to fetch result' });
+  }
+});
+
+// Side-by-side comparison of two users' daily submissions. Requires both
+// players to have submitted for the given date. Returns already-scored
+// payloads plus displayName lookups so the client can render the compare
+// page without additional fan-out requests.
+dailyRouter.get('/compare/:date', requireAuth, async (req, res) => {
+  const { date } = req.params;
+  const otherUserId = typeof req.query.other === 'string' ? req.query.other : '';
+  const meUserId = req.userId!;
+
+  if (!otherUserId) {
+    return res.status(400).json({ error: 'Missing query param: other' });
+  }
+  if (otherUserId === meUserId) {
+    return res.status(400).json({ error: 'Cannot compare with yourself' });
+  }
+
+  try {
+    const db = getDb();
+    const rows = await db
+      .selectFrom('daily_results')
+      .selectAll()
+      .where('date', '=', date)
+      .where('user_id', 'in', [meUserId, otherUserId])
+      .execute();
+
+    const mine = rows.find((r) => r.user_id === meUserId);
+    const theirs = rows.find((r) => r.user_id === otherUserId);
+
+    if (!mine) {
+      return res.status(409).json({ error: 'You have not played this daily yet' });
+    }
+    if (!theirs) {
+      return res.status(404).json({ error: 'Opponent has not played this daily' });
+    }
+
+    const admin = getSupabaseAdmin();
+    const [meMeta, themMeta] = await Promise.all(
+      [meUserId, otherUserId].map((uid) =>
+        admin.auth.admin
+          .getUserById(uid)
+          .then((r) => r.data.user?.user_metadata?.display_name || 'Anonymous')
+          .catch(() => 'Anonymous'),
+      ),
+    );
+
+    const parse = (r: typeof rows[number]) => {
+      const board: string[][] = typeof r.board === 'string' ? JSON.parse(r.board) : r.board;
+      const words: string[] = typeof r.found_words === 'string'
+        ? JSON.parse(r.found_words)
+        : r.found_words;
+      return { board, words };
+    };
+
+    const me = parse(mine);
+    const them = parse(theirs);
+
+    const board = me.board;
+
+    const mePayload = {
+      userId: meUserId,
+      displayName: meMeta,
+      points: scoreWords(me.words),
+      wordCount: me.words.length,
+      foundWords: me.words.map((word) => ({ word, score: scoreWord(word) })),
+    };
+    const themPayload = {
+      userId: otherUserId,
+      displayName: themMeta,
+      points: scoreWords(them.words),
+      wordCount: them.words.length,
+      foundWords: them.words.map((word) => ({ word, score: scoreWord(word) })),
+    };
+
+    res.json({
+      date,
+      puzzleNumber: getDailyNumber(date),
+      board,
+      me: mePayload,
+      them: themPayload,
+      config: {
+        boardSize: DAILY_BOARD_SIZE,
+        timeLimit: DAILY_TIME_LIMIT,
+        minWordLength: DAILY_MIN_WORD_LENGTH,
+      },
+    });
+  } catch (err) {
+    console.error('Failed to fetch daily compare:', err);
+    res.status(500).json({ error: 'Failed to fetch compare' });
   }
 });
 

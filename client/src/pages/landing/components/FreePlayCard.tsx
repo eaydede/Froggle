@@ -1,53 +1,44 @@
-type CardMode = 'light' | 'dark';
-
 interface FreePlayCardProps {
   onClick: () => void;
-  mode?: CardMode;
 }
 
-export function FreePlayCard({ onClick, mode = 'light' }: FreePlayCardProps) {
-  const dark = mode === 'dark';
-
-  const bg = dark ? '#3A3A3C' : 'var(--card)';
-  const textColor = dark ? '#E5E5E7' : 'var(--text)';
-  const subtitleColor = dark ? 'rgba(255,255,255,0.45)' : 'var(--text-muted)';
-  const arrowColor = dark ? 'rgba(255,255,255,0.35)' : 'var(--text-muted)';
-  const arrowHoverColor = dark ? 'rgba(255,255,255,0.7)' : 'var(--text-mid)';
-  const shadow = dark
-    ? '0 0 0 1px rgba(255,255,255,0.06), 0 4px 24px rgba(0,0,0,0.3)'
-    : '0 0 0 1px rgba(0,0,0,0.04), 0 4px 24px rgba(0,0,0,0.06)';
-  const hoverShadow = dark
-    ? '0 0 0 1px rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.4)'
-    : '0 0 0 1px rgba(0,0,0,0.06), 0 8px 32px rgba(0,0,0,0.08)';
-
+export function FreePlayCard({ onClick }: FreePlayCardProps) {
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
-      className="group rounded-2xl cursor-pointer select-none flex items-center justify-between transition-all duration-200 active:scale-[0.985] active:duration-[60ms] sm:px-6 sm:py-5"
-      style={{
-        padding: '1.15rem 1.35rem',
-        WebkitTapHighlightColor: 'transparent',
-        backgroundColor: bg,
-        boxShadow: shadow,
-        color: textColor,
-      }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = hoverShadow; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = shadow; }}
+      aria-label="Free play"
+      className="group flex items-center justify-between gap-3 w-full rounded-2xl px-5 py-4 bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] cursor-pointer select-none text-left hover:-translate-y-px hover:shadow-[var(--shadow-card-hover)] active:scale-[0.99] transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] font-[family-name:var(--font-ui)]"
+      style={{ WebkitTapHighlightColor: "transparent" }}
     >
-      <div>
-        <div className="text-[0.95rem] font-bold">Free Play</div>
-        <div className="text-[0.68rem] font-medium mt-0.5" style={{ color: subtitleColor }}>
-          Pick your own settings
-        </div>
-      </div>
-      <span
-        className="text-[0.85rem] transition-all duration-200 group-hover:translate-x-[3px]"
-        style={{ color: arrowColor }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = arrowHoverColor; }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = arrowColor; }}
-      >
-        →
+      <span className="flex flex-col gap-[3px]">
+        <span
+          className="text-body-lg leading-none tracking-[-0.01em] text-[color:var(--ink)] font-[family-name:var(--font-structure)]"
+          style={{ fontWeight: 700 }}
+        >
+          Free play
+        </span>
+        <span
+          className="text-xs leading-[1.3] text-[color:var(--ink-soft)]"
+          style={{ fontWeight: 500 }}
+        >
+          Custom board, time, and letters
+        </span>
       </span>
-    </div>
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+        className="shrink-0 text-[color:var(--ink-faint)] group-hover:text-[color:var(--ink-muted)] group-hover:translate-x-[3px] transition-[transform,color] duration-200"
+      >
+        <path d="M9 18l6-6-6-6" />
+      </svg>
+    </button>
   );
 }

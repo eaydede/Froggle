@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { BoardConfigCards, TimerConfig, LetterConfig } from "./components";
+import { InkButton } from "../../shared/components/InkButton";
 import type { GameConfig, BoardSize, TimerOption, MinWordLength } from "./types";
 import { decodeSeedCode } from "models/seedCode";
-
 
 interface GameConfigPageProps {
   title?: string;
   subtitle?: string;
-  card?: boolean;
   disabled?: boolean;
   defaultValues?: {
     boardSize: BoardSize;
@@ -16,12 +15,20 @@ interface GameConfigPageProps {
   };
   code?: string;
   onCodeChange?: (code: string) => void;
-  onBoardSizeOverride?: (size: BoardSize) => void;
   onBack?: () => void;
   onStart?: (config: GameConfig) => void;
 }
 
-export function GameConfigPage({ title, subtitle, card = true, disabled = false, defaultValues, code, onCodeChange, onBack, onStart }: GameConfigPageProps) {
+export function GameConfigPage({
+  title,
+  subtitle,
+  disabled = false,
+  defaultValues,
+  code,
+  onCodeChange,
+  onBack,
+  onStart,
+}: GameConfigPageProps) {
   const [boardSize, setBoardSize] = useState<BoardSize>(defaultValues?.boardSize ?? 4);
   const [timer, setTimer] = useState<TimerOption>(defaultValues?.timer ?? 60);
   const [minWordLength, setMinWordLength] = useState<MinWordLength>(defaultValues?.minWordLength ?? 3);
@@ -38,80 +45,101 @@ export function GameConfigPage({ title, subtitle, card = true, disabled = false,
     }
   }, [code]);
 
-  function handleBoardSizeChange(size: BoardSize) {
-    setBoardSize(size);
-  }
-
   function handleStart() {
     onStart?.({ boardSize, timer, minWordLength });
   }
 
   return (
-    <div
-      className={`
-        w-full max-w-[400px]
-        ${card
-          ? "bg-[var(--card)] rounded-[20px] p-7 sm:p-9 shadow-[0_0_0_1px_rgba(0,0,0,0.04),0_4px_24px_rgba(0,0,0,0.06)]"
-          : "p-0"
-        }
-      `}
-    >
-      {/* Header */}
-      {(title || subtitle || onBack) && (
-        <div className="mb-8 relative">
-          {onBack && (
-            <button
-              type="button"
-              onClick={onBack}
-              className="
-                absolute left-0 top-1/2 -translate-y-1/2
-                bg-transparent border-none cursor-pointer leading-none flex
-                text-lg text-[var(--text-muted)] hover:text-[var(--text)]
-                transition-colors duration-200 select-none
-              "
-              style={{ WebkitTapHighlightColor: "transparent" }}
-              aria-label="Back"
-            >
-              &#8249;
-            </button>
-          )}
-          <div className="text-center">
-            {title && (
-              <h1 className="text-[1.35rem] tracking-[-0.025em]" style={{ fontFamily: 'var(--font-heading)', fontWeight: 'var(--font-heading-weight)' as any }}>
-                {title}
-              </h1>
-            )}
-            {subtitle && (
-              <p className="text-[0.75rem] text-[var(--text-muted)] mt-0.5">
-                {subtitle}
-              </p>
-            )}
+    <div className="fixed inset-0 flex justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] overflow-hidden">
+      <div className="w-full max-w-[360px] min-h-0 flex flex-col px-[22px] pt-[24px] pb-[22px]">
+        {onBack && (
+          <div className="flex items-center pt-[6px]">
+            <BackButton onClick={onBack} />
+          </div>
+        )}
+
+        <div className="flex-1 min-h-0 flex flex-col justify-center gap-5">
+          {(title || subtitle) && <Header title={title} subtitle={subtitle} />}
+
+          <div className="flex flex-col gap-4">
+            <BoardConfigCards
+              value={boardSize}
+              onChange={setBoardSize}
+              disabled={disabled || hasValidCode}
+              code={code}
+              onCodeChange={onCodeChange}
+            />
+            <TimerConfig value={timer} onChange={setTimer} disabled={disabled} />
+            <LetterConfig value={minWordLength} onChange={setMinWordLength} disabled={disabled} />
           </div>
         </div>
-      )}
 
-      {/* Config sections */}
-      <div className="flex flex-col gap-6">
-        <BoardConfigCards value={boardSize} onChange={handleBoardSizeChange} disabled={disabled || hasValidCode} code={code} onCodeChange={onCodeChange} />
-        <TimerConfig value={timer} onChange={setTimer} disabled={disabled} />
-        <LetterConfig value={minWordLength} onChange={setMinWordLength} disabled={disabled} />
+        <InkButton onClick={handleStart}>
+          Start
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="transition-transform duration-200 group-hover:translate-x-[3px]"
+          >
+            <path d="M5 12h14M13 5l7 7-7 7" />
+          </svg>
+        </InkButton>
       </div>
+    </div>
+  );
+}
 
-      {/* Start button */}
-      <button
-        type="button"
-        onClick={handleStart}
-        className="
-          w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] active:scale-[0.975] active:duration-[60ms] text-white border-none rounded-xl
-          py-3.5 mt-8
-          text-[0.85rem]
-          cursor-pointer select-none
-          transition-all duration-200
-        "
-        style={{ WebkitTapHighlightColor: "transparent", fontFamily: 'var(--font-button)', fontWeight: 'var(--font-button-weight)' as any }}
+function BackButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex items-center gap-1.5 bg-transparent border-none text-small text-[color:var(--ink-muted)] hover:text-[color:var(--ink)] cursor-pointer py-1.5 pr-2 font-[family-name:var(--font-ui)] transition-colors duration-200"
+      style={{ fontWeight: 500, WebkitTapHighlightColor: "transparent" }}
+    >
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="transition-transform duration-200 group-hover:-translate-x-[2px]"
       >
-        Start
-      </button>
+        <path d="M15 18l-6-6 6-6" />
+      </svg>
+      Back
+    </button>
+  );
+}
+
+function Header({ title, subtitle }: { title?: string; subtitle?: string }) {
+  return (
+    <div className="text-center">
+      {title && (
+        <div
+          className="text-caption uppercase tracking-[0.08em] text-[color:var(--ink-soft)] leading-none mb-2 font-[family-name:var(--font-structure)]"
+          style={{ fontWeight: 700 }}
+        >
+          {title}
+        </div>
+      )}
+      {subtitle && (
+        <div
+          className="italic leading-[1.1] tracking-[-0.015em] text-display-sm font-[family-name:var(--font-display)]"
+          style={{ fontWeight: 500 }}
+        >
+          {subtitle}
+        </div>
+      )}
     </div>
   );
 }

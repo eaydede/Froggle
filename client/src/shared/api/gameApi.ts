@@ -168,7 +168,21 @@ export const recordDailyResultToServer = async (date: string, foundWords: string
   return response.json();
 };
 
-export const fetchDailyResult = async (date: string): Promise<{ found_words: string[]; board: string[][] } | null> => {
+export interface DailyResultMissedWord {
+  word: string;
+  path: { row: number; col: number }[];
+  score: number;
+}
+
+export interface DailyResultResponse {
+  found_words: string[];
+  board: string[][];
+  /** Computed server-side at read time; absent in very old stored results
+   *  but always present from the current endpoint. */
+  missed_words?: DailyResultMissedWord[];
+}
+
+export const fetchDailyResult = async (date: string): Promise<DailyResultResponse | null> => {
   const response = await fetch(`${API_URL}/daily/results/${date}`, {
     headers: await sessionHeaders(),
   });
@@ -178,6 +192,7 @@ export const fetchDailyResult = async (date: string): Promise<{ found_words: str
 
 export interface LeaderboardRankingEntry {
   rank: number;
+  userId: string;
   displayName: string;
   value: number;
   subLabel: string;
@@ -197,6 +212,8 @@ export interface LeaderboardPlayerCard {
 export interface LeaderboardResponse {
   puzzleNumber: number;
   totalPlayers: number;
+  /** Mean point score across all submissions for the day. */
+  avgScore: number;
   rankings: {
     points: LeaderboardRankingEntry[];
     words: LeaderboardRankingEntry[];
@@ -210,6 +227,54 @@ export const fetchLeaderboard = async (date: string): Promise<LeaderboardRespons
     headers: await sessionHeaders(),
   });
   return response.json();
+};
+
+export interface DailyCompareScoredWord {
+  word: string;
+  score: number;
+}
+
+export interface DailyComparePlayer {
+  userId: string;
+  displayName: string;
+  points: number;
+  wordCount: number;
+  foundWords: DailyCompareScoredWord[];
+}
+
+export interface DailyCompareResponse {
+  date: string;
+  puzzleNumber: number;
+  board: string[][];
+  me: DailyComparePlayer;
+  them: DailyComparePlayer;
+  config: {
+    boardSize: number;
+    timeLimit: number;
+    minWordLength: number;
+  };
+}
+
+export type DailyCompareError = 'unplayed' | 'opponent-missing' | 'forbidden' | 'unknown';
+
+/** Fetches a side-by-side compare payload for the given date and opponent.
+ *  Returns a discriminated result so callers can render specific states
+ *  (you-haven't-played, opponent-missing) without guessing from HTTP codes. */
+export const fetchDailyCompare = async (
+  date: string,
+  otherUserId: string,
+): Promise<{ ok: true; data: DailyCompareResponse } | { ok: false; error: DailyCompareError }> => {
+  const response = await fetch(
+    `${API_URL}/daily/compare/${date}?other=${encodeURIComponent(otherUserId)}`,
+    { headers: await sessionHeaders() },
+  );
+  if (response.ok) {
+    return { ok: true, data: await response.json() };
+  }
+  if (response.status === 409) return { ok: false, error: 'unplayed' };
+  if (response.status === 404) return { ok: false, error: 'opponent-missing' };
+  if (response.status === 400) return { ok: false, error: 'forbidden' };
+  return { ok: false, error: 'unknown' };
 };
 
 export interface DailyHistoryEntry {
