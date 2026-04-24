@@ -14,12 +14,44 @@ export interface WordDefinition {
   word: string;
   phonetic?: string;
   meanings: Meaning[];
+  /** Human-readable source, e.g. "Wiktionary" or a host like "dictionaryapi.dev".
+   *  Rendered in the sheet footer as "From {source}". */
+  source: string;
+  /** Optional license label (e.g. "CC BY-SA 3.0") when the upstream API
+   *  exposes one; appended after the source in the attribution. */
+  license?: string;
+  /** Canonical URL for the entry when available — used as the link target
+   *  should we ever wrap attribution in an anchor. */
+  sourceUrl?: string;
+}
+
+/** Maps a URL's host to a friendly project name. Unknown hosts pass
+ *  through so we at least attribute *something* accurate. */
+function sourceFromUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, '');
+    if (host.endsWith('wiktionary.org')) return 'Wiktionary';
+    if (host.endsWith('wikipedia.org')) return 'Wikipedia';
+    return host;
+  } catch {
+    return undefined;
+  }
 }
 
 const cache = new Map<string, WordDefinition | null>();
 
 function parsePrimaryApi(data: unknown): WordDefinition | null {
-  const d = data as { word: string; entries?: { partOfSpeech: string; pronunciations?: { text?: string }[]; senses: { definition: string; examples?: string[] }[] }[] };
+  const d = data as {
+    word: string;
+    source?: { url?: string; name?: string };
+    license?: { name?: string; url?: string };
+    entries?: {
+      partOfSpeech: string;
+      pronunciations?: { text?: string }[];
+      senses: { definition: string; examples?: string[] }[];
+    }[];
+  };
   if (!d || !d.entries || d.entries.length === 0) return null;
 
   const phonetic = d.entries[0]?.pronunciations?.find((p) => p.text)?.text;
@@ -36,14 +68,38 @@ function parsePrimaryApi(data: unknown): WordDefinition | null {
       })),
     });
   }
-  return { word: d.word, phonetic, meanings };
+
+  const sourceUrl = d.source?.url;
+  // freedictionaryapi.com mirrors Wiktionary, so default the label there
+  // if the response doesn't declare anything more specific.
+  const source = d.source?.name ?? sourceFromUrl(sourceUrl) ?? 'Wiktionary';
+  return {
+    word: d.word,
+    phonetic,
+    meanings,
+    source,
+    license: d.license?.name,
+    sourceUrl,
+  };
 }
 
 function parseFallbackApi(data: unknown): WordDefinition | null {
-  const arr = data as { word: string; phonetic?: string; phonetics?: { text?: string }[]; meanings: { partOfSpeech: string; definitions: { definition: string; example?: string }[] }[] }[];
+  const arr = data as {
+    word: string;
+    phonetic?: string;
+    phonetics?: { text?: string }[];
+    meanings: {
+      partOfSpeech: string;
+      definitions: { definition: string; example?: string }[];
+    }[];
+    license?: { name?: string; url?: string };
+    sourceUrls?: string[];
+  }[];
   if (!Array.isArray(arr) || arr.length === 0) return null;
 
   const entry = arr[0];
+  const sourceUrl = entry.sourceUrls?.[0];
+  const source = sourceFromUrl(sourceUrl) ?? 'dictionaryapi.dev';
   return {
     word: entry.word,
     phonetic: entry.phonetic || entry.phonetics?.find((p) => p.text)?.text,
@@ -54,6 +110,9 @@ function parseFallbackApi(data: unknown): WordDefinition | null {
         example: d.example,
       })),
     })),
+    source,
+    license: entry.license?.name,
+    sourceUrl,
   };
 }
 

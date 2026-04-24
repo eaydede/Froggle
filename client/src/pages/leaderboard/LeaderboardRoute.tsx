@@ -11,11 +11,18 @@ import {
   type DailyInfo,
 } from '../../shared/api/gameApi';
 import { LeaderboardPage } from './LeaderboardPage';
-import type { RankingType } from './components';
+import { useShareText } from '../results/hooks/useShareText';
 import type { DailyEntry } from '../daily/types';
 
 function getTodayPST(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+}
+
+function formatDateLabel(dateIso: string): string {
+  const d = new Date(dateIso + 'T12:00:00');
+  const weekday = d.toLocaleString('en-US', { weekday: 'long' });
+  const month = d.toLocaleString('en-US', { month: 'long' });
+  return `${weekday}, ${month} ${d.getDate()}`;
 }
 
 function adaptDay(day: DailyStatsDay, config: DailyInfo['config']): DailyEntry {
@@ -38,19 +45,14 @@ export function LeaderboardRoute() {
   const [searchParams] = useSearchParams();
   const { dailyInfo } = useGame();
 
-  // ?date=YYYY-MM-DD takes precedence so the daily page's leaderboard button
-  // can deep-link to whichever day the user was viewing.
   const [selectedDate, setSelectedDate] = useState<string>(
     searchParams.get('date') ?? dailyInfo?.date ?? getTodayPST(),
   );
-  const [rankingType, setRankingType] = useState<RankingType>('points');
   const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(null);
   const [stats, setStats] = useState<DailyStatsResponse | null>(null);
   const [config, setConfig] = useState<DailyInfo['config'] | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Navigator data comes from the same endpoint that drives the daily page,
-  // so the picker is identical in data and UI across both pages.
   useEffect(() => {
     Promise.all([fetchDailyStats(), fetchDaily()]).then(([s, info]) => {
       setStats(s);
@@ -86,45 +88,60 @@ export function LeaderboardRoute() {
     [entries],
   );
 
-  const rankings = useMemo(
-    () => leaderboard?.rankings[rankingType] ?? [],
-    [leaderboard, rankingType],
-  );
+  const pointsRankings = leaderboard?.rankings.points ?? [];
 
-  const topThreeUnit = useMemo(() => {
-    switch (rankingType) {
-      default:
-        return 'pts';
-      case 'words':
-        return 'w';
-    }
-  }, [rankingType]);
-
-  const topThree = useMemo(
+  // Top-3 for the podium. Handles the common case but also degrades to
+  // the first N entries when a puzzle has fewer than three players.
+  const podium = useMemo(
     () =>
-      rankings.slice(0, 3).map((r) => ({
+      pointsRankings.slice(0, 3).map((r) => ({
         rank: r.rank as 1 | 2 | 3,
-        displayName: r.displayName,
-        value: r.value,
-        unit: topThreeUnit,
+        name: r.displayName,
+        score: r.value,
+        userId: r.userId,
+        isCurrentUser: r.isCurrentUser,
       })),
-    [rankings, topThreeUnit],
+    [pointsRankings],
   );
+
+  const rankingsForList = useMemo(
+    () =>
+      pointsRankings.map((r) => ({
+        rank: r.rank,
+        userId: r.userId,
+        displayName: r.displayName,
+        subLabel: r.subLabel,
+        value: r.value,
+        isCurrentUser: r.isCurrentUser,
+      })),
+    [pointsRankings],
+  );
+
+  const youFallback = leaderboard?.currentPlayer
+    ? `#${leaderboard.currentPlayer.rank}`
+    : undefined;
+
+  const { share } = useShareText(() => {
+    const url = `${window.location.origin}/leaderboard?date=${selectedDate}`;
+    return `Daily #${leaderboard?.puzzleNumber ?? ''} leaderboard — ${url}`;
+  });
 
   if (loading && !leaderboard) return null;
 
   return (
     <LeaderboardPage
-      title={`Daily #${leaderboard?.puzzleNumber ?? ''}`}
+      dateLabel={formatDateLabel(selectedDate)}
       entries={entries}
       currentIndex={currentIndex}
       onChangeIndex={handleChangeIndex}
-      rankingType={rankingType}
-      onRankingTypeChange={setRankingType}
-      topThree={topThree}
-      rankings={rankings}
-      onMyResults={() => navigate('/daily/results')}
+      podium={podium}
+      rankings={rankingsForList}
+      totalPlayers={leaderboard?.totalPlayers ?? 0}
+      avgScore={leaderboard?.avgScore ?? 0}
+      youTopPercent={leaderboard?.currentPlayer?.topPercent ?? null}
+      youFallback={youFallback}
       onBack={() => navigate(-1)}
+      onShare={share}
       onCompare={
         leaderboard?.currentPlayer
           ? (userId) => navigate(`/daily/compare?date=${selectedDate}&user=${userId}`)

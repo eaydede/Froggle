@@ -39,9 +39,10 @@ export function ResultsRoute() {
     }
   };
 
-  // Close bails to the freeplay config (or the daily confirm page if this
-  // was a daily). Skips /game since navigating back into an in-progress
-  // game doesn't make sense.
+  // Close bails out of the results flow entirely. Free play goes to the
+  // landing page (Play again already covers returning to /play), and
+  // daily returns to the daily confirm so the user can see the
+  // already-played state.
   const handleClose = async () => {
     navigatingRef.current = true;
     if (dailyInfo) {
@@ -50,7 +51,7 @@ export function ResultsRoute() {
       navigate('/daily');
     } else {
       if (game) await cancelGame();
-      navigate('/play');
+      navigate('/');
     }
   };
 

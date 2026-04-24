@@ -74,6 +74,17 @@
   --compare-shared-bg:    rgba(112, 112, 112, 0.04);
   --compare-shared-bg-hi: rgba(112, 112, 112, 0.09);
 
+  /* Podium / medal palette for the leaderboard — gold/silver/bronze
+     with matching pillar tints (~14% alpha). */
+  --podium-gold:    #CA9E34;
+  --podium-gold-bg: rgba(202, 158, 52, 0.14);
+  --podium-silver:  #9B9B9B;
+  --podium-silver-bg: rgba(155, 155, 155, 0.16);
+  --podium-bronze:  #9E6B3C;
+  --podium-bronze-bg: rgba(158, 107, 60, 0.12);
+  --you-highlight-bg: rgba(78, 126, 155, 0.06);
+  --you-highlight-bg-hi: rgba(78, 126, 155, 0.10);
+
   /* Layered floating-card shadows — three-stop stack creates depth
      without any single dark halo. */
   --shadow-card:
@@ -126,6 +137,15 @@
   --compare-shared:  #9B9B9B;
   --compare-shared-bg:    rgba(155, 155, 155, 0.06);
   --compare-shared-bg-hi: rgba(155, 155, 155, 0.10);
+
+  --podium-gold:    #DCB554;
+  --podium-gold-bg: rgba(220, 181, 84, 0.17);
+  --podium-silver:  #B5B5B5;
+  --podium-silver-bg: rgba(181, 181, 181, 0.14);
+  --podium-bronze:  #C99465;
+  --podium-bronze-bg: rgba(201, 148, 101, 0.14);
+  --you-highlight-bg: rgba(125, 174, 207, 0.08);
+  --you-highlight-bg-hi: rgba(125, 174, 207, 0.12);
 
   --shadow-card:
     0 1px 2px rgba(0, 0, 0, 0.25),

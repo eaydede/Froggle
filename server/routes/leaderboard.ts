@@ -155,9 +155,14 @@ leaderboardRouter.get('/:date', async (req, res) => {
       }
     }
 
+    const avgScore = scored.length === 0
+      ? 0
+      : Math.round(scored.reduce((sum, p) => sum + p.points, 0) / scored.length);
+
     res.json({
       puzzleNumber: getDailyNumber(date),
       totalPlayers,
+      avgScore,
       rankings,
       currentPlayer,
     });

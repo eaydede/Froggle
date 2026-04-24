@@ -212,6 +212,8 @@ export interface LeaderboardPlayerCard {
 export interface LeaderboardResponse {
   puzzleNumber: number;
   totalPlayers: number;
+  /** Mean point score across all submissions for the day. */
+  avgScore: number;
   rankings: {
     points: LeaderboardRankingEntry[];
     words: LeaderboardRankingEntry[];

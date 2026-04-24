@@ -137,7 +137,8 @@ export function WordDefinitionSheet({
             <div
               className="pt-3.5 mt-4 border-t border-[var(--ink-border-subtle)] text-center italic text-[11px] text-[color:var(--ink-soft)] font-[family-name:var(--font-display)]"
             >
-              From Wiktionary · CC BY-SA 4.0
+              From {definition.source}
+              {definition.license ? ` · ${definition.license}` : ''}
             </div>
           )}
         </div>
