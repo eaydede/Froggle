@@ -2,10 +2,17 @@ export interface LeaderboardTeaserEntry {
   rank: number;
   name: string;
   score: number;
+  isCurrentUser?: boolean;
 }
 
 interface LeaderboardTeaserProps {
+  /** Top-of-leaderboard rows, in rank order. If the current user is
+   *  among them (e.g. they placed 1st), their row gets the "you"
+   *  treatment and `you` below should be null so they don't appear
+   *  twice in the card. */
   top: LeaderboardTeaserEntry[];
+  /** Separate current-user row rendered under the top rows when the user
+   *  isn't in `top`. Pass null when the user already appears above. */
   you: LeaderboardTeaserEntry | null;
   onClick: () => void;
 }
@@ -19,9 +26,9 @@ export function LeaderboardTeaser({ top, you, onClick }: LeaderboardTeaserProps)
       style={{ WebkitTapHighlightColor: 'transparent' }}
     >
       {top.map((e) => (
-        <Row key={e.rank} entry={e} />
+        <Row key={`top-${e.rank}`} entry={e} />
       ))}
-      {you && <YouRow entry={you} />}
+      {you && <Row entry={{ ...you, isCurrentUser: true }} separated />}
       <div
         className="flex items-center justify-center gap-1 pt-1 text-[11px] uppercase tracking-[0.04em] text-[color:var(--ink-muted)] font-[family-name:var(--font-structure)]"
         style={{ fontWeight: 700 }}
@@ -44,39 +51,36 @@ export function LeaderboardTeaser({ top, you, onClick }: LeaderboardTeaserProps)
   );
 }
 
-function Row({ entry }: { entry: LeaderboardTeaserEntry }) {
+function Row({
+  entry,
+  separated,
+}: {
+  entry: LeaderboardTeaserEntry;
+  /** When true, add horizontal dividers above/below — used for the "you"
+   *  row that sits apart from the top rows. */
+  separated?: boolean;
+}) {
+  const you = !!entry.isCurrentUser;
+  const nameColor = you ? 'text-[color:var(--ink)]' : 'text-[color:var(--ink-muted)]';
+  const nameWeight = you ? 700 : 500;
   return (
-    <div className="flex justify-between items-center tabular-nums text-xs">
+    <div
+      className={[
+        'flex justify-between items-center tabular-nums text-xs',
+        separated ? 'py-[5px] border-t border-b border-[var(--ink-border-subtle)]' : '',
+      ].join(' ')}
+    >
       <span
-        className="min-w-6 text-[11px] text-[color:var(--ink-soft)] font-[family-name:var(--font-structure)]"
+        className={[
+          'min-w-6 text-[11px] font-[family-name:var(--font-structure)]',
+          you ? 'text-[color:var(--ink)]' : 'text-[color:var(--ink-soft)]',
+        ].join(' ')}
         style={{ fontWeight: 700, letterSpacing: '0.02em' }}
       >
         #{entry.rank}
       </span>
-      <span className="flex-1 text-[color:var(--ink-muted)] truncate" style={{ fontWeight: 500 }}>
-        {entry.name}
-      </span>
-      <span
-        className="text-[color:var(--ink)] font-[family-name:var(--font-structure)]"
-        style={{ fontWeight: 700 }}
-      >
-        {entry.score}
-      </span>
-    </div>
-  );
-}
-
-function YouRow({ entry }: { entry: LeaderboardTeaserEntry }) {
-  return (
-    <div className="flex justify-between items-center tabular-nums text-xs py-[5px] border-t border-b border-[var(--ink-border-subtle)]">
-      <span
-        className="min-w-6 text-[11px] text-[color:var(--ink)] font-[family-name:var(--font-structure)]"
-        style={{ fontWeight: 700, letterSpacing: '0.02em' }}
-      >
-        #{entry.rank}
-      </span>
-      <span className="flex-1 text-[color:var(--ink)]" style={{ fontWeight: 700 }}>
-        {entry.name}
+      <span className={`flex-1 truncate ${nameColor}`} style={{ fontWeight: nameWeight }}>
+        {you ? 'you' : entry.name}
       </span>
       <span
         className="text-[color:var(--ink)] font-[family-name:var(--font-structure)]"

@@ -43,7 +43,7 @@ function adaptDay(day: DailyStatsDay, config: DailyInfo['config']): DailyEntry {
 export function LeaderboardRoute() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { dailyInfo } = useGame();
+  const { dailyInfo, setDailyInfo, cachedDaily } = useGame();
 
   const [selectedDate, setSelectedDate] = useState<string>(
     searchParams.get('date') ?? dailyInfo?.date ?? getTodayPST(),
@@ -145,6 +145,17 @@ export function LeaderboardRoute() {
       onCompare={
         leaderboard?.currentPlayer
           ? (userId) => navigate(`/daily/compare?date=${selectedDate}&user=${userId}`)
+          : undefined
+      }
+      onSelfClick={
+        // Only wire self-click on today's leaderboard — DailyResultsRoute
+        // reads dailyInfo from context, and cachedDaily is today's entry.
+        // Historical self-results aren't browseable from here yet.
+        leaderboard?.currentPlayer && cachedDaily && selectedDate === cachedDaily.date
+          ? () => {
+              setDailyInfo(cachedDaily);
+              navigate('/daily/results');
+            }
           : undefined
       }
     />

@@ -19,6 +19,9 @@ interface LeaderboardPageProps {
   onBack: () => void;
   onShare: () => void;
   onCompare?: (userId: string) => void;
+  /** Fires when tapping the current user's own row/podium pillar —
+   *  routes to their results page. */
+  onSelfClick?: () => void;
 }
 
 export function LeaderboardPage({
@@ -35,6 +38,7 @@ export function LeaderboardPage({
   onBack,
   onShare,
   onCompare,
+  onSelfClick,
 }: LeaderboardPageProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -96,14 +100,14 @@ export function LeaderboardPage({
           </div>
         )}
 
-        <Podium entries={podium} onCompare={onCompare} />
+        <Podium entries={podium} onCompare={onCompare} onSelfClick={onSelfClick} />
         <InlineStats
           totalPlayers={totalPlayers}
           avgScore={avgScore}
           youTopPercent={youTopPercent}
           youFallback={youFallback}
         />
-        <LeaderboardList entries={rankings} onCompare={onCompare} />
+        <LeaderboardList entries={rankings} onCompare={onCompare} onSelfClick={onSelfClick} />
       </div>
     </div>
   );

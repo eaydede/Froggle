@@ -8,21 +8,22 @@ export interface PodiumEntry {
 
 interface PodiumProps {
   entries: PodiumEntry[];
-  /** Tapping a pillar dispatches the same compare navigation as a list
-   *  row. Omitted when the current user hasn't played. */
+  /** Tapping an *other* player's pillar routes to the compare page. */
   onCompare?: (userId: string) => void;
+  /** Tapping the current-user pillar routes to their own results. */
+  onSelfClick?: () => void;
 }
 
 /** Visual podium — 2 / 1 / 3 columns with different pillar heights. The
  *  shape itself encodes the ranking so we don't need border colors or
  *  explicit number badges. A small crown sits above first. */
-export function Podium({ entries, onCompare }: PodiumProps) {
+export function Podium({ entries, onCompare, onSelfClick }: PodiumProps) {
   const byRank = new Map(entries.map((e) => [e.rank, e]));
   return (
     <div className="grid items-end gap-1 mt-3.5 px-0.5 flex-shrink-0" style={{ gridTemplateColumns: '1fr 1.1fr 1fr' }}>
-      <Pillar place="second" entry={byRank.get(2)} onCompare={onCompare} />
-      <Pillar place="first" entry={byRank.get(1)} onCompare={onCompare} />
-      <Pillar place="third" entry={byRank.get(3)} onCompare={onCompare} />
+      <Pillar place="second" entry={byRank.get(2)} onCompare={onCompare} onSelfClick={onSelfClick} />
+      <Pillar place="first" entry={byRank.get(1)} onCompare={onCompare} onSelfClick={onSelfClick} />
+      <Pillar place="third" entry={byRank.get(3)} onCompare={onCompare} onSelfClick={onSelfClick} />
     </div>
   );
 }
@@ -31,10 +32,12 @@ function Pillar({
   place,
   entry,
   onCompare,
+  onSelfClick,
 }: {
   place: 'first' | 'second' | 'third';
   entry?: PodiumEntry;
   onCompare?: (userId: string) => void;
+  onSelfClick?: () => void;
 }) {
   if (!entry) return <div />;
 
@@ -61,13 +64,18 @@ function Pillar({
   const nameSize = place === 'first' ? 'text-[15px]' : 'text-[13px]';
   const scoreSize = place === 'first' ? 'text-[20px]' : 'text-[16px]';
 
-  const clickable = !!onCompare && !entry.isCurrentUser;
+  const handleClick = entry.isCurrentUser
+    ? onSelfClick
+    : onCompare
+      ? () => onCompare(entry.userId)
+      : undefined;
+  const clickable = !!handleClick;
   const Comp = clickable ? 'button' : 'div';
 
   return (
     <Comp
       type={clickable ? 'button' : undefined}
-      onClick={clickable ? () => onCompare!(entry.userId) : undefined}
+      onClick={handleClick}
       className={[
         'relative flex flex-col items-center text-center rounded-t-[10px] border-none',
         tint,

@@ -104,14 +104,32 @@ export function DailyResultsRoute() {
 
   const daily: DailyResultsExtras | null = useMemo(() => {
     if (!dailyInfo) return null;
-    const top = (leaderboard?.rankings.points ?? []).slice(0, 2).map(toTeaserEntry);
-    const you: LeaderboardTeaserEntry | null = leaderboard?.currentPlayer
-      ? {
-          rank: leaderboard.currentPlayer.rank,
-          name: 'you',
-          score: leaderboard.currentPlayer.points,
-        }
-      : null;
+    const pointsRanking = leaderboard?.rankings.points ?? [];
+
+    // If the current user already appears in the top rows, drop the
+    // separate "you" row — the top row will be tagged isCurrentUser and
+    // render with the "you" treatment in-place. Otherwise show top-2 +
+    // a separate you row underneath.
+    const TOP_WHEN_USER_IN_TOP = 3;
+    const TOP_WHEN_USER_ABSENT = 2;
+    const currentPlayerRank = leaderboard?.currentPlayer?.rank ?? null;
+    const userInTop =
+      currentPlayerRank !== null && currentPlayerRank <= TOP_WHEN_USER_IN_TOP;
+
+    const top = pointsRanking
+      .slice(0, userInTop ? TOP_WHEN_USER_IN_TOP : TOP_WHEN_USER_ABSENT)
+      .map((e) => ({ ...toTeaserEntry(e), isCurrentUser: e.isCurrentUser }));
+
+    const you: LeaderboardTeaserEntry | null =
+      !userInTop && leaderboard?.currentPlayer
+        ? {
+            rank: leaderboard.currentPlayer.rank,
+            name: 'you',
+            score: leaderboard.currentPlayer.points,
+            isCurrentUser: true,
+          }
+        : null;
+
     return {
       dateLabel: formatDateLabel(dailyInfo.date),
       leaderboardTop: top,

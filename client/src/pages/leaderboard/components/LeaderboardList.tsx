@@ -11,16 +11,19 @@ export interface LbListEntry {
 
 interface LeaderboardListProps {
   entries: LbListEntry[];
-  /** Provided only when tapping a row should route to a comparison — i.e.
-   *  the current user has played. Self-rows and missing prop both render
-   *  as non-interactive. */
+  /** Provided only when tapping an *other* player's row should route to
+   *  a comparison (i.e. the current user has played). Missing prop ⇒
+   *  other-player rows render non-interactive. */
   onCompare?: (userId: string) => void;
+  /** Fires when tapping the current-user row. Typically routes to the
+   *  user's own results page. Missing prop ⇒ self-row non-interactive. */
+  onSelfClick?: () => void;
 }
 
 /** Full continuous rankings list with the mockup row styling. Auto-scrolls
  *  the current user's row into view on mount; when the user scrolls it
  *  out of view, a floating "Back to you" pill appears to recenter. */
-export function LeaderboardList({ entries, onCompare }: LeaderboardListProps) {
+export function LeaderboardList({ entries, onCompare, onSelfClick }: LeaderboardListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const youRowRef = useRef<HTMLDivElement>(null);
   const [pillPosition, setPillPosition] = useState<'above' | 'below' | null>(null);
@@ -82,6 +85,7 @@ export function LeaderboardList({ entries, onCompare }: LeaderboardListProps) {
             first={i === 0}
             rowRef={entry.isCurrentUser ? youRowRef : undefined}
             onCompare={onCompare}
+            onSelfClick={onSelfClick}
           />
         ))}
       </div>
@@ -114,14 +118,20 @@ function Row({
   first,
   rowRef,
   onCompare,
+  onSelfClick,
 }: {
   entry: LbListEntry;
   first: boolean;
   rowRef?: React.RefObject<HTMLDivElement>;
   onCompare?: (userId: string) => void;
+  onSelfClick?: () => void;
 }) {
-  const clickable = !!onCompare && !entry.isCurrentUser;
-  const handleClick = clickable ? () => onCompare!(entry.userId) : undefined;
+  const handleClick = entry.isCurrentUser
+    ? onSelfClick
+    : onCompare
+      ? () => onCompare(entry.userId)
+      : undefined;
+  const clickable = !!handleClick;
 
   const rankClass = entry.isCurrentUser
     ? 'text-[color:var(--compare-you)]'
