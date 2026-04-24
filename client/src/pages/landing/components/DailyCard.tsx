@@ -46,7 +46,7 @@ export function DailyCard({
 
         {completed && results ? (
           <>
-            <ScoreBlock points={results.points} words={results.words} />
+            <ScoreBlock points={results.points} words={results.words} longestWord={results.longestWord} />
             <div className="grid grid-cols-2 gap-2">
               <SecondaryButton onClick={onSeeResult}>See result</SecondaryButton>
               <SecondaryButton onClick={onSeeLeaderboard}>Leaderboard</SecondaryButton>
@@ -63,10 +63,18 @@ export function DailyCard({
   );
 }
 
-function ScoreBlock({ points, words }: { points: number; words: number }) {
+function ScoreBlock({
+  points,
+  words,
+  longestWord,
+}: {
+  points: number;
+  words: number;
+  longestWord?: string;
+}) {
   return (
     <div
-      className="flex items-baseline justify-between py-0.5"
+      className="flex items-end justify-between py-0.5"
       style={{ animation: "v2-fade-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1)" }}
     >
       <div className="flex items-baseline gap-[5px]">
@@ -80,9 +88,23 @@ function ScoreBlock({ points, words }: { points: number; words: number }) {
           pts
         </span>
       </div>
-      <span className="text-small text-[color:var(--ink-muted)] tabular-nums" style={{ fontWeight: 500 }}>
-        {words} {words === 1 ? "word" : "words"}
-      </span>
+      <div className="flex flex-col items-end gap-0.5 leading-tight min-w-0">
+        <span
+          className="text-small text-[color:var(--ink-muted)] tabular-nums"
+          style={{ fontWeight: 500 }}
+        >
+          {words} {words === 1 ? "word" : "words"}
+        </span>
+        {longestWord && (
+          <span
+            className="text-small uppercase tracking-[0.04em] text-[color:var(--ink)] truncate max-w-[140px] font-[family-name:var(--font-structure)]"
+            style={{ fontWeight: 700 }}
+            title={longestWord}
+          >
+            {longestWord}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

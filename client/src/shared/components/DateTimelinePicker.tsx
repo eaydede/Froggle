@@ -104,6 +104,7 @@ export function DateTimelinePicker({
 
   return (
     <div
+      onClick={onClose}
       className={[
         'fixed inset-0 z-[150] flex justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] transition-opacity duration-200',
         open ? 'opacity-100' : 'opacity-0 pointer-events-none',
@@ -134,7 +135,10 @@ export function DateTimelinePicker({
           )}
         </div>
 
-        <div className="mt-2.5 flex-1 min-h-0 flex flex-col rounded-xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] overflow-hidden">
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="mt-2.5 flex-1 min-h-0 flex flex-col rounded-xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] overflow-hidden"
+        >
           <button
             type="button"
             onClick={onClose}
@@ -244,7 +248,7 @@ function DayCard({
       disabled={disabled}
       data-date={iso}
       className={[
-        'relative grid items-center gap-2.5 p-2.5 rounded-lg w-full text-left cursor-pointer border-none transition-colors duration-150',
+        'relative grid items-center gap-3.5 p-2.5 rounded-lg w-full text-left cursor-pointer border-none transition-colors duration-150',
         missed
           ? 'bg-transparent opacity-60 hover:opacity-85 hover:bg-[var(--ink-whisper)]'
           : 'bg-[var(--ink-whisper)] hover:bg-[var(--ink-trace)]',
