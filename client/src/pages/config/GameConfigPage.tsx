@@ -50,18 +50,18 @@ export function GameConfigPage({
   }
 
   return (
-    <div className="fixed inset-0 flex justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] overflow-y-auto">
-      <div className="w-full max-w-[360px] min-h-full flex flex-col px-[22px] pt-[24px] pb-[22px]">
+    <div className="fixed inset-0 flex justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] overflow-hidden">
+      <div className="w-full max-w-[360px] min-h-0 flex flex-col px-[22px] pt-[24px] pb-[22px]">
         {onBack && (
-          <div className="flex items-center pt-[18px]">
+          <div className="flex items-center pt-[6px]">
             <BackButton onClick={onBack} />
           </div>
         )}
 
-        <div className="flex-1 flex flex-col justify-center gap-6 py-6">
+        <div className="flex-1 min-h-0 flex flex-col justify-center gap-5">
           {(title || subtitle) && <Header title={title} subtitle={subtitle} />}
 
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-4">
             <BoardConfigCards
               value={boardSize}
               onChange={setBoardSize}
