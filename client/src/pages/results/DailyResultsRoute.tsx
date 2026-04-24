@@ -4,19 +4,27 @@ import { GameState } from 'models';
 import { useGame } from '../../GameContext';
 import {
   fetchDailyResult,
+  fetchDailyStats,
   fetchLeaderboard,
   type DailyResultResponse,
+  type DailyStatsDay,
+  type DailyStatsResponse,
   type LeaderboardResponse,
 } from '../../shared/api/gameApi';
 import { scoreWord } from '../../shared/utils/score';
 import { ResultsPage, type DailyResultsExtras } from './ResultsPage';
 import type { LeaderboardTeaserEntry } from './components/LeaderboardTeaser';
+import type { DailyEntry } from '../daily/types';
 
 function formatDateLabel(dateIso: string): string {
   const d = new Date(dateIso + 'T12:00:00');
   const weekday = d.toLocaleString('en-US', { weekday: 'long' });
   const month = d.toLocaleString('en-US', { month: 'short' });
   return `${weekday}, ${month} ${d.getDate()}`;
+}
+
+function getTodayPST(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
 }
 
 function toTeaserEntry(
@@ -28,59 +36,55 @@ function toTeaserEntry(
 export function DailyResultsRoute() {
   const { dailyInfo, setDailyInfo, cancelGame, game, results } = useGame();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  // Source hint drives where Close navigates. Callers pass
-  // `?from=leaderboard` when the user arrived from the leaderboard so
-  // Close round-trips back; anything else defaults to landing.
+  const [searchParams, setSearchParams] = useSearchParams();
   const fromSource = searchParams.get('from');
+
+  // Date resolution: URL ?date takes precedence (enables the date
+  // picker to drive historical navigation). Falls back to dailyInfo
+  // for the common landing/game-end/leaderboard-self entry flows.
+  const urlDate = searchParams.get('date');
+  const targetDate = urlDate ?? dailyInfo?.date ?? null;
+
   const [serverResult, setServerResult] = useState<DailyResultResponse | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(null);
+  const [stats, setStats] = useState<DailyStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const fetchedRef = useRef(false);
 
-  // When the user has just finished the daily in this session, the live
-  // `results` from GameContext already carry the full found+missed set
-  // with real paths, and the server write is still in flight. Prefer the
-  // in-memory data in that case so we don't race the upload and bounce
-  // the user to / when the fetch sees no row yet.
+  // Fetch guard keyed on date. Changing the date re-runs the fetch;
+  // the transient null after handleClose's setDailyInfo(null) doesn't
+  // re-trigger the redirect branch because we've already loaded once.
+  const fetchedForRef = useRef<string | null>(null);
+
+  // Only trust the in-memory game results when they match the target
+  // date's board — otherwise the user is viewing a historical daily
+  // and must be served from the server.
   const liveDailyResults = useMemo(() => {
     if (!dailyInfo || !results) return null;
+    if (targetDate && targetDate !== dailyInfo.date) return null;
     const live = results.board.flat().join(',');
     const expected = dailyInfo.board.flat().join(',');
     return live === expected ? results : null;
-  }, [dailyInfo, results]);
+  }, [dailyInfo, results, targetDate]);
 
   useEffect(() => {
-    // Once we've started loading we stop reacting to dailyInfo changes —
-    // otherwise a handleClose that clears dailyInfo would re-enter this
-    // effect and redirect to / before our own navigate lands.
-    if (fetchedRef.current) return;
-    if (!dailyInfo) {
-      navigate('/');
+    if (!targetDate) {
+      if (!fetchedForRef.current) navigate('/');
       return;
     }
-    fetchedRef.current = true;
+    if (fetchedForRef.current === targetDate) return;
+    fetchedForRef.current = targetDate;
 
-    const date = dailyInfo.date;
+    setLoading(true);
+    setServerResult(null);
 
-    // Still fetch the leaderboard even in the just-completed case, but
-    // skip the result fetch: the live results from context are authoritative.
-    if (liveDailyResults) {
-      fetchLeaderboard(date)
-        .catch(() => null)
-        .then((lb) => {
-          setLeaderboard(lb);
-          setLoading(false);
-        });
-      return;
-    }
+    const fetchResult = liveDailyResults
+      ? Promise.resolve(null)
+      : fetchDailyResult(targetDate);
+    const fetchLb = fetchLeaderboard(targetDate).catch(() => null);
 
-    Promise.all([
-      fetchDailyResult(date),
-      fetchLeaderboard(date).catch(() => null),
-    ])
+    Promise.all([fetchResult, fetchLb])
       .then(([result, lb]) => {
-        if (!result) {
+        if (!liveDailyResults && !result) {
           navigate('/');
           return;
         }
@@ -92,7 +96,38 @@ export function DailyResultsRoute() {
         navigate('/');
         setLoading(false);
       });
-  }, [dailyInfo, navigate, liveDailyResults]);
+  }, [targetDate, liveDailyResults, navigate]);
+
+  // Stats for the picker entries — fetched once, independent of the
+  // current target date.
+  useEffect(() => {
+    fetchDailyStats()
+      .then(setStats)
+      .catch(() => {
+        // Non-fatal: picker falls back to empty entries.
+      });
+  }, []);
+
+  const pickerEntries: DailyEntry[] = useMemo(() => {
+    if (!stats) return [];
+    const config = {
+      boardSize: dailyInfo?.config.boardSize ?? 5,
+      timeLimit: dailyInfo?.config.timeLimit ?? 120,
+      minWordLength: dailyInfo?.config.minWordLength ?? 3,
+    };
+    return stats.days.map((d: DailyStatsDay) => ({
+      puzzleNumber: d.puzzleNumber,
+      date: new Date(d.date + 'T12:00:00'),
+      state: d.state,
+      points: d.points ?? undefined,
+      wordsFound: d.wordsFound ?? undefined,
+      longestWord: d.longestWord ?? undefined,
+      longestWordDefinition: d.longestWordDefinition,
+      stampTier: d.stampTier,
+      playersCount: d.playersCount,
+      config,
+    }));
+  }, [stats, dailyInfo]);
 
   const handlePlayAgain = async () => {
     setDailyInfo(null);
@@ -101,9 +136,9 @@ export function DailyResultsRoute() {
   };
 
   const handleClose = async () => {
-    const backToLeaderboard = fromSource === 'leaderboard' && dailyInfo;
+    const backToLeaderboard = fromSource === 'leaderboard' && targetDate;
     const backTarget = backToLeaderboard
-      ? `/leaderboard?date=${dailyInfo!.date}`
+      ? `/leaderboard?date=${targetDate}`
       : '/';
     setDailyInfo(null);
     if (game) await cancelGame();
@@ -111,18 +146,22 @@ export function DailyResultsRoute() {
   };
 
   const handleOpenLeaderboard = () => {
-    if (!dailyInfo) return;
-    navigate(`/leaderboard?date=${dailyInfo.date}`);
+    if (!targetDate) return;
+    navigate(`/leaderboard?date=${targetDate}`);
+  };
+
+  const handleChangeDate = (iso: string) => {
+    // Keep any existing `from` hint so the Close destination stays stable
+    // across date changes, but swap out the date param.
+    const next = new URLSearchParams(searchParams);
+    next.set('date', iso);
+    setSearchParams(next, { replace: true });
   };
 
   const daily: DailyResultsExtras | null = useMemo(() => {
-    if (!dailyInfo) return null;
+    if (!targetDate) return null;
     const pointsRanking = leaderboard?.rankings.points ?? [];
 
-    // If the current user already appears in the top rows, drop the
-    // separate "you" row — the top row will be tagged isCurrentUser and
-    // render with the "you" treatment in-place. Otherwise show top-2 +
-    // a separate you row underneath.
     const TOP_WHEN_USER_IN_TOP = 3;
     const TOP_WHEN_USER_ABSENT = 2;
     const currentPlayerRank = leaderboard?.currentPlayer?.rank ?? null;
@@ -144,17 +183,21 @@ export function DailyResultsRoute() {
         : null;
 
     return {
-      dateLabel: formatDateLabel(dailyInfo.date),
+      dateLabel: formatDateLabel(targetDate),
       leaderboardTop: top,
       leaderboardYou: you,
       onOpenLeaderboard: handleOpenLeaderboard,
+      onChangeDate: () => {},
+      pickerEntries,
+      onPickerSelect: handleChangeDate,
+      todayDate: getTodayPST(),
+      selectedDate: targetDate,
     };
-    // handleOpenLeaderboard closes over navigate+dailyInfo, both stable
-    // within a given render of this route
+    // handleOpenLeaderboard / handleChangeDate close over stable navigate + setSearchParams
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dailyInfo, leaderboard]);
+  }, [targetDate, leaderboard, pickerEntries]);
 
-  if (loading || !dailyInfo || !daily) return null;
+  if (loading || !targetDate || !daily) return null;
 
   const displayed = liveDailyResults ?? (serverResult
     ? {
@@ -182,12 +225,12 @@ export function DailyResultsRoute() {
         startedAt: 0,
         status: GameState.Finished,
         config: {
-          durationSeconds: dailyInfo.config.timeLimit,
-          boardSize: dailyInfo.config.boardSize,
-          minWordLength: dailyInfo.config.minWordLength,
+          durationSeconds: dailyInfo?.config.timeLimit ?? 120,
+          boardSize: displayed.board.length,
+          minWordLength: dailyInfo?.config.minWordLength ?? 3,
         },
       }}
-      gameSeed={dailyInfo.seed}
+      gameSeed={dailyInfo?.seed}
       onClose={handleClose}
       onPlayAgain={handlePlayAgain}
       daily={daily}

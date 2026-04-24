@@ -11,6 +11,8 @@ import { LeaderboardTeaser, type LeaderboardTeaserEntry } from './components/Lea
 import { useShareText } from './hooks/useShareText';
 import { generateShareText } from './utils/shareResults';
 import { encodeGameLink } from '../../shared/utils/gameLink';
+import { DateTimelinePicker } from '../../shared/components/DateTimelinePicker';
+import type { DailyEntry } from '../daily/types';
 
 export interface DailyResultsExtras {
   /** Formatted date label shown in the topbar chip, e.g. "Tuesday, Apr 21". */
@@ -18,7 +20,12 @@ export interface DailyResultsExtras {
   leaderboardTop: LeaderboardTeaserEntry[];
   leaderboardYou: LeaderboardTeaserEntry | null;
   onOpenLeaderboard: () => void;
-  onChangeDate?: () => void;
+  /** Populated when historical date navigation is available — tapping the
+   *  date chip in the topbar opens the timeline picker. */
+  pickerEntries?: DailyEntry[];
+  onPickerSelect?: (iso: string) => void;
+  todayDate?: string;
+  selectedDate?: string;
 }
 
 interface ResultsPageProps {
@@ -42,6 +49,13 @@ export function ResultsPage({
 }: ResultsPageProps) {
   const [highlightedWord, setHighlightedWord] = useState<string | null>(null);
   const [highlightPath, setHighlightPath] = useState<Position[] | null>(null);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+
+  const pickerAvailable =
+    !!daily?.pickerEntries &&
+    !!daily.onPickerSelect &&
+    !!daily.todayDate &&
+    !!daily.selectedDate;
 
   const totalPoints = results.foundWords.reduce((sum, w) => sum + w.score, 0);
   const totalWords = results.foundWords.length;
@@ -75,7 +89,7 @@ export function ResultsPage({
           onShare={share}
           shareCopied={copied}
           dateLabel={daily?.dateLabel}
-          onChangeDate={daily?.onChangeDate}
+          onChangeDate={pickerAvailable ? () => setDatePickerOpen(true) : undefined}
         />
 
         <HeroScore points={totalPoints} words={totalWords} />
@@ -141,6 +155,22 @@ export function ResultsPage({
           </div>
         )}
       </div>
+
+      {pickerAvailable && daily && (
+        <DateTimelinePicker
+          open={datePickerOpen}
+          onClose={() => setDatePickerOpen(false)}
+          onSelect={(iso) => {
+            setDatePickerOpen(false);
+            daily.onPickerSelect!(iso);
+          }}
+          entries={daily.pickerEntries!}
+          selectedDate={daily.selectedDate!}
+          todayDate={daily.todayDate!}
+          disableMissed
+          onShare={share}
+        />
+      )}
     </div>
   );
 }

@@ -85,6 +85,9 @@
   --you-highlight-bg: rgba(78, 126, 155, 0.06);
   --you-highlight-bg-hi: rgba(78, 126, 155, 0.10);
 
+  /* Moss green — the "completion" stamp color on date cards. */
+  --completion: #6B8E5A;
+
   /* Layered floating-card shadows — three-stop stack creates depth
      without any single dark halo. */
   --shadow-card:
@@ -146,6 +149,8 @@
   --podium-bronze-bg: rgba(201, 148, 101, 0.14);
   --you-highlight-bg: rgba(125, 174, 207, 0.08);
   --you-highlight-bg-hi: rgba(125, 174, 207, 0.12);
+
+  --completion: #8BB074;
 
   --shadow-card:
     0 1px 2px rgba(0, 0, 0, 0.25),

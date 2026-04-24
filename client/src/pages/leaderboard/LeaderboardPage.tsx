@@ -2,14 +2,15 @@ import { useState } from 'react';
 import { Podium, type PodiumEntry } from './components/Podium';
 import { InlineStats } from './components/InlineStats';
 import { LeaderboardList, type LbListEntry } from './components/LeaderboardList';
-import { DateSelector, BlurOverlay } from '../daily/components';
+import { DateTimelinePicker } from '../../shared/components/DateTimelinePicker';
 import type { DailyEntry } from '../daily/types';
 
 interface LeaderboardPageProps {
   dateLabel: string;
   entries: DailyEntry[];
-  currentIndex: number;
-  onChangeIndex: (index: number) => void;
+  selectedDate: string;
+  todayDate: string;
+  onChangeDate: (dateIso: string) => void;
   podium: PodiumEntry[];
   rankings: LbListEntry[];
   totalPlayers: number;
@@ -27,8 +28,9 @@ interface LeaderboardPageProps {
 export function LeaderboardPage({
   dateLabel,
   entries,
-  currentIndex,
-  onChangeIndex,
+  selectedDate,
+  todayDate,
+  onChangeDate,
   podium,
   rankings,
   totalPlayers,
@@ -42,15 +44,13 @@ export function LeaderboardPage({
 }: LeaderboardPageProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  const handlePickerSelect = (index: number) => {
-    onChangeIndex(index);
+  const handlePickerSelect = (iso: string) => {
+    onChangeDate(iso);
     setPickerOpen(false);
   };
 
   return (
     <div className="fixed inset-0 flex justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] overflow-hidden">
-      <BlurOverlay visible={pickerOpen} onClick={() => setPickerOpen(false)} />
-
       <div className="relative w-full max-w-[360px] min-h-0 flex flex-col px-[22px] pt-[14px] pb-5">
         <div
           className="grid items-center gap-2.5 pt-3.5"
@@ -78,7 +78,7 @@ export function LeaderboardPage({
 
         <button
           type="button"
-          onClick={() => setPickerOpen((v) => !v)}
+          onClick={() => setPickerOpen(true)}
           className="mx-auto mt-2.5 px-3.5 py-1.5 flex items-center gap-1.5 bg-[var(--ink-whisper)] border border-[var(--ink-border-subtle)] rounded-full text-[11px] tracking-[0.04em] text-[color:var(--ink-muted)] hover:text-[color:var(--ink)] hover:border-[var(--ink-border)] cursor-pointer transition-colors duration-200 flex-shrink-0 font-[family-name:var(--font-structure)]"
           style={{ fontWeight: 600, WebkitTapHighlightColor: 'transparent' }}
         >
@@ -87,18 +87,6 @@ export function LeaderboardPage({
             <path d="M6 9l6 6 6-6" />
           </svg>
         </button>
-
-        {pickerOpen && entries.length > 0 && (
-          <div className="absolute left-[22px] right-[22px] top-[96px] z-20">
-            <DateSelector
-              entries={entries}
-              currentIndex={currentIndex}
-              isOpen={pickerOpen}
-              onToggle={() => setPickerOpen((v) => !v)}
-              onSelect={handlePickerSelect}
-            />
-          </div>
-        )}
 
         <Podium entries={podium} onCompare={onCompare} onSelfClick={onSelfClick} />
         <InlineStats
@@ -109,6 +97,16 @@ export function LeaderboardPage({
         />
         <LeaderboardList entries={rankings} onCompare={onCompare} onSelfClick={onSelfClick} />
       </div>
+
+      <DateTimelinePicker
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onSelect={handlePickerSelect}
+        entries={entries}
+        selectedDate={selectedDate}
+        todayDate={todayDate}
+        onShare={onShare}
+      />
     </div>
   );
 }

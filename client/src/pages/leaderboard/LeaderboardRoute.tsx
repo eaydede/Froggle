@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useGame } from '../../GameContext';
 import {
@@ -73,21 +73,6 @@ export function LeaderboardRoute() {
     return stats.days.map((d) => adaptDay(d, config));
   }, [stats, config]);
 
-  const currentIndex = useMemo(() => {
-    if (entries.length === 0) return 0;
-    const idx = entries.findIndex((e) => e.date.toISOString().slice(0, 10) === selectedDate);
-    return idx >= 0 ? idx : entries.length - 1;
-  }, [entries, selectedDate]);
-
-  const handleChangeIndex = useCallback(
-    (index: number) => {
-      const entry = entries[index];
-      if (!entry) return;
-      setSelectedDate(entry.date.toISOString().slice(0, 10));
-    },
-    [entries],
-  );
-
   const pointsRankings = leaderboard?.rankings.points ?? [];
 
   // Top-3 for the podium. Handles the common case but also degrades to
@@ -132,8 +117,9 @@ export function LeaderboardRoute() {
     <LeaderboardPage
       dateLabel={formatDateLabel(selectedDate)}
       entries={entries}
-      currentIndex={currentIndex}
-      onChangeIndex={handleChangeIndex}
+      selectedDate={selectedDate}
+      todayDate={getTodayPST()}
+      onChangeDate={setSelectedDate}
       podium={podium}
       rankings={rankingsForList}
       totalPlayers={leaderboard?.totalPlayers ?? 0}
