@@ -72,12 +72,12 @@ export function ConfigRoute({ mode }: { mode: 'freeplay' | 'daily' }) {
     } else if (isSharedGame) {
       await startGame(sharedGame.timer, sharedGame.boardSize, sharedGame.minWordLength, undefined, sharedGame.seed);
     } else if (config) {
-      setLastConfig(config);
       const effectiveBoardSize = sharedSeed ? sharedSeed.boardSize : config.boardSize;
       const seed = sharedSeed?.seed;
       await startGame(config.timer, effectiveBoardSize, config.minWordLength, undefined, seed);
       setBoardCode('');
       handleCodeChange('');
+      setLastConfig(config);
     }
     navigate('/game');
   };
