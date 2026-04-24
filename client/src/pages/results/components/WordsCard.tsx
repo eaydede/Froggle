@@ -82,7 +82,7 @@ export function WordsCard({
     <div className="flex flex-col min-h-0 rounded-xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] overflow-hidden">
       <SectionHeader
         label={mode === 'found' ? 'Found' : 'All words'}
-        count={mode === 'found' ? foundWords.length : foundWords.length + missedWords.length}
+        count={mode === 'found' ? foundWords.length : null}
         trailing={mode === 'found' ? String(foundTotal) : `${foundWords.length}/${foundWords.length + missedWords.length}`}
       />
 
@@ -135,7 +135,7 @@ function SectionHeader({
   trailing,
 }: {
   label: string;
-  count: number;
+  count: number | null;
   trailing: string | null;
 }) {
   return (
@@ -144,7 +144,8 @@ function SectionHeader({
       style={{ fontWeight: 700 }}
     >
       <span>
-        {label} <span className="tabular-nums">· {count}</span>
+        {label}
+        {count !== null && <span className="tabular-nums"> · {count}</span>}
       </span>
       {trailing !== null && <span className="tabular-nums">{trailing}</span>}
     </div>
