@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Position } from 'models';
 
 export type PanelSide = 'you' | 'them';
@@ -20,6 +20,8 @@ interface ComparePlayerPanelProps {
   onWordTap: (word: string) => void;
 }
 
+const STEP_MS = 80;
+
 export function ComparePlayerPanel({
   side,
   board,
@@ -31,9 +33,27 @@ export function ComparePlayerPanel({
 }: ComparePlayerPanelProps) {
   const size = board.length;
 
-  const selectedKeys = useMemo(() => {
-    if (!highlightPath) return new Set<string>();
-    return new Set(highlightPath.map((p) => `${p.row},${p.col}`));
+  // Staggered cell-reveal animation — matches the legacy ResultsBoard
+  // behavior so tapping a word traces its path one cell at a time
+  // instead of snapping in all at once.
+  const [animatedCells, setAnimatedCells] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setAnimatedCells(new Set());
+    if (!highlightPath || highlightPath.length === 0) return;
+
+    const timeouts: ReturnType<typeof setTimeout>[] = [];
+    highlightPath.forEach((pos, i) => {
+      const t = setTimeout(() => {
+        setAnimatedCells((prev) => {
+          const next = new Set(prev);
+          next.add(`${pos.row},${pos.col}`);
+          return next;
+        });
+      }, i * STEP_MS);
+      timeouts.push(t);
+    });
+    return () => timeouts.forEach(clearTimeout);
   }, [highlightPath]);
 
   // Sort: unique words first (by score desc), then shared (by score desc) —
@@ -60,7 +80,7 @@ export function ComparePlayerPanel({
         >
           {board.map((row, r) =>
             row.map((letter, c) => {
-              const selected = selectedKeys.has(`${r},${c}`);
+              const selected = animatedCells.has(`${r},${c}`);
               return (
                 <div
                   key={`${r}-${c}`}

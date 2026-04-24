@@ -12,19 +12,29 @@ interface DailyComparePageProps {
 export function DailyComparePage({ data, onBack, onShare }: DailyComparePageProps) {
   const [highlightedWord, setHighlightedWord] = useState<string | null>(null);
 
-  const sharedWords = useMemo(() => {
-    const mine = new Set(data.me.foundWords.map((w) => w.word.toUpperCase()));
-    const shared = new Set<string>();
-    for (const w of data.them.foundWords) {
-      if (mine.has(w.word.toUpperCase())) shared.add(w.word.toUpperCase());
-    }
-    return shared;
-  }, [data]);
+  const mineSet = useMemo(
+    () => new Set(data.me.foundWords.map((w) => w.word.toUpperCase())),
+    [data.me.foundWords],
+  );
+  const themSet = useMemo(
+    () => new Set(data.them.foundWords.map((w) => w.word.toUpperCase())),
+    [data.them.foundWords],
+  );
 
-  const highlightPath = useMemo(() => {
+  const sharedWords = useMemo(() => {
+    const shared = new Set<string>();
+    for (const w of themSet) if (mineSet.has(w)) shared.add(w);
+    return shared;
+  }, [mineSet, themSet]);
+
+  // Only trace the path on a board if that player actually found the
+  // word — otherwise highlighting both boards would imply they both did.
+  const basePath = useMemo(() => {
     if (!highlightedWord) return null;
     return findWordPath(data.board, highlightedWord);
   }, [highlightedWord, data.board]);
+  const yourPath = highlightedWord && mineSet.has(highlightedWord) ? basePath : null;
+  const theirPath = highlightedWord && themSet.has(highlightedWord) ? basePath : null;
 
   const handleWordTap = (word: string) => {
     setHighlightedWord((prev) => (prev === word ? null : word));
@@ -66,7 +76,7 @@ export function DailyComparePage({ data, onBack, onShare }: DailyComparePageProp
           <ComparePlayerPanel
             side="you"
             board={data.board}
-            highlightPath={highlightPath}
+            highlightPath={yourPath}
             words={data.me.foundWords}
             sharedWords={sharedWords}
             highlightedWord={highlightedWord}
@@ -75,7 +85,7 @@ export function DailyComparePage({ data, onBack, onShare }: DailyComparePageProp
           <ComparePlayerPanel
             side="them"
             board={data.board}
-            highlightPath={highlightPath}
+            highlightPath={theirPath}
             words={data.them.foundWords}
             sharedWords={sharedWords}
             highlightedWord={highlightedWord}
