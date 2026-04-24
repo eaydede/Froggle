@@ -50,26 +50,28 @@ export function GameConfigPage({
   }
 
   return (
-    <div className="fixed inset-0 flex items-start justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] overflow-y-auto">
-      <div className="w-full max-w-[360px] flex flex-col px-[22px] pt-[24px] pb-[22px] gap-6">
+    <div className="fixed inset-0 flex justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] overflow-y-auto">
+      <div className="w-full max-w-[360px] min-h-full flex flex-col px-[22px] pt-[24px] pb-[22px]">
         {onBack && (
           <div className="flex items-center pt-[18px]">
             <BackButton onClick={onBack} />
           </div>
         )}
 
-        {(title || subtitle) && <Header title={title} subtitle={subtitle} />}
+        <div className="flex-1 flex flex-col justify-center gap-6 py-6">
+          {(title || subtitle) && <Header title={title} subtitle={subtitle} />}
 
-        <div className="flex flex-col gap-5">
-          <BoardConfigCards
-            value={boardSize}
-            onChange={setBoardSize}
-            disabled={disabled || hasValidCode}
-            code={code}
-            onCodeChange={onCodeChange}
-          />
-          <TimerConfig value={timer} onChange={setTimer} disabled={disabled} />
-          <LetterConfig value={minWordLength} onChange={setMinWordLength} disabled={disabled} />
+          <div className="flex flex-col gap-5">
+            <BoardConfigCards
+              value={boardSize}
+              onChange={setBoardSize}
+              disabled={disabled || hasValidCode}
+              code={code}
+              onCodeChange={onCodeChange}
+            />
+            <TimerConfig value={timer} onChange={setTimer} disabled={disabled} />
+            <LetterConfig value={minWordLength} onChange={setMinWordLength} disabled={disabled} />
+          </div>
         </div>
 
         <InkButton onClick={handleStart}>

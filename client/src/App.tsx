@@ -33,7 +33,7 @@ function App() {
   };
 
   return (
-    <div className="max-w-[800px] mx-auto p-5 bg-[var(--page-bg)] text-[var(--text)] h-dvh box-border overflow-y-auto flex flex-col touch-pan-y font-[family-name:var(--font-body)]" style={{ WebkitOverflowScrolling: 'touch' }}>
+    <div className="max-w-[800px] mx-auto p-5 bg-[var(--surface-panel)] text-[color:var(--ink)] h-dvh box-border overflow-y-auto flex flex-col touch-pan-y font-[family-name:var(--font-ui)]" style={{ WebkitOverflowScrolling: 'touch' }}>
       {showTitle && (
         <h1
           onClick={handleTitleClick}

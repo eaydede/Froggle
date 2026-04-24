@@ -140,7 +140,7 @@ export function LeaderboardRoute() {
       avgScore={leaderboard?.avgScore ?? 0}
       youTopPercent={leaderboard?.currentPlayer?.topPercent ?? null}
       youFallback={youFallback}
-      onBack={() => navigate(-1)}
+      onBack={() => navigate('/')}
       onShare={share}
       onCompare={
         leaderboard?.currentPlayer

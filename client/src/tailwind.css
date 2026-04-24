@@ -19,7 +19,9 @@
 
 /* Base resets */
 body {
-  background-color: var(--page-bg);
+  /* New-design tokens — matches the redesigned pages. Overscroll areas
+     on mobile and any non-fullscreen route show this bg. */
+  background-color: var(--surface-panel);
   margin: 0;
 }
 
