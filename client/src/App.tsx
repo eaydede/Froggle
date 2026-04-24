@@ -7,6 +7,7 @@ import { GameRoute } from './pages/game';
 import { ResultsRoute, DailyResultsRoute } from './pages/results';
 import { LeaderboardRoute } from './pages/leaderboard';
 import { DailyConfirmRoute } from './pages/daily';
+import { DailyCompareRoute } from './pages/compare';
 import './tailwind.css';
 
 function App() {
@@ -72,6 +73,7 @@ function App() {
         <Route path="/game" element={<GameRoute />} />
         <Route path="/results" element={<ResultsRoute />} />
         <Route path="/leaderboard" element={<LeaderboardRoute />} />
+        <Route path="/daily/compare" element={<DailyCompareRoute />} />
       </Routes>
     </div>
   );

@@ -125,6 +125,11 @@ export function LeaderboardRoute() {
       rankings={rankings}
       onMyResults={() => navigate('/daily/results')}
       onBack={() => navigate(-1)}
+      onCompare={
+        leaderboard?.currentPlayer
+          ? (userId) => navigate(`/daily/compare?date=${selectedDate}&user=${userId}`)
+          : undefined
+      }
     />
   );
 }

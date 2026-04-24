@@ -64,6 +64,16 @@
   --rarity-epic:      #9B4AAC;
   --rarity-legendary: #D17A28;
 
+  /* Compare page — neutral two-player palette. "You" leans blue,
+     opponent leans amber, shared words use a muted grey. */
+  --compare-you:     #4E7E9B;
+  --compare-you-bg:  rgba(78, 126, 155, 0.15);
+  --compare-them:    #9E6B3C;
+  --compare-them-bg: rgba(158, 107, 60, 0.15);
+  --compare-shared:  #707070;
+  --compare-shared-bg:    rgba(112, 112, 112, 0.04);
+  --compare-shared-bg-hi: rgba(112, 112, 112, 0.09);
+
   /* Layered floating-card shadows — three-stop stack creates depth
      without any single dark halo. */
   --shadow-card:
@@ -108,6 +118,14 @@
   --rarity-rare:      #6FA3C8;
   --rarity-epic:      #B086C0;
   --rarity-legendary: #E09A5C;
+
+  --compare-you:     #7DAECF;
+  --compare-you-bg:  rgba(125, 174, 207, 0.18);
+  --compare-them:    #C99465;
+  --compare-them-bg: rgba(201, 148, 101, 0.18);
+  --compare-shared:  #9B9B9B;
+  --compare-shared-bg:    rgba(155, 155, 155, 0.06);
+  --compare-shared-bg-hi: rgba(155, 155, 155, 0.10);
 
   --shadow-card:
     0 1px 2px rgba(0, 0, 0, 0.25),

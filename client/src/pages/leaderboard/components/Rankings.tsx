@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 
 export interface RankingEntry {
   rank: number;
+  userId: string;
   displayName: string;
   value: number;
   isCurrentUser: boolean;
@@ -9,9 +10,13 @@ export interface RankingEntry {
 
 interface RankingsProps {
   entries: RankingEntry[];
+  /** Provided only when compare is available (current user has played and
+   *  the row isn't themself). Tapping a row calls this with the row's
+   *  userId so the host can navigate to the compare page. */
+  onCompare?: (userId: string) => void;
 }
 
-export function Rankings({ entries }: RankingsProps) {
+export function Rankings({ entries, onCompare }: RankingsProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const userRowRef = useRef<HTMLDivElement>(null);
   const [pillPosition, setPillPosition] = useState<'above' | 'below' | null>(null);
@@ -101,14 +106,22 @@ export function Rankings({ entries }: RankingsProps) {
       >
         {entries.map((entry) => {
           const isUser = entry.isCurrentUser;
+          const clickable = !!onCompare && !isUser;
+          const Comp = clickable ? 'button' : 'div';
           return (
-            <div
+            <Comp
               key={entry.rank}
-              ref={isUser ? userRowRef : undefined}
-              className="flex items-center justify-between py-2.5 px-3 rounded-xl transition-colors duration-150"
+              ref={isUser ? (userRowRef as never) : undefined}
+              onClick={clickable ? () => onCompare!(entry.userId) : undefined}
+              className={`flex items-center justify-between w-full py-2.5 px-3 rounded-xl transition-colors duration-150 ${
+                clickable
+                  ? 'cursor-pointer hover:bg-[var(--track)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]'
+                  : ''
+              }`}
               style={{
                 backgroundColor: isUser ? 'var(--accent-row-bg, rgba(107,155,125,0.12))' : 'transparent',
                 border: isUser ? '1px solid var(--accent-row-border, rgba(107,155,125,0.2))' : '1px solid transparent',
+                textAlign: 'left',
               }}
             >
               <div className="flex items-center gap-3">
@@ -131,7 +144,7 @@ export function Rankings({ entries }: RankingsProps) {
               >
                 {entry.value}
               </span>
-            </div>
+            </Comp>
           );
         })}
       </div>

@@ -90,6 +90,7 @@ leaderboardRouter.get('/:date', async (req, res) => {
       const sorted = [...scored].sort((a, b) => b[sortKey] - a[sortKey]);
       return sorted.map((p, i) => ({
         rank: i + 1,
+        userId: p.userId,
         displayName: p.displayName,
         value: Math.round(p[sortKey]),
         subLabel: `${p[subLabelKey]} ${subLabelSuffix}`,

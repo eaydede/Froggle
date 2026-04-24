@@ -22,6 +22,10 @@ interface LeaderboardPageProps {
   rankings: RankingEntry[];
   onMyResults: () => void;
   onBack: () => void;
+  /** Present only when the current user can open a compare view — i.e.
+   *  they've played this daily. Absent otherwise, in which case the
+   *  ranking rows render as non-interactive. */
+  onCompare?: (userId: string) => void;
 }
 
 export function LeaderboardPage({
@@ -35,6 +39,7 @@ export function LeaderboardPage({
   rankings,
   onMyResults,
   onBack,
+  onCompare,
 }: LeaderboardPageProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -103,7 +108,7 @@ export function LeaderboardPage({
 
       {/* Rankings list — fills remaining space */}
       <div className="flex-1" style={{ minHeight: 0 }}>
-        <Rankings entries={rankings} />
+        <Rankings entries={rankings} onCompare={onCompare} />
       </div>
 
       {/* My results button */}
