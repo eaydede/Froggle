@@ -116,10 +116,10 @@ export function WordsCard({
         <button
           type="button"
           onClick={() => swapTo(mode === 'found' ? 'missed' : 'found')}
-          className="flex items-center justify-between px-3 py-[9px] text-label-xs uppercase tracking-[0.08em] text-[color:var(--ink-soft)] bg-[var(--ink-whisper)] border-t border-[var(--ink-border-subtle)] cursor-pointer hover:text-[color:var(--ink-muted)] transition-colors duration-150 font-[family-name:var(--font-structure)]"
+          className="flex items-center justify-between px-3 py-[9px] text-label-xs uppercase tracking-[0.08em] text-[color:var(--ink-muted)] bg-[var(--ink-whisper)] border-x-0 border-b-0 border-t border-[var(--ink-border-subtle)] leading-none cursor-pointer hover:text-[color:var(--ink)] transition-colors duration-150 font-[family-name:var(--font-structure)]"
           style={{ fontWeight: 700, WebkitTapHighlightColor: 'transparent' }}
         >
-          <span>{mode === 'found' ? 'Missed' : 'Found'}</span>
+          <span>{mode === 'found' ? 'All words' : 'Found'}</span>
           <span aria-hidden className="text-[color:var(--ink-faint)]">
             {mode === 'found' ? '›' : '‹'}
           </span>
