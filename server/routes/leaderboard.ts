@@ -36,14 +36,14 @@ leaderboardRouter.get('/:date', async (req, res) => {
     }
 
     const userMap = new Map<string, string>();
-    for (const r of results) {
+    await Promise.all(results.map(async (r) => {
       try {
         const { data } = await admin.auth.admin.getUserById(r.user_id);
         userMap.set(r.user_id, data.user?.user_metadata?.display_name || 'Anonymous');
       } catch {
         userMap.set(r.user_id, 'Anonymous');
       }
-    }
+    }));
 
     const wordCounts = new Map<string, number>();
     const parsedResults = results.map((r) => {

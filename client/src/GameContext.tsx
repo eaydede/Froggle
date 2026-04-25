@@ -155,7 +155,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!authReady) return;
     fetchProfile()
-      .then(({ display_name }) => setDisplayName(display_name))
+      .then(({ display_name }) => { if (display_name) setDisplayName(display_name); })
       .catch(() => {}); // Fall back to default 'Anonymous'
   }, [authReady]);
 
