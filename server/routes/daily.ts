@@ -9,10 +9,8 @@ import { getSupabaseAdmin } from '../supabaseAdmin.js';
 import { dictionary } from '../services/dictionary.js';
 import { scoreResult, scoreWords, getDailyStats } from '../services/DailyService.js';
 import {
-  DAILY_BOARD_SIZE,
   DAILY_LAUNCH_DATE,
-  DAILY_MIN_WORD_LENGTH,
-  DAILY_TIME_LIMIT,
+  getDailyConfig,
   getDailyDatePST,
   getDailyNumber,
 } from '../services/dailyConfig.js';
@@ -23,17 +21,14 @@ dailyRouter.get('/', (_req, res) => {
   const date = getDailyDatePST();
   const number = getDailyNumber(date);
   const seed = getDailySeed(date);
-  const board = generateSeededBoard(DAILY_BOARD_SIZE, seed);
+  const config = getDailyConfig(date);
+  const board = generateSeededBoard(config.boardSize, seed);
   res.json({
     date,
     number,
     seed,
     board,
-    config: {
-      boardSize: DAILY_BOARD_SIZE,
-      timeLimit: DAILY_TIME_LIMIT,
-      minWordLength: DAILY_MIN_WORD_LENGTH,
-    },
+    config,
   });
 });
 
@@ -94,7 +89,7 @@ dailyRouter.get('/results/:date', requireAuth, async (req, res) => {
     // Compute missed words on demand. The found_words column is canonical;
     // we re-solve the board each time rather than storing the full solution
     // so old results automatically pick up any future dictionary or
-    // scoring changes. The 5x5 board + ~170k-word dictionary runs in a
+    // scoring changes. The board + ~170k-word dictionary runs in a
     // couple of ms so the compute cost is negligible at this endpoint's
     // volume.
     const board: string[][] = typeof result.board === 'string'
@@ -104,7 +99,8 @@ dailyRouter.get('/results/:date', requireAuth, async (req, res) => {
       ? JSON.parse(result.found_words)
       : result.found_words;
     const foundSet = new Set(foundWords.map((w) => w.toUpperCase()));
-    const missedWords = findAllWords(board, dictionary, DAILY_MIN_WORD_LENGTH)
+    const config = getDailyConfig(req.params.date);
+    const missedWords = findAllWords(board, dictionary, config.minWordLength)
       .filter((w) => !foundSet.has(w.word))
       .map((w) => ({ word: w.word, path: w.path, score: scoreWord(w.word) }))
       .sort((a, b) => b.score - a.score || b.word.length - a.word.length);
@@ -197,17 +193,15 @@ dailyRouter.get('/compare/:date', requireAuth, async (req, res) => {
       foundWords: them.words.map((word) => ({ word, score: scoreWord(word) })),
     };
 
+    const config = getDailyConfig(date);
+
     res.json({
       date,
       puzzleNumber: getDailyNumber(date),
       board,
       me: mePayload,
       them: themPayload,
-      config: {
-        boardSize: DAILY_BOARD_SIZE,
-        timeLimit: DAILY_TIME_LIMIT,
-        minWordLength: DAILY_MIN_WORD_LENGTH,
-      },
+      config,
     });
   } catch (err) {
     console.error('Failed to fetch daily compare:', err);
