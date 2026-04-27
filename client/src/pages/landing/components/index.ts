@@ -1,5 +1,6 @@
 export { AppHeader } from "./AppHeader";
 export { DailyCard } from "./DailyCard";
+export { RelaxedDailyCard } from "./RelaxedDailyCard";
 export { FreePlayCard } from "./FreePlayCard";
 export { ProfileAvatar } from "./ProfileAvatar";
 export { StreakBar } from "./StreakBar";

@@ -54,11 +54,16 @@ function InContextWrapper({ completed }: { completed: boolean }) {
         streak={9}
         streakDays={streakDays}
         dailyResults={results}
+        relaxedSession={null}
         displayName={name}
         onDisplayNameChange={setName}
         onDailyPlay={fn()}
         onDailySeeResult={fn()}
         onDailyLeaderboard={fn()}
+        onRelaxedPlay={fn()}
+        onRelaxedResume={fn()}
+        onRelaxedSeeResult={fn()}
+        onRelaxedLeaderboard={fn()}
         onFreePlayClick={fn()}
         theme={theme}
         onToggleTheme={() => setTheme((t) => (t === 'light' ? 'dark' : 'light'))}

@@ -1,16 +1,22 @@
-import { AppHeader, DailyCard, FreePlayCard, ThemeTogglePill } from "./components";
+import { AppHeader, DailyCard, FreePlayCard, RelaxedDailyCard, ThemeTogglePill } from "./components";
 import type { DailyResults } from "./types";
+import type { DailyRelaxedSession } from "../../shared/api/gameApi";
 
 interface LandingPageProps {
   dateLabel: string;
   streak: number;
   streakDays: boolean[];
   dailyResults: DailyResults | null;
+  relaxedSession: DailyRelaxedSession | null;
   displayName: string;
   onDisplayNameChange: (name: string) => void;
   onDailyPlay: () => void;
   onDailySeeResult: () => void;
   onDailyLeaderboard: () => void;
+  onRelaxedPlay: () => void;
+  onRelaxedResume: () => void;
+  onRelaxedSeeResult: () => void;
+  onRelaxedLeaderboard: () => void;
   onFreePlayClick: () => void;
   theme: "light" | "dark";
   onToggleTheme: () => void;
@@ -21,11 +27,16 @@ export function LandingPage({
   streak,
   streakDays,
   dailyResults,
+  relaxedSession,
   displayName,
   onDisplayNameChange,
   onDailyPlay,
   onDailySeeResult,
   onDailyLeaderboard,
+  onRelaxedPlay,
+  onRelaxedResume,
+  onRelaxedSeeResult,
+  onRelaxedLeaderboard,
   onFreePlayClick,
   theme,
   onToggleTheme,
@@ -49,6 +60,14 @@ export function LandingPage({
             onPlay={onDailyPlay}
             onSeeResult={onDailySeeResult}
             onSeeLeaderboard={onDailyLeaderboard}
+          />
+          <RelaxedDailyCard
+            dateLabel={dateLabel}
+            session={relaxedSession}
+            onPlay={onRelaxedPlay}
+            onResume={onRelaxedResume}
+            onSeeResult={onRelaxedSeeResult}
+            onSeeLeaderboard={onRelaxedLeaderboard}
           />
           <FreePlayCard onClick={onFreePlayClick} />
         </div>

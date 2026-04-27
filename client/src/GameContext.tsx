@@ -8,8 +8,16 @@ import { useTimer } from './hooks/useTimer';
 import { useFeedbackSounds } from './pages/game';
 import type { FeedbackType } from './pages/game';
 import type { GameResults } from './shared/types';
-import type { DailyInfo } from './shared/api/gameApi';
-import { fetchDaily, recordDailyResultToServer, fetchDailyResult, fetchProfile, updateProfile } from './shared/api/gameApi';
+import type { DailyInfo, DailyRelaxedInfo, DailyRelaxedSession } from './shared/api/gameApi';
+import {
+  fetchDaily,
+  recordDailyResultToServer,
+  fetchDailyResult,
+  fetchProfile,
+  updateProfile,
+  fetchDailyRelaxed,
+  fetchDailyRelaxedSession,
+} from './shared/api/gameApi';
 import { loadDailyResult, clearDailyResult } from './shared/utils/dailyStorage';
 import { decodeSeedCode } from 'models/seedCode';
 import type { GameConfig } from './pages/config';
@@ -36,6 +44,13 @@ interface GameContextValue {
   cachedDailyResult: { found_words: string[]; board: string[][] } | null;
   dailyResultLoaded: boolean;
   refreshDaily: () => Promise<DailyInfo>;
+
+  // Daily Relaxed
+  cachedDailyRelaxed: DailyRelaxedInfo | null;
+  cachedDailyRelaxedSession: DailyRelaxedSession | null;
+  dailyRelaxedLoaded: boolean;
+  setCachedDailyRelaxedSession: (session: DailyRelaxedSession | null) => void;
+  refreshDailyRelaxedSession: () => Promise<void>;
 
   // Board code
   boardCode: string;
@@ -166,6 +181,21 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [cachedDailyResult, setCachedDailyResult] = useState<{ found_words: any[]; board: string[][] } | null>(null);
   const [dailyResultLoaded, setDailyResultLoaded] = useState(false);
 
+  // Daily Relaxed state
+  const [cachedDailyRelaxed, setCachedDailyRelaxed] = useState<DailyRelaxedInfo | null>(null);
+  const [cachedDailyRelaxedSession, setCachedDailyRelaxedSession] = useState<DailyRelaxedSession | null>(null);
+  const [dailyRelaxedLoaded, setDailyRelaxedLoaded] = useState(false);
+
+  const refreshDailyRelaxedSession = async () => {
+    if (!cachedDailyRelaxed) return;
+    try {
+      const session = await fetchDailyRelaxedSession(cachedDailyRelaxed.date);
+      setCachedDailyRelaxedSession(session);
+    } catch {
+      // Network blip — keep last-known value rather than nuking the UI.
+    }
+  };
+
   // Fetch today's daily info + result on mount (wait for auth to be ready)
   // Also migrates any localStorage daily result to the server (one-time bridge for existing users)
   useEffect(() => {
@@ -199,6 +229,23 @@ export function GameProvider({ children }: { children: ReactNode }) {
       }
       setDailyResultLoaded(true);
     }).catch(() => setDailyResultLoaded(true));
+  }, [authReady]);
+
+  // Fetch relaxed daily puzzle + any in-progress / ended session for today.
+  useEffect(() => {
+    if (!authReady) return;
+    fetchDailyRelaxed()
+      .then(async (info) => {
+        setCachedDailyRelaxed(info);
+        try {
+          const session = await fetchDailyRelaxedSession(info.date);
+          setCachedDailyRelaxedSession(session);
+        } catch {
+          // ignore — landing falls back to "Play"
+        }
+        setDailyRelaxedLoaded(true);
+      })
+      .catch(() => setDailyRelaxedLoaded(true));
   }, [authReady]);
 
   // Record daily results when a daily game is completed in the current session.
@@ -272,6 +319,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     <GameContext.Provider value={{
       game, words, results, gameSeed, feedback, timeRemaining,
       dailyInfo, setDailyInfo, cachedDaily, cachedDailyResult, dailyResultLoaded, refreshDaily,
+      cachedDailyRelaxed, cachedDailyRelaxedSession, dailyRelaxedLoaded,
+      setCachedDailyRelaxedSession, refreshDailyRelaxedSession,
       boardCode, setBoardCode, sharedSeed, handleCodeChange,
       lastConfig, setLastConfig,
       muted, toggleMute,

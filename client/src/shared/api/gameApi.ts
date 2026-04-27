@@ -309,6 +309,137 @@ export const fetchDailyHistory = async (): Promise<{ entries: DailyHistoryEntry[
   return response.json();
 };
 
+// ─── Daily Relaxed mode ────────────────────────────────────────────────────
+
+export interface DailyRelaxedInfo {
+  date: string;
+  number: number;
+  seed: number;
+  board: string[][];
+  config: {
+    boardSize: number;
+    minWordLength: number;
+  };
+}
+
+export interface DailyRelaxedSession {
+  date: string;
+  board: string[][];
+  found_words: string[];
+  started_at: string;
+  last_active_at: string;
+  ended_at: string | null;
+  ended_by_player: boolean;
+  points: number;
+  word_count: number;
+  longest_word: string;
+}
+
+export const fetchDailyRelaxed = async (): Promise<DailyRelaxedInfo> => {
+  const response = await fetch(`${API_URL}/daily/relaxed`);
+  return response.json();
+};
+
+export const fetchDailyRelaxedSession = async (
+  date: string,
+): Promise<DailyRelaxedSession | null> => {
+  const response = await fetch(`${API_URL}/daily/relaxed/session/${date}`, {
+    headers: await sessionHeaders(),
+  });
+  if (!response.ok) return null;
+  const data = await response.json();
+  return data.session ?? null;
+};
+
+export const startDailyRelaxedSession = async (
+  date: string,
+): Promise<DailyRelaxedSession> => {
+  const response = await fetch(`${API_URL}/daily/relaxed/session/${date}/start`, {
+    method: 'POST',
+    headers: await sessionHeaders(),
+  });
+  const data = await response.json();
+  return data.session;
+};
+
+export const submitDailyRelaxedWord = async (
+  date: string,
+  path: Position[],
+): Promise<{ valid: boolean; word?: string; score?: number; reason?: string }> => {
+  const response = await fetch(`${API_URL}/daily/relaxed/session/${date}/word`, {
+    method: 'POST',
+    headers: await sessionHeaders(),
+    body: JSON.stringify({ path }),
+  });
+  return response.json();
+};
+
+export const endDailyRelaxedSession = async (
+  date: string,
+): Promise<DailyRelaxedSession | null> => {
+  const response = await fetch(`${API_URL}/daily/relaxed/session/${date}/end`, {
+    method: 'POST',
+    headers: await sessionHeaders(),
+  });
+  if (!response.ok) return null;
+  const data = await response.json();
+  return data.session ?? null;
+};
+
+export interface DailyRelaxedResultResponse {
+  date: string;
+  found_words: string[];
+  board: string[][];
+  missed_words: DailyResultMissedWord[];
+  ended_at: string;
+  ended_by_player: boolean;
+}
+
+export const fetchDailyRelaxedResult = async (
+  date: string,
+): Promise<DailyRelaxedResultResponse | null> => {
+  const response = await fetch(`${API_URL}/daily/relaxed/results/${date}`, {
+    headers: await sessionHeaders(),
+  });
+  const data = await response.json();
+  return data.result ?? null;
+};
+
+export interface DailyRelaxedLeaderboardEntry {
+  rank: number;
+  userId: string;
+  displayName: string;
+  points: number;
+  wordCount: number;
+  longestWord: string;
+}
+
+export interface DailyRelaxedLeaderboardResponse {
+  puzzleNumber: number;
+  totalPlayers: number;
+  avgScore: number;
+  rankings: {
+    points: DailyRelaxedLeaderboardEntry[];
+    words: DailyRelaxedLeaderboardEntry[];
+  };
+  currentPlayer: {
+    points: number;
+    wordsFound: number;
+    longestWord: string;
+    rank: number;
+    totalPlayers: number;
+  } | null;
+}
+
+export const fetchDailyRelaxedLeaderboard = async (
+  date: string,
+): Promise<DailyRelaxedLeaderboardResponse> => {
+  const response = await fetch(`${API_URL}/daily/relaxed/leaderboard/${date}`, {
+    headers: await sessionHeaders(),
+  });
+  return response.json();
+};
+
 export const fetchProfile = async (): Promise<{ display_name: string }> => {
   const response = await fetch(`${API_URL}/user/profile`, {
     headers: await sessionHeaders(),

@@ -21,6 +21,9 @@ export function LandingRoute() {
     cachedDaily,
     cachedDailyResult,
     dailyResultLoaded,
+    cachedDailyRelaxed,
+    cachedDailyRelaxedSession,
+    dailyRelaxedLoaded,
     authReady,
     createGame,
     setDailyInfo,
@@ -83,6 +86,17 @@ export function LandingRoute() {
     }
   };
 
+  const handleRelaxedPlay = () => navigate('/daily/relaxed/play');
+  const handleRelaxedResume = () => navigate('/daily/relaxed/play');
+  const handleRelaxedSeeResult = () => navigate('/daily/relaxed/results');
+  const handleRelaxedLeaderboard = () => {
+    if (cachedDailyRelaxed) {
+      navigate(`/daily/relaxed/leaderboard?date=${cachedDailyRelaxed.date}`);
+    } else {
+      navigate('/daily/relaxed/leaderboard');
+    }
+  };
+
   if (mockFixture) {
     return (
       <LandingPage
@@ -90,11 +104,16 @@ export function LandingRoute() {
         streak={mockFixture.streak}
         streakDays={mockFixture.streakDays}
         dailyResults={mockFixture.dailyResults}
+        relaxedSession={mockFixture.relaxedSession ?? null}
         displayName={mockFixture.displayName}
         onDisplayNameChange={() => {}}
         onDailyPlay={() => {}}
         onDailySeeResult={() => {}}
         onDailyLeaderboard={() => {}}
+        onRelaxedPlay={() => {}}
+        onRelaxedResume={() => {}}
+        onRelaxedSeeResult={() => {}}
+        onRelaxedLeaderboard={() => {}}
         onFreePlayClick={() => {}}
         theme={theme}
         onToggleTheme={toggleTheme}
@@ -102,7 +121,7 @@ export function LandingRoute() {
     );
   }
 
-  if (!cachedDaily || !dailyResultLoaded) {
+  if (!cachedDaily || !dailyResultLoaded || !dailyRelaxedLoaded) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)]">
         <div
@@ -136,11 +155,16 @@ export function LandingRoute() {
       streak={stats?.currentStreak ?? 0}
       streakDays={streakDays}
       dailyResults={dailyResultsData}
+      relaxedSession={cachedDailyRelaxedSession}
       displayName={displayName}
       onDisplayNameChange={updateDisplayName}
       onDailyPlay={handleDailyPlay}
       onDailySeeResult={handleDailySeeResult}
       onDailyLeaderboard={handleDailyLeaderboard}
+      onRelaxedPlay={handleRelaxedPlay}
+      onRelaxedResume={handleRelaxedResume}
+      onRelaxedSeeResult={handleRelaxedSeeResult}
+      onRelaxedLeaderboard={handleRelaxedLeaderboard}
       onFreePlayClick={handleFreePlay}
       theme={theme}
       onToggleTheme={toggleTheme}

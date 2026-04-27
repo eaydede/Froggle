@@ -1,10 +1,12 @@
 import type { DailyResults } from '../types';
+import type { DailyRelaxedSession } from '../../../shared/api/gameApi';
 
 export interface LandingFixture {
   dateLabel: string;
   streak: number;
   streakDays: boolean[];
   dailyResults: DailyResults | null;
+  relaxedSession?: DailyRelaxedSession | null;
   displayName: string;
 }
 
