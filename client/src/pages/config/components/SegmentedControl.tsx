@@ -43,13 +43,13 @@ export function SegmentedControl<T extends string | number>({
       <div
         ref={trackRef}
         key={shakeKey}
-        className="grid grid-cols-3 bg-[var(--surface-bg)] rounded-xl p-[3px] relative"
-        style={shakeStyle}
+        className="grid bg-[var(--surface-bg)] rounded-xl p-[3px] relative"
+        style={{ ...shakeStyle, gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
       >
         <div
           className="seg-pill absolute top-[3px] h-[calc(100%-6px)] bg-[var(--surface-card)] rounded-[10px] pointer-events-none z-0 shadow-[var(--shadow-card)]"
           style={{
-            width: `calc(33.333% - 2px)`,
+            width: `calc(${100 / options.length}% - 2px)`,
             left: pillLeft,
           }}
         />

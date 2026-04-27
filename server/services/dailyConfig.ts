@@ -31,7 +31,7 @@ const BOARD_COMBOS: Array<{ boardSize: number; minWordLength: number }> = [
   { boardSize: 6, minWordLength: 4 },
   { boardSize: 6, minWordLength: 5 },
 ];
-const TIME_LIMITS = [60, 120];
+const TIME_LIMITS = [120, 180];
 
 export function dailyConfigFromSeed(seed: number): DailyConfig {
   const prng = mulberry32(seed);

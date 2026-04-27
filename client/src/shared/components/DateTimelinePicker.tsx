@@ -102,14 +102,22 @@ export function DateTimelinePicker({
     el?.scrollIntoView({ block: 'center' });
   }, [open, selectedDate]);
 
+  // `inert` blocks focus + hides from assistive tech in one go. Using it
+  // instead of aria-hidden avoids the "aria-hidden on a focused ancestor"
+  // warning when a date button retains focus across the close transition.
+  const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (rootRef.current) rootRef.current.inert = !open;
+  }, [open]);
+
   return (
     <div
+      ref={rootRef}
       onClick={onClose}
       className={[
         'fixed inset-0 z-[150] flex justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] transition-opacity duration-200',
         open ? 'opacity-100' : 'opacity-0 pointer-events-none',
       ].join(' ')}
-      aria-hidden={!open}
     >
       <div className="w-full max-w-[360px] min-h-0 flex flex-col px-[22px] pt-[14px] pb-5">
         <div
