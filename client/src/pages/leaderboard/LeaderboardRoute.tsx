@@ -4,11 +4,9 @@ import { useGame } from '../../GameContext';
 import {
   fetchLeaderboard,
   fetchDailyStats,
-  fetchDaily,
   type LeaderboardResponse,
   type DailyStatsResponse,
   type DailyStatsDay,
-  type DailyInfo,
 } from '../../shared/api/gameApi';
 import { LeaderboardPage } from './LeaderboardPage';
 import { useShareText } from '../results/hooks/useShareText';
@@ -25,7 +23,7 @@ function formatDateLabel(dateIso: string): string {
   return `${weekday}, ${month} ${d.getDate()}`;
 }
 
-function adaptDay(day: DailyStatsDay, config: DailyInfo['config']): DailyEntry {
+function adaptDay(day: DailyStatsDay): DailyEntry {
   return {
     puzzleNumber: day.puzzleNumber,
     date: new Date(day.date + 'T12:00:00'),
@@ -36,7 +34,7 @@ function adaptDay(day: DailyStatsDay, config: DailyInfo['config']): DailyEntry {
     longestWordDefinition: day.longestWordDefinition,
     stampTier: day.stampTier,
     playersCount: day.playersCount,
-    config,
+    config: day.config,
   };
 }
 
@@ -50,14 +48,10 @@ export function LeaderboardRoute() {
   );
   const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(null);
   const [stats, setStats] = useState<DailyStatsResponse | null>(null);
-  const [config, setConfig] = useState<DailyInfo['config'] | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([fetchDailyStats(), fetchDaily()]).then(([s, info]) => {
-      setStats(s);
-      setConfig(info.config);
-    });
+    fetchDailyStats().then(setStats);
   }, []);
 
   useEffect(() => {
@@ -69,9 +63,9 @@ export function LeaderboardRoute() {
   }, [selectedDate]);
 
   const entries: DailyEntry[] = useMemo(() => {
-    if (!stats || !config) return [];
-    return stats.days.map((d) => adaptDay(d, config));
-  }, [stats, config]);
+    if (!stats) return [];
+    return stats.days.map(adaptDay);
+  }, [stats]);
 
   const pointsRankings = leaderboard?.rankings.points ?? [];
 

@@ -1,6 +1,7 @@
 import { sql, type Kysely } from 'kysely';
 import { scoreWord } from 'engine/scoring.js';
 import type { Database } from '../db/types.js';
+import { getDailyConfig, type DailyConfig } from './dailyConfig.js';
 
 export interface ScoredResult {
   points: number;
@@ -175,6 +176,7 @@ export interface DailyStatsDay {
   longestWordDefinition: WordDefinition | null;
   stampTier: StampTier;
   playersCount: number;
+  config: DailyConfig;
 }
 
 export interface DailyStatsResponse {
@@ -236,13 +238,16 @@ export async function getDailyStats(
           'points',
           'word_count',
           'longest_word',
+          'board_size',
+          'min_word_length',
+          'time_limit',
           sql<number>`rank() over (partition by ${eb.ref('date')} order by ${eb.ref('points')} desc, ${eb.ref('word_count')} desc, ${eb.ref('completed_at')} asc)`.as('rank'),
         ])
         .where('date', '>=', windowStart)
         .where('date', '<=', windowEnd)
     )
     .selectFrom('ranked')
-    .select(['date', 'points', 'word_count', 'longest_word', 'rank'])
+    .select(['date', 'points', 'word_count', 'longest_word', 'board_size', 'min_word_length', 'time_limit', 'rank'])
     .where('user_id', '=', userId)
     .execute();
 
@@ -287,6 +292,7 @@ export async function getDailyStats(
         longestWordDefinition: null,
         stampTier: null,
         playersCount,
+        config: getDailyConfig(d),
       });
       continue;
     }
@@ -302,6 +308,11 @@ export async function getDailyStats(
       longestWordDefinition: definitions.get(userRow.longest_word.toLowerCase()) ?? null,
       stampTier: stampTierFor(rank, playersCount),
       playersCount,
+      config: {
+        boardSize: userRow.board_size,
+        minWordLength: userRow.min_word_length,
+        timeLimit: userRow.time_limit,
+      },
     });
   }
 
