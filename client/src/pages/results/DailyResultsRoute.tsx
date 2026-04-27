@@ -121,11 +121,6 @@ export function DailyResultsRoute() {
 
   const pickerEntries: DailyEntry[] = useMemo(() => {
     if (!stats) return [];
-    const config = {
-      boardSize: dailyInfo?.config.boardSize ?? 5,
-      timeLimit: dailyInfo?.config.timeLimit ?? 120,
-      minWordLength: dailyInfo?.config.minWordLength ?? 3,
-    };
     return stats.days.map((d: DailyStatsDay) => ({
       puzzleNumber: d.puzzleNumber,
       date: new Date(d.date + 'T12:00:00'),
@@ -136,9 +131,9 @@ export function DailyResultsRoute() {
       longestWordDefinition: d.longestWordDefinition,
       stampTier: d.stampTier,
       playersCount: d.playersCount,
-      config,
+      config: d.config,
     }));
-  }, [stats, dailyInfo]);
+  }, [stats]);
 
   const handlePlayAgain = async () => {
     setDailyInfo(null);
@@ -236,9 +231,9 @@ export function DailyResultsRoute() {
         startedAt: 0,
         status: GameState.Finished,
         config: {
-          durationSeconds: dailyInfo?.config.timeLimit ?? 120,
+          durationSeconds: serverResult?.config?.timeLimit ?? dailyInfo?.config.timeLimit ?? 120,
           boardSize: displayed.board.length,
-          minWordLength: dailyInfo?.config.minWordLength ?? 3,
+          minWordLength: serverResult?.config?.minWordLength ?? dailyInfo?.config.minWordLength ?? 3,
         },
       }}
       gameSeed={dailyInfo?.seed}

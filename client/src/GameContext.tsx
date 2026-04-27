@@ -189,7 +189,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (localResult) {
         const wordStrings = localResult.foundWords.map(w => w.word);
         try {
-          await recordDailyResultToServer(info.date, wordStrings, localResult.board);
+          await recordDailyResultToServer(info.date, wordStrings, localResult.board, info.config);
           setCachedDailyResult({ found_words: wordStrings, board: localResult.board });
           // Clean up localStorage now that the result is persisted on the server
           clearDailyResult(info.date);
@@ -215,7 +215,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (resultsFlat !== expectedFlat) return;
 
     const wordStrings = results.foundWords.map(w => w.word);
-    recordDailyResultToServer(dailyInfo.date, wordStrings, results.board)
+    recordDailyResultToServer(dailyInfo.date, wordStrings, results.board, dailyInfo.config)
       .then(() => {
         setCachedDailyResult({ found_words: wordStrings, board: results.board });
       })

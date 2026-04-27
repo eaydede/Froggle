@@ -10,6 +10,7 @@ import { dictionary } from '../services/dictionary.js';
 import { scoreResult, scoreWords, getDailyStats } from '../services/DailyService.js';
 import {
   DAILY_LAUNCH_DATE,
+  dailyConfigFromSeed,
   getDailyConfig,
   getDailyDatePST,
   getDailyNumber,
@@ -32,11 +33,36 @@ dailyRouter.get('/', (_req, res) => {
   });
 });
 
-dailyRouter.post('/results', requireAuth, async (req, res) => {
-  const { date, found_words, board } = req.body;
+// Dev-only: preview the config + board for an arbitrary seed without
+// spoiling future dailies. Accepts numeric or string seeds; strings are
+// hashed to a 32-bit integer.
+if (process.env.NODE_ENV !== 'production') {
+  dailyRouter.get('/preview', (req, res) => {
+    const raw = typeof req.query.seed === 'string' ? req.query.seed : '';
+    if (!raw) return res.status(400).json({ error: 'Missing query param: seed' });
+    const numeric = Number(raw);
+    let seed: number;
+    if (Number.isFinite(numeric)) {
+      seed = Math.floor(numeric) >>> 0;
+    } else {
+      let h = 2166136261 >>> 0;
+      for (let i = 0; i < raw.length; i++) {
+        h ^= raw.charCodeAt(i);
+        h = Math.imul(h, 16777619) >>> 0;
+      }
+      seed = h;
+    }
+    const config = dailyConfigFromSeed(seed);
+    const board = generateSeededBoard(config.boardSize, seed);
+    res.json({ seed, config, board });
+  });
+}
 
-  if (!date || !found_words || !board) {
-    return res.status(400).json({ error: 'Missing required fields: date, found_words, board' });
+dailyRouter.post('/results', requireAuth, async (req, res) => {
+  const { date, found_words, board, config } = req.body;
+
+  if (!date || !found_words || !board || !config) {
+    return res.status(400).json({ error: 'Missing required fields: date, found_words, board, config' });
   }
 
   try {
@@ -52,6 +78,9 @@ dailyRouter.post('/results', requireAuth, async (req, res) => {
         points,
         word_count: wordCount,
         longest_word: longestWord,
+        board_size: config.boardSize,
+        min_word_length: config.minWordLength,
+        time_limit: config.timeLimit,
       })
       .onConflict((oc) =>
         oc.columns(['user_id', 'date']).doUpdateSet({
@@ -61,6 +90,9 @@ dailyRouter.post('/results', requireAuth, async (req, res) => {
           points,
           word_count: wordCount,
           longest_word: longestWord,
+          board_size: config.boardSize,
+          min_word_length: config.minWordLength,
+          time_limit: config.timeLimit,
         }),
       )
       .execute();
@@ -99,7 +131,11 @@ dailyRouter.get('/results/:date', requireAuth, async (req, res) => {
       ? JSON.parse(result.found_words)
       : result.found_words;
     const foundSet = new Set(foundWords.map((w) => w.toUpperCase()));
-    const config = getDailyConfig(req.params.date);
+    const config = {
+      boardSize: result.board_size,
+      minWordLength: result.min_word_length,
+      timeLimit: result.time_limit,
+    };
     const missedWords = findAllWords(board, dictionary, config.minWordLength)
       .filter((w) => !foundSet.has(w.word))
       .map((w) => ({ word: w.word, path: w.path, score: scoreWord(w.word) }))
@@ -112,6 +148,7 @@ dailyRouter.get('/results/:date', requireAuth, async (req, res) => {
         board,
         missed_words: missedWords,
         completed_at: result.completed_at,
+        config,
       },
     });
   } catch (err) {
@@ -193,7 +230,11 @@ dailyRouter.get('/compare/:date', requireAuth, async (req, res) => {
       foundWords: them.words.map((word) => ({ word, score: scoreWord(word) })),
     };
 
-    const config = getDailyConfig(date);
+    const config = {
+      boardSize: mine.board_size,
+      minWordLength: mine.min_word_length,
+      timeLimit: mine.time_limit,
+    };
 
     res.json({
       date,

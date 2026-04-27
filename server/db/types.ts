@@ -10,6 +10,9 @@ export interface DailyResultsTable {
   points: Generated<number>;
   word_count: Generated<number>;
   longest_word: Generated<string>;
+  board_size: number;
+  min_word_length: number;
+  time_limit: number;
 }
 
 export interface Database {

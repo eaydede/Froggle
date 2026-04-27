@@ -139,6 +139,7 @@ export interface DailyStatsDay {
   longestWordDefinition: WordDefinition | null;
   stampTier: StampTier;
   playersCount: number;
+  config: DailyConfig;
 }
 
 export interface DailyStatsResponse {
@@ -159,12 +160,27 @@ export const fetchDailyStats = async (): Promise<DailyStatsResponse> => {
   return response.json();
 };
 
-export const recordDailyResultToServer = async (date: string, foundWords: string[], board: string[][]): Promise<{ success: boolean }> => {
+export interface DailyConfig {
+  boardSize: number;
+  timeLimit: number;
+  minWordLength: number;
+}
+
+export const recordDailyResultToServer = async (
+  date: string,
+  foundWords: string[],
+  board: string[][],
+  config: DailyConfig,
+): Promise<{ success: boolean }> => {
   const response = await fetch(`${API_URL}/daily/results`, {
     method: 'POST',
     headers: await sessionHeaders(),
-    body: JSON.stringify({ date, found_words: foundWords, board }),
+    body: JSON.stringify({ date, found_words: foundWords, board, config }),
   });
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    throw new Error(`recordDailyResultToServer ${response.status}: ${body}`);
+  }
   return response.json();
 };
 
@@ -180,6 +196,7 @@ export interface DailyResultResponse {
   /** Computed server-side at read time; absent in very old stored results
    *  but always present from the current endpoint. */
   missed_words?: DailyResultMissedWord[];
+  config: DailyConfig;
 }
 
 export const fetchDailyResult = async (date: string): Promise<DailyResultResponse | null> => {
