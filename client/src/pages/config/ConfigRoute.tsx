@@ -54,13 +54,13 @@ export function ConfigRoute({ mode }: { mode: 'freeplay' | 'daily' }) {
 
   const dailyDefaults = isDaily && dailyInfo ? {
     boardSize: dailyInfo.config.boardSize as 4 | 5 | 6,
-    timer: dailyInfo.config.timeLimit as 60 | 120 | -1,
+    timer: dailyInfo.config.timeLimit as 60 | 120 | 180 | -1,
     minWordLength: dailyInfo.config.minWordLength as 3 | 4 | 5,
   } : undefined;
 
   const sharedDefaults = isSharedGame ? {
     boardSize: sharedGame.boardSize as 4 | 5 | 6,
-    timer: sharedGame.timer as 60 | 120 | -1,
+    timer: sharedGame.timer as 60 | 120 | 180 | -1,
     minWordLength: sharedGame.minWordLength as 3 | 4 | 5,
   } : undefined;
 
