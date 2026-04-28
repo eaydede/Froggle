@@ -15,6 +15,22 @@ export interface DailyResultsTable {
   time_limit: number;
 }
 
+export interface DailyZenResultsTable {
+  id: Generated<string>;
+  user_id: string;
+  date: string;
+  found_words: Generated<string>;
+  board: string;
+  started_at: Generated<Date>;
+  last_active_at: Generated<Date>;
+  ended_at: Date | null;
+  ended_by_player: Generated<boolean>;
+  points: Generated<number>;
+  word_count: Generated<number>;
+  longest_word: Generated<string>;
+}
+
 export interface Database {
   daily_results: DailyResultsTable;
+  daily_zen_results: DailyZenResultsTable;
 }

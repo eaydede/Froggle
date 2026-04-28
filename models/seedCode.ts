@@ -66,7 +66,18 @@ export function decodeSeedCode(code: string): { boardSize: number; seed: number 
  * Uses FNV-1a hash of the date string.
  */
 export function getDailySeed(dateStr: string): number {
-  const str = `froggle-daily-${dateStr}`;
+  return fnv1a(`froggle-daily-${dateStr}`);
+}
+
+/**
+ * Daily Zen mode uses a distinct namespace so its board for a given day
+ * differs from the timed daily.
+ */
+export function getDailyZenSeed(dateStr: string): number {
+  return fnv1a(`froggle-daily-zen-${dateStr}`);
+}
+
+function fnv1a(str: string): number {
   let hash = 0x811c9dc5;
   for (let i = 0; i < str.length; i++) {
     hash ^= str.charCodeAt(i);

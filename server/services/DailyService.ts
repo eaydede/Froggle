@@ -136,7 +136,7 @@ async function fetchDefinitionUncached(word: string): Promise<WordDefinition | n
   return null;
 }
 
-async function getDefinitions(words: string[]): Promise<Map<string, WordDefinition | null>> {
+export async function getDefinitions(words: string[]): Promise<Map<string, WordDefinition | null>> {
   const result = new Map<string, WordDefinition | null>();
   const misses: string[] = [];
 

@@ -17,7 +17,6 @@
   --text-caption: 0.6875rem; /* 11px */
 }
 
-/* Base resets */
 body {
   /* New-design tokens — matches the redesigned pages. Overscroll areas
      on mobile and any non-fullscreen route show this bg. */

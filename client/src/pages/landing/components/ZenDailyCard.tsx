@@ -1,41 +1,45 @@
 import { useEffect, useState } from "react";
-import { StreakBar } from "./StreakBar";
-import { StatusIcon } from "../../../shared/components/StatusIcon";
 import { InkButton } from "../../../shared/components/InkButton";
-import type { DailyResults } from "../types";
+import { StatusIcon } from "../../../shared/components/StatusIcon";
+import type { DailyZenSession } from "../../../shared/api/gameApi";
 
-interface DailyCardProps {
-  /** Today's display date, already formatted (e.g. "Tue · Apr 21"). */
+interface ZenDailyCardProps {
   dateLabel: string;
-  streak: number;
-  streakDays: boolean[];
-  results: DailyResults | null;
+  session: DailyZenSession | null;
   onPlay: () => void;
+  onResume: () => void;
   onSeeResult: () => void;
   onSeeLeaderboard: () => void;
 }
 
-export function DailyCard({
+type CardState = 'unplayed' | 'in-progress' | 'ended';
+
+function deriveState(session: DailyZenSession | null): CardState {
+  if (!session) return 'unplayed';
+  if (session.ended_at) return 'ended';
+  return 'in-progress';
+}
+
+export function ZenDailyCard({
   dateLabel,
-  streak,
-  streakDays,
-  results,
+  session,
   onPlay,
+  onResume,
   onSeeResult,
   onSeeLeaderboard,
-}: DailyCardProps) {
-  const completed = results !== null;
+}: ZenDailyCardProps) {
+  const state = deriveState(session);
 
   return (
     <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] flex flex-col overflow-hidden">
       <div className="flex justify-between items-center px-5 pt-[18px]">
         <div className="flex items-center gap-1.5">
-          <StatusIcon state={completed ? 'completed' : 'unplayed'} />
+          <StatusIcon state={state === 'ended' ? 'completed' : state} />
           <span
             className="text-caption uppercase tracking-[0.06em] text-[color:var(--ink-muted)] leading-none font-[family-name:var(--font-structure)]"
             style={{ fontWeight: 700 }}
           >
-            Timed Daily
+            Zen Daily
           </span>
         </div>
         <span
@@ -46,26 +50,54 @@ export function DailyCard({
         </span>
       </div>
 
-      <div className="px-5 pt-[14px] pb-3 flex flex-col gap-[14px]">
-        <StreakBar streak={streak} days={streakDays} todayUnplayed={!completed} />
-
-        {completed && results ? (
+      <div className="px-5 pt-[14px] pb-4 flex flex-col gap-[14px]">
+        {state === 'ended' && session && (
           <>
-            <ScoreBlock points={results.points} words={results.words} longestWord={results.longestWord} />
+            <ScoreBlock
+              points={session.points}
+              words={session.word_count}
+              longestWord={session.longest_word}
+            />
             <div className="grid grid-cols-2 gap-2">
               <SecondaryButton onClick={onSeeResult}>See result</SecondaryButton>
               <SecondaryButton onClick={onSeeLeaderboard}>Leaderboard</SecondaryButton>
             </div>
             <NextDailyCountdown />
           </>
-        ) : (
+        )}
+
+        {state === 'in-progress' && session && (
           <>
-            <PrimaryPlayButton onClick={onPlay} />
+            <ScoreBlock
+              points={session.points}
+              words={session.word_count}
+              longestWord={session.longest_word}
+            />
+            <PrimaryButton onClick={onResume} label="Resume" />
+            <LeaderboardLink onClick={onSeeLeaderboard} />
+          </>
+        )}
+
+        {state === 'unplayed' && (
+          <>
+            <Tagline />
+            <PrimaryButton onClick={onPlay} label="Play zen" />
             <LeaderboardLink onClick={onSeeLeaderboard} />
           </>
         )}
       </div>
     </div>
+  );
+}
+
+function Tagline() {
+  return (
+    <p
+      className="text-small text-[color:var(--ink-muted)] leading-snug"
+      style={{ fontWeight: 500 }}
+    >
+      Find as many words as you can — stop whenever.
+    </p>
   );
 }
 
@@ -79,10 +111,7 @@ function ScoreBlock({
   longestWord?: string;
 }) {
   return (
-    <div
-      className="flex items-end justify-between py-0.5"
-      style={{ animation: "v2-fade-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1)" }}
-    >
+    <div className="flex items-end justify-between py-0.5">
       <div className="flex items-baseline gap-[5px]">
         <span
           className="text-display-lg leading-none font-[family-name:var(--font-structure)] tracking-[-0.03em] tabular-nums"
@@ -170,10 +199,10 @@ function formatCountdown(ms: number): string {
   return `${m}m ${String(s).padStart(2, '0')}s`;
 }
 
-function PrimaryPlayButton({ onClick }: { onClick: () => void }) {
+function PrimaryButton({ onClick, label }: { onClick: () => void; label: string }) {
   return (
     <InkButton onClick={onClick}>
-      Play daily
+      {label}
       <svg
         width="14"
         height="14"

@@ -21,6 +21,9 @@ export function LandingRoute() {
     cachedDaily,
     cachedDailyResult,
     dailyResultLoaded,
+    cachedDailyZen,
+    cachedDailyZenSession,
+    dailyZenLoaded,
     authReady,
     createGame,
     setDailyInfo,
@@ -83,6 +86,17 @@ export function LandingRoute() {
     }
   };
 
+  const handleZenPlay = () => navigate('/daily/zen/play');
+  const handleZenResume = () => navigate('/daily/zen/play');
+  const handleZenSeeResult = () => navigate('/daily/zen/results');
+  const handleZenLeaderboard = () => {
+    if (cachedDailyZen) {
+      navigate(`/daily/zen/leaderboard?date=${cachedDailyZen.date}`);
+    } else {
+      navigate('/daily/zen/leaderboard');
+    }
+  };
+
   if (mockFixture) {
     return (
       <LandingPage
@@ -90,11 +104,16 @@ export function LandingRoute() {
         streak={mockFixture.streak}
         streakDays={mockFixture.streakDays}
         dailyResults={mockFixture.dailyResults}
+        zenSession={mockFixture.zenSession ?? null}
         displayName={mockFixture.displayName}
         onDisplayNameChange={() => {}}
         onDailyPlay={() => {}}
         onDailySeeResult={() => {}}
         onDailyLeaderboard={() => {}}
+        onZenPlay={() => {}}
+        onZenResume={() => {}}
+        onZenSeeResult={() => {}}
+        onZenLeaderboard={() => {}}
         onFreePlayClick={() => {}}
         theme={theme}
         onToggleTheme={toggleTheme}
@@ -102,7 +121,7 @@ export function LandingRoute() {
     );
   }
 
-  if (!cachedDaily || !dailyResultLoaded) {
+  if (!cachedDaily || !dailyResultLoaded || !dailyZenLoaded) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)]">
         <div
@@ -136,11 +155,16 @@ export function LandingRoute() {
       streak={stats?.currentStreak ?? 0}
       streakDays={streakDays}
       dailyResults={dailyResultsData}
+      zenSession={cachedDailyZenSession}
       displayName={displayName}
       onDisplayNameChange={updateDisplayName}
       onDailyPlay={handleDailyPlay}
       onDailySeeResult={handleDailySeeResult}
       onDailyLeaderboard={handleDailyLeaderboard}
+      onZenPlay={handleZenPlay}
+      onZenResume={handleZenResume}
+      onZenSeeResult={handleZenSeeResult}
+      onZenLeaderboard={handleZenLeaderboard}
       onFreePlayClick={handleFreePlay}
       theme={theme}
       onToggleTheme={toggleTheme}

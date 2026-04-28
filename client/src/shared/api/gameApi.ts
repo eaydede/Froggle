@@ -160,6 +160,20 @@ export const fetchDailyStats = async (): Promise<DailyStatsResponse> => {
   return response.json();
 };
 
+export interface DailyZenStatsResponse {
+  windowStart: string;
+  windowEnd: string;
+  days: DailyStatsDay[];
+}
+
+export const fetchDailyZenStats = async (): Promise<DailyZenStatsResponse> => {
+  const response = await fetch(`${API_URL}/daily/zen/stats`, {
+    headers: await sessionHeaders(),
+  });
+  if (!response.ok) throw new Error(`fetchDailyZenStats: ${response.status}`);
+  return response.json();
+};
+
 export interface DailyConfig {
   boardSize: number;
   timeLimit: number;
@@ -304,6 +318,140 @@ export interface DailyHistoryEntry {
 
 export const fetchDailyHistory = async (): Promise<{ entries: DailyHistoryEntry[] }> => {
   const response = await fetch(`${API_URL}/daily/history`, {
+    headers: await sessionHeaders(),
+  });
+  return response.json();
+};
+
+// ─── Zen Daily mode ────────────────────────────────────────────────────
+
+export interface DailyZenInfo {
+  date: string;
+  number: number;
+  seed: number;
+  board: string[][];
+  config: {
+    boardSize: number;
+    minWordLength: number;
+  };
+}
+
+export interface DailyZenSession {
+  date: string;
+  board: string[][];
+  found_words: string[];
+  started_at: string;
+  last_active_at: string;
+  ended_at: string | null;
+  ended_by_player: boolean;
+  points: number;
+  word_count: number;
+  longest_word: string;
+  /** Total findable words on this board — server computed each fetch. */
+  total_findable: number;
+}
+
+export const fetchDailyZen = async (): Promise<DailyZenInfo> => {
+  const response = await fetch(`${API_URL}/daily/zen`);
+  return response.json();
+};
+
+export const fetchDailyZenSession = async (
+  date: string,
+): Promise<DailyZenSession | null> => {
+  const response = await fetch(`${API_URL}/daily/zen/session/${date}`, {
+    headers: await sessionHeaders(),
+  });
+  if (!response.ok) return null;
+  const data = await response.json();
+  return data.session ?? null;
+};
+
+export const startDailyZenSession = async (
+  date: string,
+): Promise<DailyZenSession> => {
+  const response = await fetch(`${API_URL}/daily/zen/session/${date}/start`, {
+    method: 'POST',
+    headers: await sessionHeaders(),
+  });
+  const data = await response.json();
+  return data.session;
+};
+
+export const submitDailyZenWord = async (
+  date: string,
+  path: Position[],
+): Promise<{ valid: boolean; word?: string; score?: number; reason?: string }> => {
+  const response = await fetch(`${API_URL}/daily/zen/session/${date}/word`, {
+    method: 'POST',
+    headers: await sessionHeaders(),
+    body: JSON.stringify({ path }),
+  });
+  return response.json();
+};
+
+export const endDailyZenSession = async (
+  date: string,
+): Promise<DailyZenSession | null> => {
+  const response = await fetch(`${API_URL}/daily/zen/session/${date}/end`, {
+    method: 'POST',
+    headers: await sessionHeaders(),
+  });
+  if (!response.ok) return null;
+  const data = await response.json();
+  return data.session ?? null;
+};
+
+export interface DailyZenResultResponse {
+  date: string;
+  found_words: DailyResultMissedWord[];
+  board: string[][];
+  missed_words: DailyResultMissedWord[];
+  ended_at: string;
+  ended_by_player: boolean;
+}
+
+export const fetchDailyZenResult = async (
+  date: string,
+): Promise<DailyZenResultResponse | null> => {
+  const response = await fetch(`${API_URL}/daily/zen/results/${date}`, {
+    headers: await sessionHeaders(),
+  });
+  const data = await response.json();
+  return data.result ?? null;
+};
+
+export interface DailyZenLeaderboardEntry {
+  rank: number;
+  userId: string;
+  displayName: string;
+  points: number;
+  wordCount: number;
+  longestWord: string;
+  inProgress: boolean;
+}
+
+export interface DailyZenLeaderboardResponse {
+  puzzleNumber: number;
+  totalPlayers: number;
+  avgScore: number;
+  rankings: {
+    points: DailyZenLeaderboardEntry[];
+    words: DailyZenLeaderboardEntry[];
+  };
+  currentPlayer: {
+    points: number;
+    wordsFound: number;
+    longestWord: string;
+    rank: number;
+    totalPlayers: number;
+  } | null;
+}
+
+export const fetchDailyZenLeaderboard = async (
+  date: string,
+): Promise<DailyZenLeaderboardResponse> => {
+  const response = await fetch(`${API_URL}/daily/zen/leaderboard/${date}`, {
     headers: await sessionHeaders(),
   });
   return response.json();

@@ -8,8 +8,16 @@ import { useTimer } from './hooks/useTimer';
 import { useFeedbackSounds } from './pages/game';
 import type { FeedbackType } from './pages/game';
 import type { GameResults } from './shared/types';
-import type { DailyInfo } from './shared/api/gameApi';
-import { fetchDaily, recordDailyResultToServer, fetchDailyResult, fetchProfile, updateProfile } from './shared/api/gameApi';
+import type { DailyInfo, DailyZenInfo, DailyZenSession } from './shared/api/gameApi';
+import {
+  fetchDaily,
+  recordDailyResultToServer,
+  fetchDailyResult,
+  fetchProfile,
+  updateProfile,
+  fetchDailyZen,
+  fetchDailyZenSession,
+} from './shared/api/gameApi';
 import { loadDailyResult, clearDailyResult } from './shared/utils/dailyStorage';
 import { decodeSeedCode } from 'models/seedCode';
 import type { GameConfig } from './pages/config';
@@ -36,6 +44,13 @@ interface GameContextValue {
   cachedDailyResult: { found_words: string[]; board: string[][] } | null;
   dailyResultLoaded: boolean;
   refreshDaily: () => Promise<DailyInfo>;
+
+  // Zen Daily
+  cachedDailyZen: DailyZenInfo | null;
+  cachedDailyZenSession: DailyZenSession | null;
+  dailyZenLoaded: boolean;
+  setCachedDailyZenSession: (session: DailyZenSession | null) => void;
+  refreshDailyZenSession: () => Promise<void>;
 
   // Board code
   boardCode: string;
@@ -166,6 +181,21 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [cachedDailyResult, setCachedDailyResult] = useState<{ found_words: any[]; board: string[][] } | null>(null);
   const [dailyResultLoaded, setDailyResultLoaded] = useState(false);
 
+  // Zen Daily state
+  const [cachedDailyZen, setCachedDailyZen] = useState<DailyZenInfo | null>(null);
+  const [cachedDailyZenSession, setCachedDailyZenSession] = useState<DailyZenSession | null>(null);
+  const [dailyZenLoaded, setDailyZenLoaded] = useState(false);
+
+  const refreshDailyZenSession = async () => {
+    if (!cachedDailyZen) return;
+    try {
+      const session = await fetchDailyZenSession(cachedDailyZen.date);
+      setCachedDailyZenSession(session);
+    } catch {
+      // Network blip — keep last-known value rather than nuking the UI.
+    }
+  };
+
   // Fetch today's daily info + result on mount (wait for auth to be ready)
   // Also migrates any localStorage daily result to the server (one-time bridge for existing users)
   useEffect(() => {
@@ -199,6 +229,23 @@ export function GameProvider({ children }: { children: ReactNode }) {
       }
       setDailyResultLoaded(true);
     }).catch(() => setDailyResultLoaded(true));
+  }, [authReady]);
+
+  // Fetch zen daily puzzle + any in-progress / ended session for today.
+  useEffect(() => {
+    if (!authReady) return;
+    fetchDailyZen()
+      .then(async (info) => {
+        setCachedDailyZen(info);
+        try {
+          const session = await fetchDailyZenSession(info.date);
+          setCachedDailyZenSession(session);
+        } catch {
+          // ignore — landing falls back to "Play"
+        }
+        setDailyZenLoaded(true);
+      })
+      .catch(() => setDailyZenLoaded(true));
   }, [authReady]);
 
   // Record daily results when a daily game is completed in the current session.
@@ -272,6 +319,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     <GameContext.Provider value={{
       game, words, results, gameSeed, feedback, timeRemaining,
       dailyInfo, setDailyInfo, cachedDaily, cachedDailyResult, dailyResultLoaded, refreshDaily,
+      cachedDailyZen, cachedDailyZenSession, dailyZenLoaded,
+      setCachedDailyZenSession, refreshDailyZenSession,
       boardCode, setBoardCode, sharedSeed, handleCodeChange,
       lastConfig, setLastConfig,
       muted, toggleMute,

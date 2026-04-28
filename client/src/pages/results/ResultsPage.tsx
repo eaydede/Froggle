@@ -2,6 +2,8 @@ import { useState } from 'react';
 import type { Position, Game } from 'models';
 import type { GameResults } from '../../shared/types';
 import { InkButton } from '../../shared/components/InkButton';
+import { IconAction } from '../../shared/components/IconAction';
+import { DateChip } from '../../shared/components/DateChip';
 import { HeroScore } from './components/HeroScore';
 import { MiniBoard } from './components/MiniBoard';
 import { ConfigChips } from './components/ConfigChips';
@@ -218,51 +220,3 @@ function Topbar({ onClose, onShare, shareCopied, dateLabel, onChangeDate }: Topb
   );
 }
 
-function IconAction({
-  onClick,
-  label,
-  children,
-}: {
-  onClick: () => void;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      className="w-8 h-8 flex items-center justify-center rounded-[10px] bg-transparent border-none cursor-pointer text-[color:var(--ink-soft)] hover:bg-[var(--ink-whisper)] hover:text-[color:var(--ink)] transition-colors duration-200 [&>svg]:w-4 [&>svg]:h-4"
-      style={{ WebkitTapHighlightColor: 'transparent' }}
-    >
-      {children}
-    </button>
-  );
-}
-
-function DateChip({ label, onClick }: { label: string; onClick?: () => void }) {
-  const interactive = !!onClick;
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={!interactive}
-      className="flex items-center justify-center gap-1.5 py-[7px] px-3.5 rounded-[10px] bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[0_1px_2px_rgba(34,32,28,0.03)] cursor-pointer disabled:cursor-default hover:border-[var(--ink-border)] transition-colors duration-200 font-[family-name:var(--font-ui)]"
-      style={{ WebkitTapHighlightColor: 'transparent' }}
-    >
-      <span
-        className="text-[13px] text-[color:var(--ink)] tabular-nums"
-        style={{ fontWeight: 600, letterSpacing: '-0.005em' }}
-      >
-        {label}
-      </span>
-      {interactive && (
-        <span className="flex items-center text-[color:var(--ink-faint)]">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        </span>
-      )}
-    </button>
-  );
-}
