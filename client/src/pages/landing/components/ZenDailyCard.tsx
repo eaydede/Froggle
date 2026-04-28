@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { InkButton } from "../../../shared/components/InkButton";
-import type { DailyRelaxedSession } from "../../../shared/api/gameApi";
+import { StatusIcon } from "../../../shared/components/StatusIcon";
+import type { DailyZenSession } from "../../../shared/api/gameApi";
 
-interface RelaxedDailyCardProps {
+interface ZenDailyCardProps {
   dateLabel: string;
-  session: DailyRelaxedSession | null;
+  session: DailyZenSession | null;
   onPlay: () => void;
   onResume: () => void;
   onSeeResult: () => void;
@@ -13,31 +14,34 @@ interface RelaxedDailyCardProps {
 
 type CardState = 'unplayed' | 'in-progress' | 'ended';
 
-function deriveState(session: DailyRelaxedSession | null): CardState {
+function deriveState(session: DailyZenSession | null): CardState {
   if (!session) return 'unplayed';
   if (session.ended_at) return 'ended';
   return 'in-progress';
 }
 
-export function RelaxedDailyCard({
+export function ZenDailyCard({
   dateLabel,
   session,
   onPlay,
   onResume,
   onSeeResult,
   onSeeLeaderboard,
-}: RelaxedDailyCardProps) {
+}: ZenDailyCardProps) {
   const state = deriveState(session);
 
   return (
     <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] flex flex-col overflow-hidden">
       <div className="flex justify-between items-center px-5 pt-[18px]">
-        <span
-          className="text-caption uppercase tracking-[0.06em] text-[color:var(--ink-muted)] leading-none font-[family-name:var(--font-structure)]"
-          style={{ fontWeight: 700 }}
-        >
-          Daily Relaxed
-        </span>
+        <div className="flex items-center gap-1.5">
+          <StatusIcon state={state === 'ended' ? 'completed' : state} />
+          <span
+            className="text-caption uppercase tracking-[0.06em] text-[color:var(--ink-muted)] leading-none font-[family-name:var(--font-structure)]"
+            style={{ fontWeight: 700 }}
+          >
+            Zen Daily
+          </span>
+        </div>
         <span
           className="text-caption text-[color:var(--ink-soft)] tabular-nums leading-none"
           style={{ fontWeight: 500 }}
@@ -68,7 +72,6 @@ export function RelaxedDailyCard({
               points={session.points}
               words={session.word_count}
               longestWord={session.longest_word}
-              hint="In progress"
             />
             <PrimaryButton onClick={onResume} label="Resume" />
             <LeaderboardLink onClick={onSeeLeaderboard} />
@@ -78,7 +81,7 @@ export function RelaxedDailyCard({
         {state === 'unplayed' && (
           <>
             <Tagline />
-            <PrimaryButton onClick={onPlay} label="Play relaxed" />
+            <PrimaryButton onClick={onPlay} label="Play zen" />
             <LeaderboardLink onClick={onSeeLeaderboard} />
           </>
         )}
@@ -93,7 +96,7 @@ function Tagline() {
       className="text-small text-[color:var(--ink-muted)] leading-snug"
       style={{ fontWeight: 500 }}
     >
-      Untimed. Find as many words as you can — stop whenever.
+      Find as many words as you can — stop whenever.
     </p>
   );
 }
@@ -102,35 +105,23 @@ function ScoreBlock({
   points,
   words,
   longestWord,
-  hint,
 }: {
   points: number;
   words: number;
   longestWord?: string;
-  hint?: string;
 }) {
   return (
     <div className="flex items-end justify-between py-0.5">
-      <div className="flex flex-col gap-0.5">
-        <div className="flex items-baseline gap-[5px]">
-          <span
-            className="text-display-lg leading-none font-[family-name:var(--font-structure)] tracking-[-0.03em] tabular-nums"
-            style={{ fontWeight: 800 }}
-          >
-            {points}
-          </span>
-          <span className="text-small text-[color:var(--ink-muted)]" style={{ fontWeight: 600 }}>
-            pts
-          </span>
-        </div>
-        {hint && (
-          <span
-            className="text-caption uppercase tracking-[0.06em] text-[color:var(--ink-soft)]"
-            style={{ fontWeight: 600 }}
-          >
-            {hint}
-          </span>
-        )}
+      <div className="flex items-baseline gap-[5px]">
+        <span
+          className="text-display-lg leading-none font-[family-name:var(--font-structure)] tracking-[-0.03em] tabular-nums"
+          style={{ fontWeight: 800 }}
+        >
+          {points}
+        </span>
+        <span className="text-small text-[color:var(--ink-muted)]" style={{ fontWeight: 600 }}>
+          pts
+        </span>
       </div>
       <div className="flex flex-col items-end gap-0.5 leading-tight min-w-0">
         <span

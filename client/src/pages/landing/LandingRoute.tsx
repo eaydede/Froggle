@@ -21,9 +21,9 @@ export function LandingRoute() {
     cachedDaily,
     cachedDailyResult,
     dailyResultLoaded,
-    cachedDailyRelaxed,
-    cachedDailyRelaxedSession,
-    dailyRelaxedLoaded,
+    cachedDailyZen,
+    cachedDailyZenSession,
+    dailyZenLoaded,
     authReady,
     createGame,
     setDailyInfo,
@@ -86,14 +86,14 @@ export function LandingRoute() {
     }
   };
 
-  const handleRelaxedPlay = () => navigate('/daily/relaxed/play');
-  const handleRelaxedResume = () => navigate('/daily/relaxed/play');
-  const handleRelaxedSeeResult = () => navigate('/daily/relaxed/results');
-  const handleRelaxedLeaderboard = () => {
-    if (cachedDailyRelaxed) {
-      navigate(`/daily/relaxed/leaderboard?date=${cachedDailyRelaxed.date}`);
+  const handleZenPlay = () => navigate('/daily/zen/play');
+  const handleZenResume = () => navigate('/daily/zen/play');
+  const handleZenSeeResult = () => navigate('/daily/zen/results');
+  const handleZenLeaderboard = () => {
+    if (cachedDailyZen) {
+      navigate(`/daily/zen/leaderboard?date=${cachedDailyZen.date}`);
     } else {
-      navigate('/daily/relaxed/leaderboard');
+      navigate('/daily/zen/leaderboard');
     }
   };
 
@@ -104,16 +104,16 @@ export function LandingRoute() {
         streak={mockFixture.streak}
         streakDays={mockFixture.streakDays}
         dailyResults={mockFixture.dailyResults}
-        relaxedSession={mockFixture.relaxedSession ?? null}
+        zenSession={mockFixture.zenSession ?? null}
         displayName={mockFixture.displayName}
         onDisplayNameChange={() => {}}
         onDailyPlay={() => {}}
         onDailySeeResult={() => {}}
         onDailyLeaderboard={() => {}}
-        onRelaxedPlay={() => {}}
-        onRelaxedResume={() => {}}
-        onRelaxedSeeResult={() => {}}
-        onRelaxedLeaderboard={() => {}}
+        onZenPlay={() => {}}
+        onZenResume={() => {}}
+        onZenSeeResult={() => {}}
+        onZenLeaderboard={() => {}}
         onFreePlayClick={() => {}}
         theme={theme}
         onToggleTheme={toggleTheme}
@@ -121,7 +121,7 @@ export function LandingRoute() {
     );
   }
 
-  if (!cachedDaily || !dailyResultLoaded || !dailyRelaxedLoaded) {
+  if (!cachedDaily || !dailyResultLoaded || !dailyZenLoaded) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)]">
         <div
@@ -155,16 +155,16 @@ export function LandingRoute() {
       streak={stats?.currentStreak ?? 0}
       streakDays={streakDays}
       dailyResults={dailyResultsData}
-      relaxedSession={cachedDailyRelaxedSession}
+      zenSession={cachedDailyZenSession}
       displayName={displayName}
       onDisplayNameChange={updateDisplayName}
       onDailyPlay={handleDailyPlay}
       onDailySeeResult={handleDailySeeResult}
       onDailyLeaderboard={handleDailyLeaderboard}
-      onRelaxedPlay={handleRelaxedPlay}
-      onRelaxedResume={handleRelaxedResume}
-      onRelaxedSeeResult={handleRelaxedSeeResult}
-      onRelaxedLeaderboard={handleRelaxedLeaderboard}
+      onZenPlay={handleZenPlay}
+      onZenResume={handleZenResume}
+      onZenSeeResult={handleZenSeeResult}
+      onZenLeaderboard={handleZenLeaderboard}
       onFreePlayClick={handleFreePlay}
       theme={theme}
       onToggleTheme={toggleTheme}

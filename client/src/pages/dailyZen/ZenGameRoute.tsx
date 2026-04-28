@@ -1,16 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Position } from 'models';
 import { useGame } from '../../GameContext';
 import { Board, type FeedbackType, computeFeedbackColors } from '../game/components';
 import { useFeedbackSounds } from '../game';
 import { InkButton } from '../../shared/components/InkButton';
+import { IconAction } from '../../shared/components/IconAction';
+import { scoreWord } from '../../shared/utils/score';
+import { RARITY_VAR, wordRarity } from '../results/utils/wordRarity';
 import {
-  endDailyRelaxedSession,
-  startDailyRelaxedSession,
-  submitDailyRelaxedWord,
-  type DailyRelaxedSession,
+  endDailyZenSession,
+  startDailyZenSession,
+  submitDailyZenWord,
+  type DailyZenSession,
 } from '../../shared/api/gameApi';
+
+type WordSort = 'recent' | 'score';
 
 const BOARD_STYLE = {
   base: 0,
@@ -23,19 +28,19 @@ const BOARD_STYLE = {
   preactIntensity: 100,
 } as const;
 
-export function RelaxedGameRoute() {
+export function ZenGameRoute() {
   const navigate = useNavigate();
   const {
-    cachedDailyRelaxed,
-    cachedDailyRelaxedSession,
-    setCachedDailyRelaxedSession,
-    dailyRelaxedLoaded,
+    cachedDailyZen,
+    cachedDailyZenSession,
+    setCachedDailyZenSession,
+    dailyZenLoaded,
     authReady,
     muted,
     toggleMute,
   } = useGame();
 
-  const [session, setSession] = useState<DailyRelaxedSession | null>(cachedDailyRelaxedSession);
+  const [session, setSession] = useState<DailyZenSession | null>(cachedDailyZenSession);
   const [feedback, setFeedback] = useState<{ type: FeedbackType; path: Position[] } | null>(null);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -44,32 +49,32 @@ export function RelaxedGameRoute() {
 
   // Keep local in sync when context refreshes (e.g., on auth ready).
   useEffect(() => {
-    setSession(cachedDailyRelaxedSession);
-  }, [cachedDailyRelaxedSession]);
+    setSession(cachedDailyZenSession);
+  }, [cachedDailyZenSession]);
 
   // If the session is already ended, the play page is the wrong destination.
   useEffect(() => {
-    if (session?.ended_at) navigate('/daily/relaxed/results', { replace: true });
+    if (session?.ended_at) navigate('/daily/zen/results', { replace: true });
   }, [session?.ended_at, navigate]);
 
   const handleStart = useCallback(async () => {
-    if (!cachedDailyRelaxed || starting) return;
+    if (!cachedDailyZen || starting) return;
     setStarting(true);
     try {
-      const fresh = await startDailyRelaxedSession(cachedDailyRelaxed.date);
+      const fresh = await startDailyZenSession(cachedDailyZen.date);
       setSession(fresh);
-      setCachedDailyRelaxedSession(fresh);
+      setCachedDailyZenSession(fresh);
     } finally {
       setStarting(false);
     }
-  }, [cachedDailyRelaxed, starting, setCachedDailyRelaxedSession]);
+  }, [cachedDailyZen, starting, setCachedDailyZenSession]);
 
   const handleSubmitWord = useCallback(
     async (path: Position[]) => {
       if (!session || session.ended_at || inFlightRef.current) return;
       inFlightRef.current = true;
       try {
-        const outcome = await submitDailyRelaxedWord(session.date, path);
+        const outcome = await submitDailyZenWord(session.date, path);
         let type: FeedbackType;
         if (outcome.valid) {
           type = 'valid';
@@ -93,7 +98,7 @@ export function RelaxedGameRoute() {
                 word_count: nextWords.length,
                 longest_word: nextLongest,
               };
-              setCachedDailyRelaxedSession(next);
+              setCachedDailyZenSession(next);
               return next;
             });
           }
@@ -110,20 +115,20 @@ export function RelaxedGameRoute() {
         inFlightRef.current = false;
       }
     },
-    [session, muted, playValid, playInvalid, playDuplicate, setCachedDailyRelaxedSession],
+    [session, muted, playValid, playInvalid, playDuplicate, setCachedDailyZenSession],
   );
 
   const handleEnd = async () => {
     if (!session) return;
-    const ended = await endDailyRelaxedSession(session.date);
+    const ended = await endDailyZenSession(session.date);
     if (ended) {
       setSession(ended);
-      setCachedDailyRelaxedSession(ended);
+      setCachedDailyZenSession(ended);
     }
-    navigate('/daily/relaxed/results');
+    navigate('/daily/zen/results');
   };
 
-  if (!authReady || !dailyRelaxedLoaded || !cachedDailyRelaxed) {
+  if (!authReady || !dailyZenLoaded || !cachedDailyZen) {
     return <div className="fixed inset-0 bg-[var(--surface-panel)]" />;
   }
 
@@ -131,8 +136,8 @@ export function RelaxedGameRoute() {
   // hasn't generated a session row yet. One tap to start.
   if (!session) {
     return (
-      <RelaxedIntro
-        puzzleNumber={cachedDailyRelaxed.number}
+      <ZenIntro
+        puzzleNumber={cachedDailyZen.number}
         onStart={handleStart}
         onBack={() => navigate('/')}
         starting={starting}
@@ -144,20 +149,21 @@ export function RelaxedGameRoute() {
 
   return (
     <div
-      className="w-full max-w-[500px] mx-auto flex flex-col items-center"
-      style={{ '--board-size': cachedDailyRelaxed.config.boardSize } as React.CSSProperties}
+      className="w-full max-w-[500px] mx-auto flex flex-col flex-1 min-h-0"
+      style={{ '--board-size': cachedDailyZen.config.boardSize } as React.CSSProperties}
     >
       <ScoreHeader
         points={session.points}
         words={session.word_count}
+        onBack={() => navigate('/')}
         onEnd={() => setShowEndConfirm(true)}
       />
 
-      <CurrentWordBanner feedback={feedback} board={cachedDailyRelaxed.board} colors={colors} />
+      <CurrentWordBanner feedback={feedback} board={cachedDailyZen.board} colors={colors} />
 
       <div className="w-full">
         <Board
-          board={cachedDailyRelaxed.board}
+          board={cachedDailyZen.board}
           onSubmitWord={handleSubmitWord}
           feedback={feedback}
           baseStyleIndex={BOARD_STYLE.base}
@@ -171,15 +177,15 @@ export function RelaxedGameRoute() {
         />
       </div>
 
-      <FoundWordsList words={session.found_words} />
-
       <FooterRow
-        modeLabel={`Daily Relaxed #${cachedDailyRelaxed.number}`}
-        boardSize={cachedDailyRelaxed.config.boardSize}
-        minWordLength={cachedDailyRelaxed.config.minWordLength}
+        modeLabel={`Zen Daily #${cachedDailyZen.number}`}
+        boardSize={cachedDailyZen.config.boardSize}
+        minWordLength={cachedDailyZen.config.minWordLength}
         muted={muted}
         onToggleMute={toggleMute}
       />
+
+      <FoundWordsList words={session.found_words} />
 
       {showEndConfirm && (
         <EndConfirmModal
@@ -196,7 +202,7 @@ export function RelaxedGameRoute() {
   );
 }
 
-function RelaxedIntro({
+function ZenIntro({
   puzzleNumber,
   onStart,
   onBack,
@@ -216,7 +222,7 @@ function RelaxedIntro({
               className="text-caption uppercase tracking-[0.08em] text-[color:var(--ink-soft)] leading-none mb-3 font-[family-name:var(--font-structure)]"
               style={{ fontWeight: 700 }}
             >
-              Daily Relaxed #{puzzleNumber}
+              Zen Daily #{puzzleNumber}
             </div>
             <div
               className="text-display-sm italic leading-[1.1] tracking-[-0.015em] font-[family-name:var(--font-display)]"
@@ -249,15 +255,25 @@ function RelaxedIntro({
 function ScoreHeader({
   points,
   words,
+  onBack,
   onEnd,
 }: {
   points: number;
   words: number;
+  onBack: () => void;
   onEnd: () => void;
 }) {
   return (
-    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3 w-full">
-      <div className="flex items-baseline gap-[5px]">
+    <div
+      className="grid items-center gap-2.5 pt-3.5 shrink-0"
+      style={{ gridTemplateColumns: '32px 1fr auto' }}
+    >
+      <IconAction onClick={onBack} label="Back to home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 18l-6-6 6-6" />
+        </svg>
+      </IconAction>
+      <div className="flex items-baseline gap-[5px] justify-center">
         <span
           className="text-2xl leading-none font-[family-name:var(--font-structure)] tabular-nums tracking-[-0.02em]"
           style={{ fontWeight: 800 }}
@@ -274,10 +290,10 @@ function ScoreHeader({
       <button
         type="button"
         onClick={onEnd}
-        className="text-small px-3 py-1.5 rounded-lg border border-[var(--ink-border)] text-[color:var(--ink-muted)] hover:text-[color:var(--ink)] hover:border-[var(--ink-muted)] bg-transparent transition-colors duration-200 cursor-pointer font-[family-name:var(--font-ui)]"
-        style={{ fontWeight: 600 }}
+        className="px-3 h-8 rounded-[10px] text-[11px] uppercase tracking-[0.08em] text-[color:var(--ink-muted)] hover:text-[color:var(--ink)] hover:bg-[var(--ink-whisper)] bg-transparent border-none transition-colors duration-200 cursor-pointer font-[family-name:var(--font-structure)]"
+        style={{ fontWeight: 700, WebkitTapHighlightColor: 'transparent' }}
       >
-        End puzzle
+        End
       </button>
     </div>
   );
@@ -303,7 +319,7 @@ function CurrentWordBanner({
       : '#bbb';
   return (
     <div
-      className="h-9 flex items-center justify-center tracking-wider my-2"
+      className="h-9 flex items-center justify-center tracking-wider my-2 shrink-0"
       style={{
         color,
         fontFamily: 'var(--font-cell)',
@@ -317,38 +333,170 @@ function CurrentWordBanner({
 }
 
 function FoundWordsList({ words }: { words: string[] }) {
-  if (words.length === 0) {
-    return (
-      <p
-        className="text-small text-[color:var(--ink-soft)] mt-3 text-center"
-        style={{ fontWeight: 500 }}
-      >
-        Find your first word to get started.
-      </p>
+  const [sort, setSort] = useState<WordSort>('recent');
+  const listRef = useRef<HTMLDivElement>(null);
+  const [atBottom, setAtBottom] = useState(false);
+
+  // 'recent' uses the order words were found in (last → first). 'score' ranks
+  // by point value, with longer words ahead on a tie so high-effort finds
+  // surface above filler.
+  const ordered = useMemo(() => {
+    if (sort === 'recent') return [...words].reverse();
+    return [...words].sort(
+      (a, b) => scoreWord(b) - scoreWord(a) || b.length - a.length || a.localeCompare(b),
     );
-  }
-  // Newest first so the just-found word is always visible.
-  const ordered = [...words].reverse();
+  }, [words, sort]);
+
+  const updateFade = () => {
+    const el = listRef.current;
+    if (!el) return;
+    setAtBottom(el.scrollHeight - el.clientHeight - el.scrollTop < 2);
+  };
+
+  useLayoutEffect(updateFade, [ordered]);
+
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', updateFade);
+    return () => el.removeEventListener('scroll', updateFade);
+  }, []);
+
+  const total = words.reduce((sum, w) => sum + scoreWord(w), 0);
+
   return (
-    <div className="w-full mt-3 px-2">
-      <div
-        className="text-caption uppercase tracking-[0.06em] text-[color:var(--ink-soft)] mb-1.5 font-[family-name:var(--font-structure)]"
-        style={{ fontWeight: 700 }}
-      >
-        Found ({words.length})
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {ordered.map((w) => (
-          <span
-            key={w}
-            className="text-xs px-2 py-1 rounded-md bg-[var(--ink-whisper)] text-[color:var(--ink)] tabular-nums font-[family-name:var(--font-structure)]"
-            style={{ fontWeight: 600, letterSpacing: '0.02em' }}
-          >
-            {w.toUpperCase()}
-          </span>
-        ))}
+    <div className="w-full mt-3 flex-1 min-h-0 flex flex-col rounded-xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] overflow-hidden">
+      <SectionHeader count={words.length} total={total} sort={sort} onSortChange={setSort} />
+      {words.length === 0 ? (
+        <div
+          className="px-3 py-3 text-[11px] text-[color:var(--ink-soft)] text-center"
+          style={{ fontWeight: 500 }}
+        >
+          Find your first word to get started.
+        </div>
+      ) : (
+        <div
+          ref={listRef}
+          className="flex-1 min-h-0 overflow-y-auto"
+          style={{
+            WebkitMaskImage: atBottom
+              ? 'none'
+              : 'linear-gradient(to bottom, black calc(100% - 14px), transparent 100%)',
+            maskImage: atBottom
+              ? 'none'
+              : 'linear-gradient(to bottom, black calc(100% - 14px), transparent 100%)',
+            scrollbarWidth: 'thin',
+          }}
+        >
+          {ordered.map((w, i) => (
+            <WordRow key={w} word={w} first={i === 0} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SectionHeader({
+  count,
+  total,
+  sort,
+  onSortChange,
+}: {
+  count: number;
+  total: number;
+  sort: WordSort;
+  onSortChange: (v: WordSort) => void;
+}) {
+  return (
+    <div
+      className="flex justify-between items-center px-3 py-[9px] text-label-xs uppercase tracking-[0.08em] text-[color:var(--ink-muted)] bg-[var(--ink-whisper)] leading-none font-[family-name:var(--font-structure)] shrink-0"
+      style={{ fontWeight: 700 }}
+    >
+      <span>
+        Found
+        <span className="tabular-nums"> · {count}</span>
+      </span>
+      <div className="flex items-center gap-2">
+        <SortToggle value={sort} onChange={onSortChange} />
+        <span className="tabular-nums">{total}</span>
       </div>
     </div>
+  );
+}
+
+function WordRow({ word, first }: { word: string; first: boolean }) {
+  const score = scoreWord(word);
+  const rarity = wordRarity(score);
+  return (
+    <div
+      className={[
+        'relative flex justify-between items-center py-[7px] pr-3 pl-[17px] text-xs tracking-[0.02em] font-[family-name:var(--font-ui)] text-[color:var(--ink)]',
+        first ? '' : 'border-t border-[var(--ink-border-subtle)]',
+      ].join(' ')}
+      style={{ fontWeight: 500 }}
+    >
+      <span
+        aria-hidden
+        className="absolute left-0 top-[5px] bottom-[5px] w-1 rounded-r-[2px]"
+        style={{ background: RARITY_VAR[rarity] }}
+      />
+      <span className="tabular-nums">{word}</span>
+      <span
+        className="text-[11px] tabular-nums font-[family-name:var(--font-structure)] text-[color:var(--ink-soft)]"
+        style={{ fontWeight: 700 }}
+      >
+        +{score}
+      </span>
+    </div>
+  );
+}
+
+function SortToggle({
+  value,
+  onChange,
+}: {
+  value: WordSort;
+  onChange: (v: WordSort) => void;
+}) {
+  return (
+    <div className="inline-flex items-center gap-2 normal-case tracking-normal">
+      <SortChoice active={value === 'recent'} onClick={() => onChange('recent')}>
+        Recent
+      </SortChoice>
+      <span className="text-[color:var(--ink-faint)]" aria-hidden>
+        ·
+      </span>
+      <SortChoice active={value === 'score'} onClick={() => onChange('score')}>
+        Score
+      </SortChoice>
+    </div>
+  );
+}
+
+function SortChoice({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        'text-[10px] uppercase tracking-[0.08em] bg-transparent border-none cursor-pointer transition-colors duration-150 font-[family-name:var(--font-structure)] ' +
+        (active
+          ? 'text-[color:var(--ink)]'
+          : 'text-[color:var(--ink-faint)] hover:text-[color:var(--ink-muted)]')
+      }
+      style={{ fontWeight: 700, WebkitTapHighlightColor: 'transparent' }}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -366,7 +514,7 @@ function FooterRow({
   onToggleMute: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between w-full mt-3">
+    <div className="flex items-center justify-between w-full mt-3 shrink-0">
       <div
         className="flex items-center gap-2.5 text-[0.6rem] text-[var(--text-muted)] select-none"
         style={{ fontFamily: 'var(--font-body)', fontWeight: 500 }}

@@ -16,7 +16,7 @@ const SCORE_TIERS: ScoreTier[] = [
 ];
 
 export interface ShareOptions {
-  daily?: { number: number };
+  daily?: { number: number; mode?: 'timed' | 'zen' };
   gameLink?: string;
 }
 
@@ -43,7 +43,9 @@ export function generateShareText(foundWords: ScoredWord[], options: ShareOption
   const lines: string[] = [];
 
   if (isDaily) {
-    lines.push(`Froggle #${options.daily!.number} ${totalWords}W ${totalPoints}pts`);
+    const tag = options.daily!.mode === 'zen' ? 'Zen' : '';
+    const prefix = tag ? `Froggle ${tag} #${options.daily!.number}` : `Froggle #${options.daily!.number}`;
+    lines.push(`${prefix} ${totalWords}W ${totalPoints}pts`);
   } else {
     lines.push(`Froggle ${totalWords}W ${totalPoints}pts`);
   }
@@ -60,7 +62,8 @@ export function generateShareText(foundWords: ScoredWord[], options: ShareOption
   }
 
   if (isDaily) {
-    lines.push(`${window.location.origin}/daily`);
+    const path = options.daily!.mode === 'zen' ? '/daily/zen/play' : '/daily';
+    lines.push(`${window.location.origin}${path}`);
   } else if (options.gameLink) {
     lines.push(options.gameLink);
   }

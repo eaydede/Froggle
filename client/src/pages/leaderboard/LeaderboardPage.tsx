@@ -3,6 +3,8 @@ import { Podium, type PodiumEntry } from './components/Podium';
 import { InlineStats } from './components/InlineStats';
 import { LeaderboardList, type LbListEntry } from './components/LeaderboardList';
 import { DateTimelinePicker } from '../../shared/components/DateTimelinePicker';
+import { DateChip } from '../../shared/components/DateChip';
+import { IconAction } from '../../shared/components/IconAction';
 import type { DailyEntry } from '../daily/types';
 
 interface LeaderboardPageProps {
@@ -65,7 +67,7 @@ export function LeaderboardPage({
             className="text-center italic text-[16px] tracking-[-0.01em] text-[color:var(--ink)] font-[family-name:var(--font-display)]"
             style={{ fontWeight: 600 }}
           >
-            Leaderboard
+            Timed Leaderboard
           </div>
           <IconAction label="Share" onClick={onShare}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -76,17 +78,9 @@ export function LeaderboardPage({
           </IconAction>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setPickerOpen(true)}
-          className="mx-auto mt-2.5 px-3.5 py-1.5 flex items-center gap-1.5 bg-[var(--ink-whisper)] border border-[var(--ink-border-subtle)] rounded-full text-[11px] tracking-[0.04em] text-[color:var(--ink-muted)] hover:text-[color:var(--ink)] hover:border-[var(--ink-border)] cursor-pointer transition-colors duration-200 flex-shrink-0 font-[family-name:var(--font-structure)]"
-          style={{ fontWeight: 600, WebkitTapHighlightColor: 'transparent' }}
-        >
-          {dateLabel}
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="opacity-60">
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        </button>
+        <div className="flex justify-center mt-2.5">
+          <DateChip label={dateLabel} onClick={() => setPickerOpen(true)} />
+        </div>
 
         <Podium entries={podium} onCompare={onCompare} onSelfClick={onSelfClick} />
         <InlineStats
@@ -111,24 +105,3 @@ export function LeaderboardPage({
   );
 }
 
-function IconAction({
-  onClick,
-  label,
-  children,
-}: {
-  onClick: () => void;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      className="w-8 h-8 flex items-center justify-center rounded-[10px] bg-transparent border-none cursor-pointer text-[color:var(--ink-soft)] hover:bg-[var(--ink-whisper)] hover:text-[color:var(--ink)] transition-colors duration-200 [&>svg]:w-4 [&>svg]:h-4"
-      style={{ WebkitTapHighlightColor: 'transparent' }}
-    >
-      {children}
-    </button>
-  );
-}

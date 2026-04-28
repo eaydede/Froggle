@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getDailyRelaxedSeed } from 'models/seedCode';
+import { getDailyZenSeed } from 'models/seedCode';
 import { generateSeededBoard } from 'engine/board.js';
 import { findAllWords } from 'engine/solver.js';
 import { scoreWord } from 'engine/scoring.js';
@@ -10,68 +10,80 @@ import { dictionary } from '../services/dictionary.js';
 import { scoreWords } from '../services/DailyService.js';
 import {
   endSession,
+  getDailyZenStats,
   getSession,
   startSession,
   submitWord,
-} from '../services/DailyRelaxedService.js';
+} from '../services/DailyZenService.js';
 import {
-  DAILY_RELAXED_BOARD_SIZE,
-  DAILY_RELAXED_MIN_WORD_LENGTH,
-  getDailyRelaxedNumber,
-} from '../services/dailyRelaxedConfig.js';
+  DAILY_ZEN_BOARD_SIZE,
+  DAILY_ZEN_LAUNCH_DATE,
+  DAILY_ZEN_MIN_WORD_LENGTH,
+  getDailyZenNumber,
+} from '../services/dailyZenConfig.js';
 import { getDailyDatePST } from '../services/dailyConfig.js';
 
-export const dailyRelaxedRouter = Router();
+export const dailyZenRouter = Router();
 
-dailyRelaxedRouter.get('/', (_req, res) => {
+dailyZenRouter.get('/', (_req, res) => {
   const date = getDailyDatePST();
-  const number = getDailyRelaxedNumber(date);
-  const seed = getDailyRelaxedSeed(date);
-  const board = generateSeededBoard(DAILY_RELAXED_BOARD_SIZE, seed);
+  const number = getDailyZenNumber(date);
+  const seed = getDailyZenSeed(date);
+  const board = generateSeededBoard(DAILY_ZEN_BOARD_SIZE, seed);
   res.json({
     date,
     number,
     seed,
     board,
     config: {
-      boardSize: DAILY_RELAXED_BOARD_SIZE,
-      minWordLength: DAILY_RELAXED_MIN_WORD_LENGTH,
+      boardSize: DAILY_ZEN_BOARD_SIZE,
+      minWordLength: DAILY_ZEN_MIN_WORD_LENGTH,
     },
   });
 });
 
+// Counts the total findable words on a board. Used to enrich the session
+// response with an "x/y words found" metric. The 5x5 solve runs in a few
+// ms so an inline call per request is fine; cache later if traffic grows.
+function totalFindable(board: string[][]): number {
+  return findAllWords(board, dictionary, DAILY_ZEN_MIN_WORD_LENGTH).length;
+}
+
 // Returns the player's session for today (or whatever date they ask for).
 // Null when they haven't started yet — the client uses this to decide
 // between "Play", "Resume", and "See result" on the landing card.
-dailyRelaxedRouter.get('/session/:date', requireAuth, async (req, res) => {
+dailyZenRouter.get('/session/:date', requireAuth, async (req, res) => {
   try {
     const session = await getSession(getDb(), req.userId!, req.params.date);
-    res.json({ session });
+    if (!session) return res.json({ session: null });
+    res.json({
+      session: { ...session, total_findable: totalFindable(session.board) },
+    });
   } catch (err) {
-    console.error('Failed to fetch relaxed session:', err);
+    console.error('Failed to fetch zen session:', err);
     res.status(500).json({ error: 'Failed to fetch session' });
   }
 });
 
 // Idempotent start. The board is the server's seeded board; the client
 // receives it back and renders from it so resumes are deterministic.
-dailyRelaxedRouter.post('/session/:date/start', requireAuth, async (req, res) => {
+dailyZenRouter.post('/session/:date/start', requireAuth, async (req, res) => {
   try {
     const date = req.params.date;
     const today = getDailyDatePST();
     if (date !== today) {
-      return res.status(400).json({ error: 'Can only start today\'s relaxed session' });
+      return res.status(400).json({ error: 'Can only start today\'s zen session' });
     }
-    const board = generateSeededBoard(DAILY_RELAXED_BOARD_SIZE, getDailyRelaxedSeed(date));
+    const board = generateSeededBoard(DAILY_ZEN_BOARD_SIZE, getDailyZenSeed(date));
     const session = await startSession(getDb(), req.userId!, date, board);
-    res.json({ session });
+    res.json({ session: { ...session, total_findable: totalFindable(session.board) } });
   } catch (err) {
-    console.error('Failed to start relaxed session:', err);
+    console.error('Failed to start zen session:', err);
     res.status(500).json({ error: 'Failed to start session' });
   }
 });
 
-dailyRelaxedRouter.post('/session/:date/word', requireAuth, async (req, res) => {
+dailyZenRouter.post('/session/:date/word', requireAuth, async (req, res) => {
   const path = req.body?.path;
   if (!Array.isArray(path)) {
     return res.status(400).json({ error: 'Missing path' });
@@ -80,12 +92,12 @@ dailyRelaxedRouter.post('/session/:date/word', requireAuth, async (req, res) => 
     const outcome = await submitWord(getDb(), req.userId!, req.params.date, path);
     res.json(outcome);
   } catch (err) {
-    console.error('Failed to submit relaxed word:', err);
+    console.error('Failed to submit zen word:', err);
     res.status(500).json({ error: 'Failed to submit word' });
   }
 });
 
-dailyRelaxedRouter.post('/session/:date/end', requireAuth, async (req, res) => {
+dailyZenRouter.post('/session/:date/end', requireAuth, async (req, res) => {
   try {
     const session = await endSession(getDb(), req.userId!, req.params.date);
     if (!session) {
@@ -93,21 +105,36 @@ dailyRelaxedRouter.post('/session/:date/end', requireAuth, async (req, res) => {
     }
     res.json({ session });
   } catch (err) {
-    console.error('Failed to end relaxed session:', err);
+    console.error('Failed to end zen session:', err);
     res.status(500).json({ error: 'Failed to end session' });
   }
 });
 
 // Result for a finalized session — mirrors GET /api/daily/results/:date so
-// the existing results page renders relaxed dailies with minimal changes.
-dailyRelaxedRouter.get('/results/:date', requireAuth, async (req, res) => {
+// the existing results page renders zen dailies with minimal changes.
+dailyZenRouter.get('/results/:date', requireAuth, async (req, res) => {
   try {
     const session = await getSession(getDb(), req.userId!, req.params.date);
     if (!session || !session.ended_at) {
       return res.json({ result: null });
     }
     const foundSet = new Set(session.found_words.map((w) => w.toUpperCase()));
-    const missedWords = findAllWords(session.board, dictionary, DAILY_RELAXED_MIN_WORD_LENGTH)
+    const allWords = findAllWords(session.board, dictionary, DAILY_ZEN_MIN_WORD_LENGTH);
+    // The session row stores only word strings (not the path the player
+    // drew), so we look the path up from the solver. A board position can
+    // produce a given word along multiple paths; the solver returns one
+    // canonical path per word, which is good enough for results-page
+    // highlighting.
+    const pathByWord = new Map(allWords.map((w) => [w.word, w.path]));
+    const foundWords = session.found_words.map((w) => {
+      const upper = w.toUpperCase();
+      return {
+        word: upper,
+        path: pathByWord.get(upper) ?? [],
+        score: scoreWord(upper),
+      };
+    });
+    const missedWords = allWords
       .filter((w) => !foundSet.has(w.word))
       .map((w) => ({ word: w.word, path: w.path, score: scoreWord(w.word) }))
       .sort((a, b) => b.score - a.score || b.word.length - a.word.length);
@@ -115,7 +142,7 @@ dailyRelaxedRouter.get('/results/:date', requireAuth, async (req, res) => {
     res.json({
       result: {
         date: session.date,
-        found_words: session.found_words,
+        found_words: foundWords,
         board: session.board,
         missed_words: missedWords,
         ended_at: session.ended_at,
@@ -123,22 +150,35 @@ dailyRelaxedRouter.get('/results/:date', requireAuth, async (req, res) => {
       },
     });
   } catch (err) {
-    console.error('Failed to fetch relaxed result:', err);
+    console.error('Failed to fetch zen result:', err);
     res.status(500).json({ error: 'Failed to fetch result' });
   }
 });
 
-// Leaderboard for a relaxed daily date. Only finalized sessions count;
-// in-progress sessions are filtered out so partial scores don't appear in
-// rankings (and to give the player a reason to actually end the puzzle).
-dailyRelaxedRouter.get('/leaderboard/:date', async (req, res) => {
+// Per-day zen history for the date picker on zen results / leaderboard pages.
+dailyZenRouter.get('/stats', requireAuth, async (req, res) => {
+  try {
+    const stats = await getDailyZenStats(getDb(), req.userId!, {
+      launchDate: DAILY_ZEN_LAUNCH_DATE,
+      today: getDailyDatePST(),
+    });
+    res.json(stats);
+  } catch (err) {
+    console.error('Failed to fetch zen stats:', err);
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
+// Leaderboard for a zen daily date. Includes both in-progress and finalized
+// sessions so players can watch each other's standings shift through the day;
+// the `inProgress` flag lets the client distinguish the two visually.
+dailyZenRouter.get('/leaderboard/:date', async (req, res) => {
   try {
     const db = getDb();
     const rows = await db
-      .selectFrom('daily_relaxed_results')
+      .selectFrom('daily_zen_results')
       .selectAll()
       .where('date', '=', req.params.date)
-      .where('ended_at', 'is not', null)
       .execute();
 
     const admin = getSupabaseAdmin();
@@ -159,6 +199,7 @@ dailyRelaxedRouter.get('/leaderboard/:date', async (req, res) => {
           points,
           wordCount,
           longestWord: row.longest_word,
+          inProgress: row.ended_at === null,
         };
       }),
     );
@@ -190,7 +231,7 @@ dailyRelaxedRouter.get('/leaderboard/:date', async (req, res) => {
 
     const totalPoints = enriched.reduce((sum, e) => sum + e.points, 0);
     res.json({
-      puzzleNumber: getDailyRelaxedNumber(req.params.date),
+      puzzleNumber: getDailyZenNumber(req.params.date),
       totalPlayers: enriched.length,
       avgScore: enriched.length > 0 ? Math.round(totalPoints / enriched.length) : 0,
       rankings: {
@@ -200,7 +241,7 @@ dailyRelaxedRouter.get('/leaderboard/:date', async (req, res) => {
       currentPlayer,
     });
   } catch (err) {
-    console.error('Failed to fetch relaxed leaderboard:', err);
+    console.error('Failed to fetch zen leaderboard:', err);
     res.status(500).json({ error: 'Failed to fetch leaderboard' });
   }
 });

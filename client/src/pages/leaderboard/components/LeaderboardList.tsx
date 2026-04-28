@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { StatusIcon } from '../../../shared/components/StatusIcon';
 
 export interface LbListEntry {
   rank: number;
@@ -7,6 +8,7 @@ export interface LbListEntry {
   subLabel: string;
   value: number;
   isCurrentUser: boolean;
+  inProgress?: boolean;
 }
 
 interface LeaderboardListProps {
@@ -191,6 +193,7 @@ function Row({
           }}
         >
           <span className="truncate">{entry.displayName}</span>
+          {entry.inProgress && <StatusIcon state="in-progress" />}
           {entry.isCurrentUser && (
             <span
               className="inline-flex items-center px-1.5 py-[1px] rounded-full bg-[var(--compare-you)] text-[color:var(--ink-inverse)] text-[8px] uppercase tracking-[0.08em] flex-shrink-0 font-[family-name:var(--font-structure)]"

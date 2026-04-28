@@ -7,7 +7,7 @@ import { sessionMiddleware, startSessionCleanup } from './session.js';
 import { gameRouter } from './routes/game.js';
 import { userRouter } from './routes/user.js';
 import { dailyRouter } from './routes/daily.js';
-import { dailyRelaxedRouter } from './routes/dailyRelaxed.js';
+import { dailyZenRouter } from './routes/dailyZen.js';
 import { leaderboardRouter } from './routes/leaderboard.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -29,7 +29,7 @@ app.use(express.static(clientDistPath));
 app.use('/api/game', gameRouter);
 app.use('/api/user', userRouter);
 app.use('/api/daily/leaderboard', leaderboardRouter);
-app.use('/api/daily/relaxed', dailyRelaxedRouter);
+app.use('/api/daily/zen', dailyZenRouter);
 app.use('/api/daily', dailyRouter);
 
 // SPA fallback for non-API routes

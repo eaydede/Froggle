@@ -8,15 +8,15 @@ import { useTimer } from './hooks/useTimer';
 import { useFeedbackSounds } from './pages/game';
 import type { FeedbackType } from './pages/game';
 import type { GameResults } from './shared/types';
-import type { DailyInfo, DailyRelaxedInfo, DailyRelaxedSession } from './shared/api/gameApi';
+import type { DailyInfo, DailyZenInfo, DailyZenSession } from './shared/api/gameApi';
 import {
   fetchDaily,
   recordDailyResultToServer,
   fetchDailyResult,
   fetchProfile,
   updateProfile,
-  fetchDailyRelaxed,
-  fetchDailyRelaxedSession,
+  fetchDailyZen,
+  fetchDailyZenSession,
 } from './shared/api/gameApi';
 import { loadDailyResult, clearDailyResult } from './shared/utils/dailyStorage';
 import { decodeSeedCode } from 'models/seedCode';
@@ -45,12 +45,12 @@ interface GameContextValue {
   dailyResultLoaded: boolean;
   refreshDaily: () => Promise<DailyInfo>;
 
-  // Daily Relaxed
-  cachedDailyRelaxed: DailyRelaxedInfo | null;
-  cachedDailyRelaxedSession: DailyRelaxedSession | null;
-  dailyRelaxedLoaded: boolean;
-  setCachedDailyRelaxedSession: (session: DailyRelaxedSession | null) => void;
-  refreshDailyRelaxedSession: () => Promise<void>;
+  // Zen Daily
+  cachedDailyZen: DailyZenInfo | null;
+  cachedDailyZenSession: DailyZenSession | null;
+  dailyZenLoaded: boolean;
+  setCachedDailyZenSession: (session: DailyZenSession | null) => void;
+  refreshDailyZenSession: () => Promise<void>;
 
   // Board code
   boardCode: string;
@@ -181,16 +181,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [cachedDailyResult, setCachedDailyResult] = useState<{ found_words: any[]; board: string[][] } | null>(null);
   const [dailyResultLoaded, setDailyResultLoaded] = useState(false);
 
-  // Daily Relaxed state
-  const [cachedDailyRelaxed, setCachedDailyRelaxed] = useState<DailyRelaxedInfo | null>(null);
-  const [cachedDailyRelaxedSession, setCachedDailyRelaxedSession] = useState<DailyRelaxedSession | null>(null);
-  const [dailyRelaxedLoaded, setDailyRelaxedLoaded] = useState(false);
+  // Zen Daily state
+  const [cachedDailyZen, setCachedDailyZen] = useState<DailyZenInfo | null>(null);
+  const [cachedDailyZenSession, setCachedDailyZenSession] = useState<DailyZenSession | null>(null);
+  const [dailyZenLoaded, setDailyZenLoaded] = useState(false);
 
-  const refreshDailyRelaxedSession = async () => {
-    if (!cachedDailyRelaxed) return;
+  const refreshDailyZenSession = async () => {
+    if (!cachedDailyZen) return;
     try {
-      const session = await fetchDailyRelaxedSession(cachedDailyRelaxed.date);
-      setCachedDailyRelaxedSession(session);
+      const session = await fetchDailyZenSession(cachedDailyZen.date);
+      setCachedDailyZenSession(session);
     } catch {
       // Network blip — keep last-known value rather than nuking the UI.
     }
@@ -231,21 +231,21 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }).catch(() => setDailyResultLoaded(true));
   }, [authReady]);
 
-  // Fetch relaxed daily puzzle + any in-progress / ended session for today.
+  // Fetch zen daily puzzle + any in-progress / ended session for today.
   useEffect(() => {
     if (!authReady) return;
-    fetchDailyRelaxed()
+    fetchDailyZen()
       .then(async (info) => {
-        setCachedDailyRelaxed(info);
+        setCachedDailyZen(info);
         try {
-          const session = await fetchDailyRelaxedSession(info.date);
-          setCachedDailyRelaxedSession(session);
+          const session = await fetchDailyZenSession(info.date);
+          setCachedDailyZenSession(session);
         } catch {
           // ignore — landing falls back to "Play"
         }
-        setDailyRelaxedLoaded(true);
+        setDailyZenLoaded(true);
       })
-      .catch(() => setDailyRelaxedLoaded(true));
+      .catch(() => setDailyZenLoaded(true));
   }, [authReady]);
 
   // Record daily results when a daily game is completed in the current session.
@@ -319,8 +319,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     <GameContext.Provider value={{
       game, words, results, gameSeed, feedback, timeRemaining,
       dailyInfo, setDailyInfo, cachedDaily, cachedDailyResult, dailyResultLoaded, refreshDaily,
-      cachedDailyRelaxed, cachedDailyRelaxedSession, dailyRelaxedLoaded,
-      setCachedDailyRelaxedSession, refreshDailyRelaxedSession,
+      cachedDailyZen, cachedDailyZenSession, dailyZenLoaded,
+      setCachedDailyZenSession, refreshDailyZenSession,
       boardCode, setBoardCode, sharedSeed, handleCodeChange,
       lastConfig, setLastConfig,
       muted, toggleMute,

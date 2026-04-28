@@ -15,7 +15,7 @@ export interface DailyResultsTable {
   time_limit: number;
 }
 
-export interface DailyRelaxedResultsTable {
+export interface DailyZenResultsTable {
   id: Generated<string>;
   user_id: string;
   date: string;
@@ -32,5 +32,5 @@ export interface DailyRelaxedResultsTable {
 
 export interface Database {
   daily_results: DailyResultsTable;
-  daily_relaxed_results: DailyRelaxedResultsTable;
+  daily_zen_results: DailyZenResultsTable;
 }

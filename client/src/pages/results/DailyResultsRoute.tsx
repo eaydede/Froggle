@@ -189,7 +189,7 @@ export function DailyResultsRoute() {
         : null;
 
     return {
-      dateLabel: formatDateLabel(targetDate),
+      dateLabel: `Timed Daily · ${formatDateLabel(targetDate)}`,
       leaderboardTop: top,
       leaderboardYou: you,
       onOpenLeaderboard: handleOpenLeaderboard,

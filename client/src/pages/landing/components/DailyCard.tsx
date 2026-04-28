@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { StreakBar } from "./StreakBar";
+import { StatusIcon } from "../../../shared/components/StatusIcon";
 import { InkButton } from "../../../shared/components/InkButton";
 import type { DailyResults } from "../types";
 
@@ -28,12 +29,15 @@ export function DailyCard({
   return (
     <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] flex flex-col overflow-hidden">
       <div className="flex justify-between items-center px-5 pt-[18px]">
-        <span
-          className="text-caption uppercase tracking-[0.06em] text-[color:var(--ink-muted)] leading-none font-[family-name:var(--font-structure)]"
-          style={{ fontWeight: 700 }}
-        >
-          Timed Daily
-        </span>
+        <div className="flex items-center gap-1.5">
+          <StatusIcon state={completed ? 'completed' : 'unplayed'} />
+          <span
+            className="text-caption uppercase tracking-[0.06em] text-[color:var(--ink-muted)] leading-none font-[family-name:var(--font-structure)]"
+            style={{ fontWeight: 700 }}
+          >
+            Timed Daily
+          </span>
+        </div>
         <span
           className="text-caption text-[color:var(--ink-soft)] tabular-nums leading-none"
           style={{ fontWeight: 500 }}

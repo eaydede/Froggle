@@ -70,11 +70,11 @@ export function getDailySeed(dateStr: string): number {
 }
 
 /**
- * Daily Relaxed mode uses a distinct namespace so its board for a given day
+ * Daily Zen mode uses a distinct namespace so its board for a given day
  * differs from the timed daily.
  */
-export function getDailyRelaxedSeed(dateStr: string): number {
-  return fnv1a(`froggle-daily-relaxed-${dateStr}`);
+export function getDailyZenSeed(dateStr: string): number {
+  return fnv1a(`froggle-daily-zen-${dateStr}`);
 }
 
 function fnv1a(str: string): number {

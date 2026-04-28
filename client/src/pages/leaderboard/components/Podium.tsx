@@ -1,9 +1,12 @@
+import { StatusIcon } from '../../../shared/components/StatusIcon';
+
 export interface PodiumEntry {
   rank: 1 | 2 | 3;
   name: string;
   score: number;
   userId: string;
   isCurrentUser?: boolean;
+  inProgress?: boolean;
 }
 
 interface PodiumProps {
@@ -102,13 +105,14 @@ function Pillar({
       </span>
       <span
         className={[
-          'italic leading-[1.1] tracking-[-0.01em] text-[color:var(--ink)] mb-1.5 font-[family-name:var(--font-display)] truncate w-full',
+          'flex items-center justify-center gap-1 italic leading-[1.1] tracking-[-0.01em] text-[color:var(--ink)] mb-1.5 font-[family-name:var(--font-display)] w-full min-w-0',
           nameSize,
         ].join(' ')}
         style={{ fontWeight: 600 }}
         title={entry.name}
       >
-        {entry.name}
+        <span className="truncate">{entry.name}</span>
+        {entry.inProgress && <StatusIcon state="in-progress" />}
       </span>
       <span
         className={[

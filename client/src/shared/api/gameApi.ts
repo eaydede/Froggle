@@ -160,6 +160,20 @@ export const fetchDailyStats = async (): Promise<DailyStatsResponse> => {
   return response.json();
 };
 
+export interface DailyZenStatsResponse {
+  windowStart: string;
+  windowEnd: string;
+  days: DailyStatsDay[];
+}
+
+export const fetchDailyZenStats = async (): Promise<DailyZenStatsResponse> => {
+  const response = await fetch(`${API_URL}/daily/zen/stats`, {
+    headers: await sessionHeaders(),
+  });
+  if (!response.ok) throw new Error(`fetchDailyZenStats: ${response.status}`);
+  return response.json();
+};
+
 export interface DailyConfig {
   boardSize: number;
   timeLimit: number;
@@ -309,9 +323,9 @@ export const fetchDailyHistory = async (): Promise<{ entries: DailyHistoryEntry[
   return response.json();
 };
 
-// ─── Daily Relaxed mode ────────────────────────────────────────────────────
+// ─── Zen Daily mode ────────────────────────────────────────────────────
 
-export interface DailyRelaxedInfo {
+export interface DailyZenInfo {
   date: string;
   number: number;
   seed: number;
@@ -322,7 +336,7 @@ export interface DailyRelaxedInfo {
   };
 }
 
-export interface DailyRelaxedSession {
+export interface DailyZenSession {
   date: string;
   board: string[][];
   found_words: string[];
@@ -333,17 +347,19 @@ export interface DailyRelaxedSession {
   points: number;
   word_count: number;
   longest_word: string;
+  /** Total findable words on this board — server computed each fetch. */
+  total_findable: number;
 }
 
-export const fetchDailyRelaxed = async (): Promise<DailyRelaxedInfo> => {
-  const response = await fetch(`${API_URL}/daily/relaxed`);
+export const fetchDailyZen = async (): Promise<DailyZenInfo> => {
+  const response = await fetch(`${API_URL}/daily/zen`);
   return response.json();
 };
 
-export const fetchDailyRelaxedSession = async (
+export const fetchDailyZenSession = async (
   date: string,
-): Promise<DailyRelaxedSession | null> => {
-  const response = await fetch(`${API_URL}/daily/relaxed/session/${date}`, {
+): Promise<DailyZenSession | null> => {
+  const response = await fetch(`${API_URL}/daily/zen/session/${date}`, {
     headers: await sessionHeaders(),
   });
   if (!response.ok) return null;
@@ -351,10 +367,10 @@ export const fetchDailyRelaxedSession = async (
   return data.session ?? null;
 };
 
-export const startDailyRelaxedSession = async (
+export const startDailyZenSession = async (
   date: string,
-): Promise<DailyRelaxedSession> => {
-  const response = await fetch(`${API_URL}/daily/relaxed/session/${date}/start`, {
+): Promise<DailyZenSession> => {
+  const response = await fetch(`${API_URL}/daily/zen/session/${date}/start`, {
     method: 'POST',
     headers: await sessionHeaders(),
   });
@@ -362,11 +378,11 @@ export const startDailyRelaxedSession = async (
   return data.session;
 };
 
-export const submitDailyRelaxedWord = async (
+export const submitDailyZenWord = async (
   date: string,
   path: Position[],
 ): Promise<{ valid: boolean; word?: string; score?: number; reason?: string }> => {
-  const response = await fetch(`${API_URL}/daily/relaxed/session/${date}/word`, {
+  const response = await fetch(`${API_URL}/daily/zen/session/${date}/word`, {
     method: 'POST',
     headers: await sessionHeaders(),
     body: JSON.stringify({ path }),
@@ -374,10 +390,10 @@ export const submitDailyRelaxedWord = async (
   return response.json();
 };
 
-export const endDailyRelaxedSession = async (
+export const endDailyZenSession = async (
   date: string,
-): Promise<DailyRelaxedSession | null> => {
-  const response = await fetch(`${API_URL}/daily/relaxed/session/${date}/end`, {
+): Promise<DailyZenSession | null> => {
+  const response = await fetch(`${API_URL}/daily/zen/session/${date}/end`, {
     method: 'POST',
     headers: await sessionHeaders(),
   });
@@ -386,41 +402,42 @@ export const endDailyRelaxedSession = async (
   return data.session ?? null;
 };
 
-export interface DailyRelaxedResultResponse {
+export interface DailyZenResultResponse {
   date: string;
-  found_words: string[];
+  found_words: DailyResultMissedWord[];
   board: string[][];
   missed_words: DailyResultMissedWord[];
   ended_at: string;
   ended_by_player: boolean;
 }
 
-export const fetchDailyRelaxedResult = async (
+export const fetchDailyZenResult = async (
   date: string,
-): Promise<DailyRelaxedResultResponse | null> => {
-  const response = await fetch(`${API_URL}/daily/relaxed/results/${date}`, {
+): Promise<DailyZenResultResponse | null> => {
+  const response = await fetch(`${API_URL}/daily/zen/results/${date}`, {
     headers: await sessionHeaders(),
   });
   const data = await response.json();
   return data.result ?? null;
 };
 
-export interface DailyRelaxedLeaderboardEntry {
+export interface DailyZenLeaderboardEntry {
   rank: number;
   userId: string;
   displayName: string;
   points: number;
   wordCount: number;
   longestWord: string;
+  inProgress: boolean;
 }
 
-export interface DailyRelaxedLeaderboardResponse {
+export interface DailyZenLeaderboardResponse {
   puzzleNumber: number;
   totalPlayers: number;
   avgScore: number;
   rankings: {
-    points: DailyRelaxedLeaderboardEntry[];
-    words: DailyRelaxedLeaderboardEntry[];
+    points: DailyZenLeaderboardEntry[];
+    words: DailyZenLeaderboardEntry[];
   };
   currentPlayer: {
     points: number;
@@ -431,10 +448,10 @@ export interface DailyRelaxedLeaderboardResponse {
   } | null;
 }
 
-export const fetchDailyRelaxedLeaderboard = async (
+export const fetchDailyZenLeaderboard = async (
   date: string,
-): Promise<DailyRelaxedLeaderboardResponse> => {
-  const response = await fetch(`${API_URL}/daily/relaxed/leaderboard/${date}`, {
+): Promise<DailyZenLeaderboardResponse> => {
+  const response = await fetch(`${API_URL}/daily/zen/leaderboard/${date}`, {
     headers: await sessionHeaders(),
   });
   return response.json();
