@@ -21,13 +21,7 @@ import { HeroScore } from '../results/components/HeroScore';
 import { WordDefinitionPanel } from '../results/components/WordDefinitionPanel';
 import { useShareText } from '../results/hooks/useShareText';
 import { generateShareText } from '../results/utils/shareResults';
-
-function formatDateLabel(dateIso: string): string {
-  const d = new Date(dateIso + 'T12:00:00');
-  const weekday = d.toLocaleString('en-US', { weekday: 'long' });
-  const month = d.toLocaleString('en-US', { month: 'long' });
-  return `${weekday}, ${month} ${d.getDate()}`;
-}
+import { formatDateLabel } from '../../shared/utils/formatDate';
 
 function getTodayPST(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });

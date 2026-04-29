@@ -41,7 +41,7 @@ function weeksBetween(a: Date, b: Date): number {
 
 function formatSelected(dateIso: string): string {
   const d = new Date(dateIso + 'T12:00:00');
-  return d.toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  return d.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
 function groupByWeek(entries: DailyEntry[], today: Date): WeekGroup[] {
@@ -245,9 +245,8 @@ function DayCard({
 }) {
   const missed = entry.state !== 'completed';
   const wday = WEEKDAY_SHORT[entry.date.getDay()];
-  const wdayLong = entry.date.toLocaleString('en-US', { weekday: 'long' });
   const day = entry.date.getDate();
-  const headline = isToday ? 'Today' : relativeHeadline(wdayLong, iso);
+  const headline = isToday ? 'Today' : relativeHeadline(wday, iso);
 
   return (
     <button
@@ -406,9 +405,9 @@ function DateSquare({
   );
 }
 
-function relativeHeadline(wdayLong: string, iso: string): string {
+function relativeHeadline(wday: string, iso: string): string {
   // "Yesterday" for the calendar day immediately before today; past that,
-  // fall back to the plain weekday name.
+  // fall back to the short weekday name.
   const today = new Date();
   const asDate = new Date(iso + 'T12:00:00');
   const days = Math.round(
@@ -416,5 +415,5 @@ function relativeHeadline(wdayLong: string, iso: string): string {
       (24 * 60 * 60 * 1000),
   );
   if (days === 1) return 'Yesterday';
-  return wdayLong;
+  return wday;
 }

@@ -12,16 +12,10 @@ import {
   type LeaderboardResponse,
 } from '../../shared/api/gameApi';
 import { scoreWord } from '../../shared/utils/score';
+import { formatDateLabel } from '../../shared/utils/formatDate';
 import { ResultsPage, type DailyResultsExtras } from './ResultsPage';
 import type { LeaderboardTeaserEntry } from './components/LeaderboardTeaser';
 import type { DailyEntry } from '../daily/types';
-
-function formatDateLabel(dateIso: string): string {
-  const d = new Date(dateIso + 'T12:00:00');
-  const weekday = d.toLocaleString('en-US', { weekday: 'long' });
-  const month = d.toLocaleString('en-US', { month: 'short' });
-  return `${weekday}, ${month} ${d.getDate()}`;
-}
 
 function getTodayPST(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });

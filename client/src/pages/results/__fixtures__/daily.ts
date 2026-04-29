@@ -131,7 +131,7 @@ const pickerEntries: DailyEntry[] = [
 ];
 
 export const dailyDefaultExtras: DailyResultsExtras = {
-  dateLabel: 'Timed Daily · Tuesday, Apr 21',
+  dateLabel: 'Timed Daily · Tue, Apr 21',
   leaderboardTop: [
     { rank: 1, name: 'wordsmith42', score: 218 },
     { rank: 2, name: 'lexicon', score: 201 },
