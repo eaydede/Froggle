@@ -3,8 +3,6 @@ import { fn } from '@storybook/test';
 import { DailyCard } from '../pages/landing/components/DailyCard';
 import { FreePlayCard } from '../pages/landing/components/FreePlayCard';
 
-const streakDays = [true, true, true, true, true, true, true, true, true, true];
-
 const dailyResults = {
   words: 19,
   points: 142,
@@ -41,9 +39,8 @@ function DailyStory({ completed }: { completed: boolean }) {
     <div className="flex gap-8">
       <PaperFrame theme="light">
         <DailyCard
-          dateLabel="Tue · Apr 21"
           streak={9}
-          streakDays={streakDays}
+          config={{ boardSize: 5, timeLimit: 120, minWordLength: 3 }}
           results={completed ? dailyResults : null}
           onPlay={fn()}
           onSeeResult={fn()}
@@ -54,9 +51,8 @@ function DailyStory({ completed }: { completed: boolean }) {
       </PaperFrame>
       <PaperFrame theme="dark">
         <DailyCard
-          dateLabel="Tue · Apr 21"
           streak={9}
-          streakDays={streakDays}
+          config={{ boardSize: 5, timeLimit: 120, minWordLength: 3 }}
           results={completed ? dailyResults : null}
           onPlay={fn()}
           onSeeResult={fn()}

@@ -1,11 +1,12 @@
-import { AppHeader, CardCarousel, DailyCard, FreePlayCard, ZenDailyCard, ThemeTogglePill } from "./components";
+import { AppHeader, DailyCard, FreePlayCard, ZenDailyCard, ThemeTogglePill } from "./components";
 import type { DailyResults } from "./types";
 import type { DailyZenSession } from "../../shared/api/gameApi";
 
 interface LandingPageProps {
   dateLabel: string;
   streak: number;
-  streakDays: boolean[];
+  dailyConfig: { boardSize: number; timeLimit: number; minWordLength: number };
+  zenConfig: { boardSize: number; minWordLength: number };
   dailyResults: DailyResults | null;
   zenSession: DailyZenSession | null;
   displayName: string;
@@ -25,7 +26,8 @@ interface LandingPageProps {
 export function LandingPage({
   dateLabel,
   streak,
-  streakDays,
+  dailyConfig,
+  zenConfig,
   dailyResults,
   zenSession,
   displayName,
@@ -45,32 +47,30 @@ export function LandingPage({
     <div className="fixed inset-0 flex items-start justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] overflow-y-auto">
       <ThemeTogglePill theme={theme} onToggle={onToggleTheme} />
 
-      <div className="w-full max-w-[360px] min-h-full flex flex-col px-[22px] pt-[24px] pb-[22px]">
+      <div className="w-full max-w-[360px] min-h-[90%] flex flex-col px-[22px] pt-[24px] pb-[22px]">
         <AppHeader
+          dateLabel={dateLabel}
           displayName={displayName}
           onDisplayNameChange={onDisplayNameChange}
         />
 
         <div className="flex-1 flex flex-col justify-center gap-[14px]">
-          <CardCarousel>
-            <DailyCard
-              dateLabel={dateLabel}
-              streak={streak}
-              streakDays={streakDays}
-              results={dailyResults}
-              onPlay={onDailyPlay}
-              onSeeResult={onDailySeeResult}
-              onSeeLeaderboard={onDailyLeaderboard}
-            />
-            <ZenDailyCard
-              dateLabel={dateLabel}
-              session={zenSession}
-              onPlay={onZenPlay}
-              onResume={onZenResume}
-              onSeeResult={onZenSeeResult}
-              onSeeLeaderboard={onZenLeaderboard}
-            />
-          </CardCarousel>
+          <DailyCard
+            streak={streak}
+            config={dailyConfig}
+            results={dailyResults}
+            onPlay={onDailyPlay}
+            onSeeResult={onDailySeeResult}
+            onSeeLeaderboard={onDailyLeaderboard}
+          />
+          <ZenDailyCard
+            session={zenSession}
+            config={zenConfig}
+            onPlay={onZenPlay}
+            onResume={onZenResume}
+            onSeeResult={onZenSeeResult}
+            onSeeLeaderboard={onZenLeaderboard}
+          />
           <FreePlayCard onClick={onFreePlayClick} />
         </div>
       </div>

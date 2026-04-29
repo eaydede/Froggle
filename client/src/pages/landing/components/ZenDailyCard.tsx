@@ -4,8 +4,8 @@ import { StatusIcon } from "../../../shared/components/StatusIcon";
 import type { DailyZenSession } from "../../../shared/api/gameApi";
 
 interface ZenDailyCardProps {
-  dateLabel: string;
   session: DailyZenSession | null;
+  config: { boardSize: number; minWordLength: number };
   onPlay: () => void;
   onResume: () => void;
   onSeeResult: () => void;
@@ -21,8 +21,8 @@ function deriveState(session: DailyZenSession | null): CardState {
 }
 
 export function ZenDailyCard({
-  dateLabel,
   session,
+  config,
   onPlay,
   onResume,
   onSeeResult,
@@ -42,20 +42,15 @@ export function ZenDailyCard({
             Zen Daily
           </span>
         </div>
-        <span
-          className="text-caption text-[color:var(--ink-soft)] tabular-nums leading-none"
-          style={{ fontWeight: 500 }}
-        >
-          {dateLabel}
-        </span>
       </div>
 
-      <div className="px-5 pt-[14px] pb-4 flex flex-col gap-[14px]">
+      <div className="px-5 py-3 flex flex-col gap-[10px]">
         {state === 'ended' && session && (
           <>
             <ScoreBlock
-              points={session.points}
               words={session.word_count}
+              totalWords={session.total_findable}
+              points={session.points}
               longestWord={session.longest_word}
             />
             <div className="grid grid-cols-2 gap-2">
@@ -69,8 +64,8 @@ export function ZenDailyCard({
         {state === 'in-progress' && session && (
           <>
             <ScoreBlock
-              points={session.points}
               words={session.word_count}
+              points={session.points}
               longestWord={session.longest_word}
             />
             <PrimaryButton onClick={onResume} label="Resume" />
@@ -80,7 +75,6 @@ export function ZenDailyCard({
 
         {state === 'unplayed' && (
           <>
-            <Tagline />
             <PrimaryButton onClick={onPlay} label="Play zen" />
             <LeaderboardLink onClick={onSeeLeaderboard} />
           </>
@@ -90,37 +84,36 @@ export function ZenDailyCard({
   );
 }
 
-function Tagline() {
-  return (
-    <p
-      className="text-small text-[color:var(--ink-muted)] leading-snug"
-      style={{ fontWeight: 500 }}
-    >
-      Find as many words as you can — stop whenever.
-    </p>
-  );
-}
-
 function ScoreBlock({
-  points,
   words,
+  totalWords,
+  points,
   longestWord,
 }: {
-  points: number;
   words: number;
+  totalWords?: number;
+  points: number;
   longestWord?: string;
 }) {
   return (
-    <div className="flex items-end justify-between py-0.5">
+    <div className="flex items-end justify-between py-0.5" style={{ animation: "v2-fade-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1)" }}>
       <div className="flex items-baseline gap-[5px]">
         <span
           className="text-display-lg leading-none font-[family-name:var(--font-structure)] tracking-[-0.03em] tabular-nums"
           style={{ fontWeight: 800 }}
         >
-          {points}
+          {words}
+          {totalWords !== undefined && (
+            <span
+              className="text-logo text-[color:var(--ink-muted)]"
+              style={{ fontWeight: 600 }}
+            >
+              /{totalWords}
+            </span>
+          )}
         </span>
         <span className="text-small text-[color:var(--ink-muted)]" style={{ fontWeight: 600 }}>
-          pts
+          {words === 1 ? "word" : "words"}
         </span>
       </div>
       <div className="flex flex-col items-end gap-0.5 leading-tight min-w-0">
@@ -128,7 +121,7 @@ function ScoreBlock({
           className="text-small text-[color:var(--ink-muted)] tabular-nums"
           style={{ fontWeight: 500 }}
         >
-          {words} {words === 1 ? "word" : "words"}
+          {points} pts
         </span>
         {longestWord && (
           <span
@@ -244,7 +237,7 @@ function LeaderboardLink({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="group flex items-center justify-center gap-1.5 text-small text-[color:var(--ink-muted)] hover:text-[color:var(--ink)] bg-transparent border-none cursor-pointer py-1.5 font-[family-name:var(--font-ui)] transition-colors duration-200"
+      className="group flex items-center justify-center gap-1.5 text-small text-[color:var(--ink-muted)] hover:text-[color:var(--ink)] bg-transparent border-none cursor-pointer font-[family-name:var(--font-ui)] transition-colors duration-200"
       style={{ fontWeight: 500 }}
     >
       See today's leaderboard
