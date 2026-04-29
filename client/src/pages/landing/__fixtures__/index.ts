@@ -4,12 +4,6 @@ import {
   unplayedFixture,
   zenInProgressFixture,
   zenEndedFixture,
-  podiumGoldFixture,
-  podiumSilverFixture,
-  podiumBronzeFixture,
-  podiumButtonFixture,
-  podiumScoreFixture,
-  podiumGlyphFixture,
   type LandingFixture,
 } from './default';
 
@@ -19,12 +13,6 @@ const FIXTURES: Record<string, LandingFixture> = {
   partial: partialFixture,
   'zen-progress': zenInProgressFixture,
   'zen-ended': zenEndedFixture,
-  'podium-gold': podiumGoldFixture,
-  'podium-silver': podiumSilverFixture,
-  'podium-bronze': podiumBronzeFixture,
-  'podium-button': podiumButtonFixture,
-  'podium-score': podiumScoreFixture,
-  'podium-glyph': podiumGlyphFixture,
 };
 
 export function getLandingFixture(name: string | null): LandingFixture | null {

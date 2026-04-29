@@ -141,10 +141,9 @@ export function LandingRoute() {
         dailyConfig={mockFixture.dailyConfig}
         zenConfig={mockFixture.zenConfig}
         dailyResults={mockFixture.dailyResults}
-        dailyRank={mockFixture.dailyRank ?? null}
+        dailyRank={null}
         zenSession={mockFixture.zenSession ?? null}
-        zenRank={mockFixture.zenRank ?? null}
-        badgeVariant={mockFixture.badgeVariant}
+        zenRank={null}
         displayName={mockFixture.displayName}
         onDisplayNameChange={() => {}}
         onDailyPlay={() => {}}

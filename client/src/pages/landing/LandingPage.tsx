@@ -1,5 +1,4 @@
 import { AppHeader, DailyCard, FreePlayCard, ZenDailyCard, ThemeTogglePill } from "./components";
-import type { BadgeVariant } from "./components/RankBadge";
 import type { DailyResults } from "./types";
 import type { DailyZenSession } from "../../shared/api/gameApi";
 
@@ -12,8 +11,6 @@ interface LandingPageProps {
   dailyRank: number | null;
   zenSession: DailyZenSession | null;
   zenRank: number | null;
-  /** Which podium-badge placement the cards should use. Defaults to 'chip'. */
-  badgeVariant?: BadgeVariant;
   displayName: string;
   onDisplayNameChange: (name: string) => void;
   onDailyPlay: () => void;
@@ -37,7 +34,6 @@ export function LandingPage({
   dailyRank,
   zenSession,
   zenRank,
-  badgeVariant = 'chip',
   displayName,
   onDisplayNameChange,
   onDailyPlay,
@@ -68,7 +64,6 @@ export function LandingPage({
             config={dailyConfig}
             results={dailyResults}
             rank={dailyRank}
-            badgeVariant={badgeVariant}
             onPlay={onDailyPlay}
             onSeeResult={onDailySeeResult}
             onSeeLeaderboard={onDailyLeaderboard}
@@ -77,7 +72,6 @@ export function LandingPage({
             session={zenSession}
             config={zenConfig}
             rank={zenRank}
-            badgeVariant={badgeVariant}
             onPlay={onZenPlay}
             onResume={onZenResume}
             onSeeResult={onZenSeeResult}

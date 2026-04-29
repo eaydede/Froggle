@@ -1,6 +1,5 @@
 import type { DailyResults } from '../types';
 import type { DailyZenSession } from '../../../shared/api/gameApi';
-import type { BadgeVariant } from '../components/RankBadge';
 
 export interface LandingFixture {
   dateLabel: string;
@@ -9,10 +8,7 @@ export interface LandingFixture {
   dailyConfig: { boardSize: number; timeLimit: number; minWordLength: number };
   zenConfig: { boardSize: number; minWordLength: number };
   dailyResults: DailyResults | null;
-  dailyRank?: number | null;
   zenSession?: DailyZenSession | null;
-  zenRank?: number | null;
-  badgeVariant?: BadgeVariant;
   displayName: string;
 }
 
@@ -102,40 +98,3 @@ export const zenEndedFixture: LandingFixture = {
   displayName: 'Wren',
 };
 
-// Podium-rank fixtures so the RankBadge variants are reachable in one
-// click for visual review. Each combines completed timed + ended zen with
-// a different rank pair so all three podium colors render side-by-side.
-export const podiumGoldFixture: LandingFixture = {
-  ...zenEndedFixture,
-  dailyRank: 1,
-  zenRank: 1,
-};
-
-export const podiumSilverFixture: LandingFixture = {
-  ...zenEndedFixture,
-  dailyRank: 2,
-  zenRank: 2,
-};
-
-export const podiumBronzeFixture: LandingFixture = {
-  ...zenEndedFixture,
-  dailyRank: 3,
-  zenRank: 3,
-};
-
-// Same data as podiumGold, just routed through the alternative badge
-// placements so each variant can be reviewed in isolation.
-export const podiumButtonFixture: LandingFixture = {
-  ...podiumGoldFixture,
-  badgeVariant: 'button',
-};
-
-export const podiumScoreFixture: LandingFixture = {
-  ...podiumGoldFixture,
-  badgeVariant: 'score',
-};
-
-export const podiumGlyphFixture: LandingFixture = {
-  ...podiumGoldFixture,
-  badgeVariant: 'glyph',
-};
