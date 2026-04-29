@@ -88,6 +88,7 @@ export function ZenLeaderboardRoute() {
       displayName: e.displayName,
       subLabel: `${e.points} ${e.points === 1 ? 'pt' : 'pts'}`,
       value: e.wordCount,
+      valueUnit: e.wordCount === 1 ? 'word' : 'words',
       isCurrentUser: e.userId === currentUserId,
       inProgress: e.inProgress,
     }));
