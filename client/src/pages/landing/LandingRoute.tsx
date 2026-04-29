@@ -7,8 +7,6 @@ import { scoreWord } from '../../shared/utils/score';
 import { getLandingFixture } from './__fixtures__';
 import type { DailyResults } from './types';
 
-const STREAK_WINDOW = 10;
-
 function formatToday(dateIso: string): string {
   const d = new Date(dateIso + 'T12:00:00');
   const weekday = d.toLocaleString('en-US', { weekday: 'short' });
@@ -102,7 +100,8 @@ export function LandingRoute() {
       <LandingPage
         dateLabel={mockFixture.dateLabel}
         streak={mockFixture.streak}
-        streakDays={mockFixture.streakDays}
+        dailyConfig={mockFixture.dailyConfig}
+        zenConfig={mockFixture.zenConfig}
         dailyResults={mockFixture.dailyResults}
         zenSession={mockFixture.zenSession ?? null}
         displayName={mockFixture.displayName}
@@ -121,7 +120,7 @@ export function LandingRoute() {
     );
   }
 
-  if (!cachedDaily || !dailyResultLoaded || !dailyZenLoaded) {
+  if (!cachedDaily || !cachedDailyZen || !dailyResultLoaded || !dailyZenLoaded) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)]">
         <div
@@ -147,13 +146,12 @@ export function LandingRoute() {
     };
   }
 
-  const streakDays = buildStreakDays(stats, !!cachedDailyResult);
-
   return (
     <LandingPage
       dateLabel={formatToday(cachedDaily.date)}
       streak={stats?.currentStreak ?? 0}
-      streakDays={streakDays}
+      dailyConfig={cachedDaily.config}
+      zenConfig={cachedDailyZen.config}
       dailyResults={dailyResultsData}
       zenSession={cachedDailyZenSession}
       displayName={displayName}
@@ -170,22 +168,4 @@ export function LandingRoute() {
       onToggleTheme={toggleTheme}
     />
   );
-}
-
-/**
- * Builds the STREAK_WINDOW-length array the StreakBar renders. Padded with
- * `false` when the server window is shorter (new users, shortly after launch),
- * and the last slot is forced to reflect the user's *current-session* play
- * state — the server response predates a fresh submission by up to a request.
- */
-function buildStreakDays(
-  stats: DailyStatsResponse | null,
-  playedToday: boolean,
-): boolean[] {
-  const base = stats?.days ?? [];
-  const window = base.slice(-STREAK_WINDOW).map((d) => d.state === 'completed');
-  const padding = Array<boolean>(Math.max(0, STREAK_WINDOW - window.length)).fill(false);
-  const result = [...padding, ...window];
-  if (result.length > 0) result[result.length - 1] = playedToday;
-  return result;
 }

@@ -1,14 +1,11 @@
 import { useEffect, useState } from "react";
-import { StreakBar } from "./StreakBar";
 import { StatusIcon } from "../../../shared/components/StatusIcon";
 import { InkButton } from "../../../shared/components/InkButton";
 import type { DailyResults } from "../types";
 
 interface DailyCardProps {
-  /** Today's display date, already formatted (e.g. "Tue · Apr 21"). */
-  dateLabel: string;
   streak: number;
-  streakDays: boolean[];
+  config: { boardSize: number; timeLimit: number; minWordLength: number };
   results: DailyResults | null;
   onPlay: () => void;
   onSeeResult: () => void;
@@ -16,9 +13,8 @@ interface DailyCardProps {
 }
 
 export function DailyCard({
-  dateLabel,
   streak,
-  streakDays,
+  config,
   results,
   onPlay,
   onSeeResult,
@@ -38,17 +34,10 @@ export function DailyCard({
             Timed Daily
           </span>
         </div>
-        <span
-          className="text-caption text-[color:var(--ink-soft)] tabular-nums leading-none"
-          style={{ fontWeight: 500 }}
-        >
-          {dateLabel}
-        </span>
+        <StreakBadge streak={streak} />
       </div>
 
-      <div className="px-5 pt-[14px] pb-3 flex flex-col gap-[14px]">
-        <StreakBar streak={streak} days={streakDays} todayUnplayed={!completed} />
-
+      <div className="px-5 py-3 flex flex-col gap-[10px]">
         {completed && results ? (
           <>
             <ScoreBlock points={results.points} words={results.words} longestWord={results.longestWord} />
@@ -67,6 +56,39 @@ export function DailyCard({
       </div>
     </div>
   );
+}
+
+function StreakBadge({ streak }: { streak: number }) {
+  const active = streak > 0;
+  return (
+    <span
+      className={
+        'inline-flex items-center gap-1 rounded-full px-2 py-[3px] leading-none ' +
+        (active
+          ? 'bg-[var(--streak-green)] text-white'
+          : 'bg-[var(--ink-trace)] text-[color:var(--ink-soft)]')
+      }
+      style={{ fontWeight: 600 }}
+    >
+      <svg
+        width="10"
+        height="10"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        aria-hidden
+      >
+        <path d="M12 2l2.9 6.9 7.1.6-5.4 4.7 1.7 7L12 17.8 5.7 21.2l1.7-7L2 9.5l7.1-.6L12 2z" />
+      </svg>
+      <span className="text-caption tabular-nums">{streak} day streak</span>
+    </span>
+  );
+}
+
+function formatTimer(seconds: number): string {
+  if (!isFinite(seconds) || seconds <= 0) return '∞';
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return s === 0 ? `${m}:00` : `${m}:${String(s).padStart(2, '0')}`;
 }
 
 function ScoreBlock({
@@ -215,7 +237,7 @@ function LeaderboardLink({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="group flex items-center justify-center gap-1.5 text-small text-[color:var(--ink-muted)] hover:text-[color:var(--ink)] bg-transparent border-none cursor-pointer py-1.5 font-[family-name:var(--font-ui)] transition-colors duration-200"
+      className="group flex items-center justify-center gap-1.5 text-small text-[color:var(--ink-muted)] hover:text-[color:var(--ink)] bg-transparent border-none cursor-pointer font-[family-name:var(--font-ui)] transition-colors duration-200"
       style={{ fontWeight: 500 }}
     >
       See today's leaderboard

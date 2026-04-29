@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { getDailyZenSeed } from 'models/seedCode';
+import { generateSalt, hashWord } from 'models';
 import { generateSeededBoard } from 'engine/board.js';
 import { findAllWords } from 'engine/solver.js';
 import { scoreWord } from 'engine/scoring.js';
@@ -16,9 +17,8 @@ import {
   submitWord,
 } from '../services/DailyZenService.js';
 import {
-  DAILY_ZEN_BOARD_SIZE,
   DAILY_ZEN_LAUNCH_DATE,
-  DAILY_ZEN_MIN_WORD_LENGTH,
+  getDailyZenConfig,
   getDailyZenNumber,
 } from '../services/dailyZenConfig.js';
 import { getDailyDatePST } from '../services/dailyConfig.js';
@@ -29,24 +29,33 @@ dailyZenRouter.get('/', (_req, res) => {
   const date = getDailyDatePST();
   const number = getDailyZenNumber(date);
   const seed = getDailyZenSeed(date);
-  const board = generateSeededBoard(DAILY_ZEN_BOARD_SIZE, seed);
+  const config = getDailyZenConfig(date);
+  const board = generateSeededBoard(config.boardSize, seed);
+  const { salt, wordHashes } = solveBoard(board, date);
   res.json({
     date,
     number,
     seed,
     board,
-    config: {
-      boardSize: DAILY_ZEN_BOARD_SIZE,
-      minWordLength: DAILY_ZEN_MIN_WORD_LENGTH,
-    },
+    config,
+    salt,
+    wordHashes,
   });
 });
 
-// Counts the total findable words on a board. Used to enrich the session
-// response with an "x/y words found" metric. The 5x5 solve runs in a few
-// ms so an inline call per request is fine; cache later if traffic grows.
-function totalFindable(board: string[][]): number {
-  return findAllWords(board, dictionary, DAILY_ZEN_MIN_WORD_LENGTH).length;
+// Solves the board once and returns both the total-findable count and the
+// salted word hashes the client uses for instant local validation. Both
+// pieces of data come from the same solver pass so we don't run it twice.
+function solveBoard(board: string[][], date: string): {
+  totalFindable: number;
+  salt: string;
+  wordHashes: string[];
+} {
+  const minWordLength = getDailyZenConfig(date).minWordLength;
+  const all = findAllWords(board, dictionary, minWordLength);
+  const salt = generateSalt();
+  const wordHashes = all.map((w) => hashWord(w.word, salt));
+  return { totalFindable: all.length, salt, wordHashes };
 }
 
 // Returns the player's session for today (or whatever date they ask for).
@@ -56,8 +65,9 @@ dailyZenRouter.get('/session/:date', requireAuth, async (req, res) => {
   try {
     const session = await getSession(getDb(), req.userId!, req.params.date);
     if (!session) return res.json({ session: null });
+    const { totalFindable, salt, wordHashes } = solveBoard(session.board, req.params.date);
     res.json({
-      session: { ...session, total_findable: totalFindable(session.board) },
+      session: { ...session, total_findable: totalFindable, salt, wordHashes },
     });
   } catch (err) {
     console.error('Failed to fetch zen session:', err);
@@ -74,9 +84,10 @@ dailyZenRouter.post('/session/:date/start', requireAuth, async (req, res) => {
     if (date !== today) {
       return res.status(400).json({ error: 'Can only start today\'s zen session' });
     }
-    const board = generateSeededBoard(DAILY_ZEN_BOARD_SIZE, getDailyZenSeed(date));
+    const board = generateSeededBoard(getDailyZenConfig(date).boardSize, getDailyZenSeed(date));
     const session = await startSession(getDb(), req.userId!, date, board);
-    res.json({ session: { ...session, total_findable: totalFindable(session.board) } });
+    const { totalFindable, salt, wordHashes } = solveBoard(session.board, date);
+    res.json({ session: { ...session, total_findable: totalFindable, salt, wordHashes } });
   } catch (err) {
     console.error('Failed to start zen session:', err);
     res.status(500).json({ error: 'Failed to start session' });
@@ -119,7 +130,11 @@ dailyZenRouter.get('/results/:date', requireAuth, async (req, res) => {
       return res.json({ result: null });
     }
     const foundSet = new Set(session.found_words.map((w) => w.toUpperCase()));
-    const allWords = findAllWords(session.board, dictionary, DAILY_ZEN_MIN_WORD_LENGTH);
+    const allWords = findAllWords(
+      session.board,
+      dictionary,
+      getDailyZenConfig(req.params.date).minWordLength,
+    );
     // The session row stores only word strings (not the path the player
     // drew), so we look the path up from the solver. A board position can
     // produce a given word along multiple paths; the solver returns one

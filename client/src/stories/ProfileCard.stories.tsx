@@ -4,8 +4,6 @@ import { fn } from '@storybook/test';
 import { ProfileDisplay } from '../shared/components/ProfileDisplay';
 import { LandingPage } from '../pages/landing/LandingPage';
 
-const streakDays = [true, true, true, true, true, true, true, true, true, true];
-
 const meta: Meta<typeof ProfileDisplay> = {
   title: 'Components/Profile',
   component: ProfileDisplay,
@@ -52,7 +50,8 @@ function InContextWrapper({ completed }: { completed: boolean }) {
       <LandingPage
         dateLabel="Tue · Apr 21"
         streak={9}
-        streakDays={streakDays}
+        dailyConfig={{ boardSize: 5, timeLimit: 120, minWordLength: 3 }}
+        zenConfig={{ boardSize: 5, minWordLength: 3 }}
         dailyResults={results}
         zenSession={null}
         displayName={name}

@@ -13,8 +13,7 @@ import {
   type DailyStatsDay,
 } from './DailyService.js';
 import {
-  DAILY_ZEN_BOARD_SIZE,
-  DAILY_ZEN_MIN_WORD_LENGTH,
+  getDailyZenConfig,
   getDailyZenNumber,
 } from './dailyZenConfig.js';
 
@@ -116,7 +115,9 @@ export async function submitWord(
   if (!session) return { valid: false, reason: 'invalid' };
   if (session.ended_at) return { valid: false, reason: 'ended' };
 
-  if (!isValidPath(path, DAILY_ZEN_BOARD_SIZE)) {
+  const config = getDailyZenConfig(date);
+
+  if (!isValidPath(path, config.boardSize)) {
     return { valid: false, reason: 'invalid' };
   }
 
@@ -125,7 +126,7 @@ export async function submitWord(
     .join('')
     .toUpperCase();
 
-  if (word.length < DAILY_ZEN_MIN_WORD_LENGTH) {
+  if (word.length < config.minWordLength) {
     return { valid: false, reason: 'invalid' };
   }
   if (!isValidWord(dictionary, word.toLowerCase())) {
@@ -231,6 +232,7 @@ export async function getDailyZenStats(
   for (let d = windowStart; d <= windowEnd; d = addDays(d, 1)) {
     const userRow = userByDate.get(d);
     const playersCount = playersByDate.get(d) ?? 0;
+    const cfg = getDailyZenConfig(d);
 
     if (!userRow) {
       days.push({
@@ -244,8 +246,8 @@ export async function getDailyZenStats(
         stampTier: null,
         playersCount,
         config: {
-          boardSize: DAILY_ZEN_BOARD_SIZE,
-          minWordLength: DAILY_ZEN_MIN_WORD_LENGTH,
+          boardSize: cfg.boardSize,
+          minWordLength: cfg.minWordLength,
           timeLimit: 0,
         },
       });
@@ -275,8 +277,8 @@ export async function getDailyZenStats(
       stampTier: null,
       playersCount,
       config: {
-        boardSize: DAILY_ZEN_BOARD_SIZE,
-        minWordLength: DAILY_ZEN_MIN_WORD_LENGTH,
+        boardSize: cfg.boardSize,
+        minWordLength: cfg.minWordLength,
         timeLimit: 0,
       },
     });
