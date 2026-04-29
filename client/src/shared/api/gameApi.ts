@@ -334,6 +334,9 @@ export interface DailyZenInfo {
     boardSize: number;
     minWordLength: number;
   };
+  /** Salted word hashes + salt for client-side validation. The salt is per-fetch. */
+  salt: string;
+  wordHashes: string[];
 }
 
 export interface DailyZenSession {
@@ -349,6 +352,9 @@ export interface DailyZenSession {
   longest_word: string;
   /** Total findable words on this board — server computed each fetch. */
   total_findable: number;
+  /** Present while the session is playable; absent / empty after end. */
+  salt: string;
+  wordHashes: string[];
 }
 
 export const fetchDailyZen = async (): Promise<DailyZenInfo> => {

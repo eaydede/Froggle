@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import type { Position } from 'models';
 import { useGame } from '../../GameContext';
 import { Board, type FeedbackType, computeFeedbackColors } from '../game/components';
-import { useFeedbackSounds } from '../game';
 import { InkButton } from '../../shared/components/InkButton';
 import { IconAction } from '../../shared/components/IconAction';
 import { scoreWord } from '../../shared/utils/score';
@@ -11,8 +10,6 @@ import { RARITY_VAR, wordRarity } from '../results/utils/wordRarity';
 import {
   endDailyZenSession,
   startDailyZenSession,
-  submitDailyZenWord,
-  type DailyZenSession,
 } from '../../shared/api/gameApi';
 
 type WordSort = 'recent' | 'score';
@@ -32,25 +29,18 @@ export function ZenGameRoute() {
   const navigate = useNavigate();
   const {
     cachedDailyZen,
-    cachedDailyZenSession,
+    cachedDailyZenSession: session,
     setCachedDailyZenSession,
     dailyZenLoaded,
     authReady,
     muted,
     toggleMute,
+    feedback,
+    handleSubmitZenWord,
   } = useGame();
 
-  const [session, setSession] = useState<DailyZenSession | null>(cachedDailyZenSession);
-  const [feedback, setFeedback] = useState<{ type: FeedbackType; path: Position[] } | null>(null);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [starting, setStarting] = useState(false);
-  const inFlightRef = useRef(false);
-  const { playValid, playInvalid, playDuplicate } = useFeedbackSounds(0, 0, 2);
-
-  // Keep local in sync when context refreshes (e.g., on auth ready).
-  useEffect(() => {
-    setSession(cachedDailyZenSession);
-  }, [cachedDailyZenSession]);
 
   // If the session is already ended, the play page is the wrong destination.
   useEffect(() => {
@@ -62,69 +52,16 @@ export function ZenGameRoute() {
     setStarting(true);
     try {
       const fresh = await startDailyZenSession(cachedDailyZen.date);
-      setSession(fresh);
       setCachedDailyZenSession(fresh);
     } finally {
       setStarting(false);
     }
   }, [cachedDailyZen, starting, setCachedDailyZenSession]);
 
-  const handleSubmitWord = useCallback(
-    async (path: Position[]) => {
-      if (!session || session.ended_at || inFlightRef.current) return;
-      inFlightRef.current = true;
-      try {
-        const outcome = await submitDailyZenWord(session.date, path);
-        let type: FeedbackType;
-        if (outcome.valid) {
-          type = 'valid';
-          if (!muted) playValid();
-          // Optimistic update — server is canonical, but we don't need the
-          // round-trip overhead of refetching the whole session for each
-          // word found.
-          if (outcome.word) {
-            setSession((prev) => {
-              if (!prev) return prev;
-              const nextWords = [...prev.found_words, outcome.word!];
-              const nextPoints = prev.points + (outcome.score ?? 0);
-              const nextLongest = nextWords.reduce(
-                (best, w) => (w.length > best.length ? w : best),
-                prev.longest_word,
-              );
-              const next = {
-                ...prev,
-                found_words: nextWords,
-                points: nextPoints,
-                word_count: nextWords.length,
-                longest_word: nextLongest,
-              };
-              setCachedDailyZenSession(next);
-              return next;
-            });
-          }
-        } else if (outcome.reason === 'repeat') {
-          type = 'duplicate';
-          if (!muted) playDuplicate();
-        } else {
-          type = 'invalid';
-          if (!muted) playInvalid();
-        }
-        setFeedback({ type, path });
-        setTimeout(() => setFeedback(null), 200);
-      } finally {
-        inFlightRef.current = false;
-      }
-    },
-    [session, muted, playValid, playInvalid, playDuplicate, setCachedDailyZenSession],
-  );
-
   const handleEnd = async () => {
     if (!session) return;
     const ended = await endDailyZenSession(session.date);
-    if (ended) {
-      setSession(ended);
-      setCachedDailyZenSession(ended);
-    }
+    if (ended) setCachedDailyZenSession(ended);
     navigate('/daily/zen/results');
   };
 
@@ -164,7 +101,7 @@ export function ZenGameRoute() {
       <div className="w-full">
         <Board
           board={cachedDailyZen.board}
-          onSubmitWord={handleSubmitWord}
+          onSubmitWord={handleSubmitZenWord}
           feedback={feedback}
           baseStyleIndex={BOARD_STYLE.base}
           hoverStyleIndex={BOARD_STYLE.hover}

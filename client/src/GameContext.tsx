@@ -1,13 +1,15 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useCallback, useContext, useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import type { Position, Game, Word } from 'models';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './shared/supabase';
 import { useGameApi } from './hooks/useGameApi';
 import { useTimer } from './hooks/useTimer';
+import { useWordValidator } from './hooks/useWordValidator';
 import { useFeedbackSounds } from './pages/game';
 import type { FeedbackType } from './pages/game';
 import type { GameResults } from './shared/types';
+import { scoreWord } from './shared/utils/score';
 import type { DailyInfo, DailyZenInfo, DailyZenSession } from './shared/api/gameApi';
 import {
   fetchDaily,
@@ -17,6 +19,7 @@ import {
   updateProfile,
   fetchDailyZen,
   fetchDailyZenSession,
+  submitDailyZenWord,
 } from './shared/api/gameApi';
 import { loadDailyResult, clearDailyResult } from './shared/utils/dailyStorage';
 import { decodeSeedCode } from 'models/seedCode';
@@ -73,6 +76,7 @@ interface GameContextValue {
   endGame: () => Promise<void>;
   submitWord: (path: Position[]) => Promise<any>;
   handleSubmitWord: (path: Position[]) => Promise<void>;
+  handleSubmitZenWord: (path: Position[]) => Promise<void>;
 
   // Confirm modal
   showHomeConfirm: boolean;
@@ -289,25 +293,111 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Single source of truth for the audio + 200ms feedback flash both modes
+  // run after a submission. Outcome shape is { valid, reason? } to match
+  // the server's submit response and the local validator's return type.
+  const flashFeedback = useCallback(
+    (path: Position[], outcome: { valid: boolean; reason?: string }) => {
+      let type: FeedbackType;
+      if (outcome.valid) {
+        type = 'valid';
+        if (!muted) playValid();
+      } else if (outcome.reason === 'repeat') {
+        type = 'duplicate';
+        if (!muted) playDuplicate();
+      } else {
+        type = 'invalid';
+        if (!muted) playInvalid();
+      }
+      setFeedback({ type, path });
+      setTimeout(() => setFeedback(null), 200);
+    },
+    [muted, playValid, playInvalid, playDuplicate],
+  );
+
   const handleSubmitWord = async (path: Position[]) => {
     const result = await submitWord(path);
-
-    let feedbackType: FeedbackType;
-    if (result.valid) {
-      feedbackType = 'valid';
-      if (!muted) playValid();
-      fetchGameState();
-    } else if (result.reason === 'repeat') {
-      feedbackType = 'duplicate';
-      if (!muted) playDuplicate();
-    } else {
-      feedbackType = 'invalid';
-      if (!muted) playInvalid();
-    }
-
-    setFeedback({ type: feedbackType, path });
-    setTimeout(() => setFeedback(null), 200);
+    if (result.valid) fetchGameState();
+    flashFeedback(path, result);
   };
+
+  // Zen daily uses a separate transport (DB-backed session, no in-memory
+  // game) but shares the validator + feedback machinery. Local hash lookup
+  // gives instant color, then we optimistic-update the cached session and
+  // fire the server submit in the background.
+  const zenValidator = useWordValidator();
+
+  useEffect(() => {
+    const salt = cachedDailyZenSession?.salt ?? cachedDailyZen?.salt ?? '';
+    const hashes = cachedDailyZenSession?.wordHashes ?? cachedDailyZen?.wordHashes ?? [];
+    zenValidator.setSource(salt, hashes);
+  }, [cachedDailyZenSession?.salt, cachedDailyZenSession?.wordHashes, cachedDailyZen?.salt, cachedDailyZen?.wordHashes, zenValidator]);
+
+  useEffect(() => {
+    zenValidator.setSubmitted(cachedDailyZenSession?.found_words ?? []);
+  }, [cachedDailyZenSession?.found_words, zenValidator]);
+
+  const handleSubmitZenWord = useCallback(
+    async (path: Position[]) => {
+      const session = cachedDailyZenSession;
+      if (!session || session.ended_at) return;
+
+      // Word is derived from the board the session was started against, so
+      // client + server agree even if the daily-info board ever drifts (e.g.
+      // user crosses midnight mid-play and a fresh fetchDailyZen returns
+      // tomorrow's board).
+      const word = path
+        .map((p) => session.board[p.row]?.[p.col] ?? '')
+        .join('')
+        .toUpperCase();
+
+      // If the validator isn't armed (e.g. session pre-dates the salt+hashes
+      // upgrade, or the response was malformed), fall back to network-first
+      // so we don't reject every word as invalid.
+      if (!zenValidator.isArmed()) {
+        const outcome = await submitDailyZenWord(session.date, path);
+        flashFeedback(path, outcome);
+        if (outcome.valid && outcome.word) {
+          const score = outcome.score ?? scoreWord(outcome.word);
+          const nextWords = [...session.found_words, outcome.word];
+          const nextLongest = outcome.word.length > session.longest_word.length
+            ? outcome.word
+            : session.longest_word;
+          setCachedDailyZenSession({
+            ...session,
+            found_words: nextWords,
+            points: session.points + score,
+            word_count: nextWords.length,
+            longest_word: nextLongest,
+          });
+        }
+        return;
+      }
+
+      const local = zenValidator.validate(word);
+      flashFeedback(path, local);
+
+      if (!local.valid) return;
+
+      zenValidator.recordSubmitted(word);
+      const score = scoreWord(word);
+      const nextWords = [...session.found_words, word];
+      const nextLongest = word.length > session.longest_word.length ? word : session.longest_word;
+      setCachedDailyZenSession({
+        ...session,
+        found_words: nextWords,
+        points: session.points + score,
+        word_count: nextWords.length,
+        longest_word: nextLongest,
+      });
+
+      // Server is canonical for persistence. Single retry mirrors the
+      // freeplay/timed flow in useGameApi.submitWord.
+      const fire = () => submitDailyZenWord(session.date, path);
+      fire().catch(() => setTimeout(() => fire().catch(() => {}), 200));
+    },
+    [cachedDailyZenSession, zenValidator, flashFeedback],
+  );
 
   const refreshDaily = async () => {
     const info = await fetchDaily();
@@ -324,7 +414,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       boardCode, setBoardCode, sharedSeed, handleCodeChange,
       lastConfig, setLastConfig,
       muted, toggleMute,
-      createGame, startGame, cancelGame, endGame, submitWord, handleSubmitWord,
+      createGame, startGame, cancelGame, endGame, submitWord, handleSubmitWord, handleSubmitZenWord,
       showHomeConfirm, setShowHomeConfirm,
       theme, toggleTheme,
       session, authReady,
