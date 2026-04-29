@@ -82,8 +82,12 @@ export function LandingRoute() {
     };
   }, [authReady, cachedDaily, cachedDailyResult]);
 
+  // Fetch zen rank as soon as the player has any session for the day —
+  // in-progress sessions are on the zen leaderboard too, so the badge is
+  // worth surfacing while play is ongoing. Re-runs when found_words changes
+  // so the displayed rank tracks the player's progress.
   useEffect(() => {
-    if (!authReady || !cachedDailyZen || !cachedDailyZenSession?.ended_at) return;
+    if (!authReady || !cachedDailyZen || !cachedDailyZenSession) return;
     let cancelled = false;
     fetchDailyZenLeaderboard(cachedDailyZen.date)
       .then((lb) => {
@@ -93,7 +97,7 @@ export function LandingRoute() {
     return () => {
       cancelled = true;
     };
-  }, [authReady, cachedDailyZen, cachedDailyZenSession?.ended_at]);
+  }, [authReady, cachedDailyZen, cachedDailyZenSession?.date, cachedDailyZenSession?.word_count, cachedDailyZenSession?.ended_at]);
 
   const handleFreePlay = async () => {
     setDailyInfo(null);

@@ -33,8 +33,11 @@ export function ZenDailyCard({
   onSeeLeaderboard,
 }: ZenDailyCardProps) {
   const state = deriveState(session);
+  // Zen leaderboard surfaces in-progress players, so the rank is real and
+  // worth showing the moment the player has started — not only after they
+  // finalize. The badge updates as their session evolves.
   const podiumRank: PodiumRank | null =
-    state === 'ended' && (rank === 1 || rank === 2 || rank === 3) ? rank : null;
+    state !== 'unplayed' && (rank === 1 || rank === 2 || rank === 3) ? rank : null;
 
   return (
     <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] flex flex-col overflow-hidden">
