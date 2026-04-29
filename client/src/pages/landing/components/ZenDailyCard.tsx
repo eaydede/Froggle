@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { InkButton } from "../../../shared/components/InkButton";
 import { StatusIcon } from "../../../shared/components/StatusIcon";
+import { RankBadge, type PodiumRank } from "./RankBadge";
 import type { DailyZenSession } from "../../../shared/api/gameApi";
 
 interface ZenDailyCardProps {
   session: DailyZenSession | null;
   config: { boardSize: number; minWordLength: number };
+  /** Player's rank on today's zen leaderboard. Only the top-3 are surfaced as a badge. */
+  rank?: number | null;
   onPlay: () => void;
   onResume: () => void;
   onSeeResult: () => void;
@@ -23,12 +26,15 @@ function deriveState(session: DailyZenSession | null): CardState {
 export function ZenDailyCard({
   session,
   config,
+  rank,
   onPlay,
   onResume,
   onSeeResult,
   onSeeLeaderboard,
 }: ZenDailyCardProps) {
   const state = deriveState(session);
+  const podiumRank: PodiumRank | null =
+    state === 'ended' && (rank === 1 || rank === 2 || rank === 3) ? rank : null;
 
   return (
     <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] flex flex-col overflow-hidden">
@@ -41,6 +47,7 @@ export function ZenDailyCard({
           >
             Zen Daily
           </span>
+          {podiumRank && <RankBadge rank={podiumRank} />}
         </div>
       </div>
 

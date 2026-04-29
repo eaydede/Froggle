@@ -8,7 +8,9 @@ interface LandingPageProps {
   dailyConfig: { boardSize: number; timeLimit: number; minWordLength: number };
   zenConfig: { boardSize: number; minWordLength: number };
   dailyResults: DailyResults | null;
+  dailyRank: number | null;
   zenSession: DailyZenSession | null;
+  zenRank: number | null;
   displayName: string;
   onDisplayNameChange: (name: string) => void;
   onDailyPlay: () => void;
@@ -29,7 +31,9 @@ export function LandingPage({
   dailyConfig,
   zenConfig,
   dailyResults,
+  dailyRank,
   zenSession,
+  zenRank,
   displayName,
   onDisplayNameChange,
   onDailyPlay,
@@ -59,6 +63,7 @@ export function LandingPage({
             streak={streak}
             config={dailyConfig}
             results={dailyResults}
+            rank={dailyRank}
             onPlay={onDailyPlay}
             onSeeResult={onDailySeeResult}
             onSeeLeaderboard={onDailyLeaderboard}
@@ -66,6 +71,7 @@ export function LandingPage({
           <ZenDailyCard
             session={zenSession}
             config={zenConfig}
+            rank={zenRank}
             onPlay={onZenPlay}
             onResume={onZenResume}
             onSeeResult={onZenSeeResult}
