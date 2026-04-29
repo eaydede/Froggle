@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { StatusIcon } from "../../../shared/components/StatusIcon";
 import { InkButton } from "../../../shared/components/InkButton";
-import { RankBadge } from "./RankBadge";
+import { RankBadge, RankGlyph, RankSuffix, type BadgeVariant, type PodiumRank } from "./RankBadge";
 import type { DailyResults } from "../types";
 
 interface DailyCardProps {
@@ -10,6 +10,8 @@ interface DailyCardProps {
   results: DailyResults | null;
   /** Player's rank for today's puzzle. Only the top-3 are surfaced as a badge. */
   rank?: number | null;
+  /** Which placement to use for the podium badge. Defaults to the title-row chip. */
+  badgeVariant?: BadgeVariant;
   onPlay: () => void;
   onSeeResult: () => void;
   onSeeLeaderboard: () => void;
@@ -20,13 +22,20 @@ export function DailyCard({
   config,
   results,
   rank,
+  badgeVariant = 'chip',
   onPlay,
   onSeeResult,
   onSeeLeaderboard,
 }: DailyCardProps) {
   const completed = results !== null;
-  const podiumRank: 1 | 2 | 3 | null =
+  const podiumRank: PodiumRank | null =
     completed && (rank === 1 || rank === 2 || rank === 3) ? rank : null;
+
+  const titleSlot = podiumRank && badgeVariant === 'chip'
+    ? <RankBadge rank={podiumRank} />
+    : podiumRank && badgeVariant === 'glyph'
+      ? <RankGlyph rank={podiumRank} />
+      : null;
 
   return (
     <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] flex flex-col overflow-hidden">
@@ -39,7 +48,7 @@ export function DailyCard({
           >
             Timed Daily
           </span>
-          {podiumRank && <RankBadge rank={podiumRank} />}
+          {titleSlot}
         </div>
         <StreakBadge streak={streak} />
       </div>
@@ -47,10 +56,23 @@ export function DailyCard({
       <div className="px-5 py-3 flex flex-col gap-[10px]">
         {completed && results ? (
           <>
-            <ScoreBlock points={results.points} words={results.words} longestWord={results.longestWord} />
+            <ScoreBlock
+              points={results.points}
+              words={results.words}
+              longestWord={results.longestWord}
+              rankInScore={badgeVariant === 'score' ? podiumRank : null}
+            />
             <div className="grid grid-cols-2 gap-2">
               <SecondaryButton onClick={onSeeResult}>See result</SecondaryButton>
-              <SecondaryButton onClick={onSeeLeaderboard}>Leaderboard</SecondaryButton>
+              <SecondaryButton onClick={onSeeLeaderboard}>
+                Leaderboard
+                {badgeVariant === 'button' && podiumRank && (
+                  <>
+                    <span aria-hidden className="text-[color:var(--ink-faint)]">·</span>
+                    <RankSuffix rank={podiumRank} />
+                  </>
+                )}
+              </SecondaryButton>
             </div>
             <NextDailyCountdown />
           </>
@@ -102,10 +124,12 @@ function ScoreBlock({
   points,
   words,
   longestWord,
+  rankInScore,
 }: {
   points: number;
   words: number;
   longestWord?: string;
+  rankInScore: PodiumRank | null;
 }) {
   return (
     <div
@@ -122,6 +146,16 @@ function ScoreBlock({
         <span className="text-small text-[color:var(--ink-muted)]" style={{ fontWeight: 600 }}>
           pts
         </span>
+        {rankInScore && (
+          <span className="text-small text-[color:var(--ink-faint)] ml-1" style={{ fontWeight: 500 }}>
+            ·
+          </span>
+        )}
+        {rankInScore && (
+          <span className="text-small" style={{ fontWeight: 700 }}>
+            <RankSuffix rank={rankInScore} />
+          </span>
+        )}
       </div>
       <div className="flex flex-col items-end gap-0.5 leading-tight min-w-0">
         <span

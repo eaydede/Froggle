@@ -7,6 +7,9 @@ import {
   podiumGoldFixture,
   podiumSilverFixture,
   podiumBronzeFixture,
+  podiumButtonFixture,
+  podiumScoreFixture,
+  podiumGlyphFixture,
   type LandingFixture,
 } from './default';
 
@@ -19,6 +22,9 @@ const FIXTURES: Record<string, LandingFixture> = {
   'podium-gold': podiumGoldFixture,
   'podium-silver': podiumSilverFixture,
   'podium-bronze': podiumBronzeFixture,
+  'podium-button': podiumButtonFixture,
+  'podium-score': podiumScoreFixture,
+  'podium-glyph': podiumGlyphFixture,
 };
 
 export function getLandingFixture(name: string | null): LandingFixture | null {
