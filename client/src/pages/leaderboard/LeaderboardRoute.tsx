@@ -11,16 +11,10 @@ import {
 import { LeaderboardPage } from './LeaderboardPage';
 import { useShareText } from '../results/hooks/useShareText';
 import type { DailyEntry } from '../daily/types';
+import { formatDateLabel } from '../../shared/utils/formatDate';
 
 function getTodayPST(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
-}
-
-function formatDateLabel(dateIso: string): string {
-  const d = new Date(dateIso + 'T12:00:00');
-  const weekday = d.toLocaleString('en-US', { weekday: 'long' });
-  const month = d.toLocaleString('en-US', { month: 'long' });
-  return `${weekday}, ${month} ${d.getDate()}`;
 }
 
 function adaptDay(day: DailyStatsDay): DailyEntry {
@@ -91,6 +85,7 @@ export function LeaderboardRoute() {
         displayName: r.displayName,
         subLabel: r.subLabel,
         value: r.value,
+        valueUnit: r.value === 1 ? 'pt' : 'pts',
         isCurrentUser: r.isCurrentUser,
       })),
     [pointsRankings],

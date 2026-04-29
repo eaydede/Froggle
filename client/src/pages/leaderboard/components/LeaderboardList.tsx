@@ -7,6 +7,9 @@ export interface LbListEntry {
   displayName: string;
   subLabel: string;
   value: number;
+  /** Optional unit rendered as visually-secondary text next to `value`
+   *  (e.g. "words" for the zen leaderboard). Pre-pluralized by the caller. */
+  valueUnit?: string;
   isCurrentUser: boolean;
   inProgress?: boolean;
 }
@@ -107,7 +110,7 @@ export function LeaderboardList({ entries, onCompare, onSelfClick }: Leaderboard
         >
           <span aria-hidden>{pillPosition === 'above' ? '↑' : '↓'}</span>
           <span>
-            You · #{you.rank} · {you.value}
+            You · #{you.rank} · {you.value}{you.valueUnit ? ` ${you.valueUnit}` : ''}
           </span>
         </button>
       )}
@@ -211,10 +214,18 @@ function Row({
         </div>
       </div>
       <span
-        className="text-[15px] tabular-nums text-[color:var(--ink)] font-[family-name:var(--font-structure)]"
+        className="flex items-baseline gap-1 text-[15px] tabular-nums text-[color:var(--ink)] font-[family-name:var(--font-structure)]"
         style={{ fontWeight: 700, letterSpacing: '-0.01em' }}
       >
         {entry.value}
+        {entry.valueUnit && (
+          <span
+            className="text-[10px] text-[color:var(--ink-soft)] normal-case tracking-normal"
+            style={{ fontWeight: 500 }}
+          >
+            {entry.valueUnit}
+          </span>
+        )}
       </span>
     </div>
   );

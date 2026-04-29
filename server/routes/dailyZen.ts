@@ -231,15 +231,17 @@ dailyZenRouter.get('/leaderboard/:date', async (req, res) => {
       totalPlayers: number;
     } | null = null;
     if (requestingUserId) {
-      const idx = byPoints.findIndex((e) => e.userId === requestingUserId);
+      // Zen ranks by words found, not points — the rank we hand to the
+      // client must reflect that primary sort.
+      const idx = byWords.findIndex((e) => e.userId === requestingUserId);
       if (idx >= 0) {
-        const me = byPoints[idx];
+        const me = byWords[idx];
         currentPlayer = {
           points: me.points,
           wordsFound: me.wordCount,
           longestWord: me.longestWord,
           rank: idx + 1,
-          totalPlayers: byPoints.length,
+          totalPlayers: byWords.length,
         };
       }
     }

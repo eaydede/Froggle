@@ -14,6 +14,7 @@ import { DateTimelinePicker } from '../../shared/components/DateTimelinePicker';
 import { InlineStats } from '../leaderboard/components/InlineStats';
 import { LeaderboardList, type LbListEntry } from '../leaderboard/components/LeaderboardList';
 import type { DailyEntry } from '../daily/types';
+import { formatDateLabel } from '../../shared/utils/formatDate';
 
 function adaptDay(day: DailyStatsDay): DailyEntry {
   return {
@@ -32,13 +33,6 @@ function adaptDay(day: DailyStatsDay): DailyEntry {
 
 function getTodayPST(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
-}
-
-function formatDateLabel(dateIso: string): string {
-  const d = new Date(dateIso + 'T12:00:00');
-  const weekday = d.toLocaleString('en-US', { weekday: 'long' });
-  const month = d.toLocaleString('en-US', { month: 'long' });
-  return `${weekday}, ${month} ${d.getDate()}`;
 }
 
 export function ZenLeaderboardRoute() {
@@ -85,12 +79,16 @@ export function ZenLeaderboardRoute() {
 
   const entries: LbListEntry[] = useMemo(() => {
     if (!data) return [];
-    return data.rankings.points.map((e) => ({
+    // Zen leaderboard is ranked by words found rather than points — the
+    // primary value players are chasing in the untimed mode is breadth, not
+    // score-per-minute.
+    return data.rankings.words.map((e) => ({
       rank: e.rank,
       userId: e.userId,
       displayName: e.displayName,
-      subLabel: `${e.wordCount} ${e.wordCount === 1 ? 'word' : 'words'}`,
-      value: e.points,
+      subLabel: `${e.points} ${e.points === 1 ? 'pt' : 'pts'}`,
+      value: e.wordCount,
+      valueUnit: e.wordCount === 1 ? 'word' : 'words',
       isCurrentUser: e.userId === currentUserId,
       inProgress: e.inProgress,
     }));
