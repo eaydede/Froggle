@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useGame } from '../../GameContext';
 import { LandingPage } from './LandingPage';
-import { fetchDaily, fetchDailyStats, type DailyStatsResponse } from '../../shared/api/gameApi';
+import {
+  fetchDaily,
+  fetchDailyStats,
+  fetchLeaderboard,
+  fetchDailyZenLeaderboard,
+  type DailyStatsResponse,
+} from '../../shared/api/gameApi';
 import { scoreWord } from '../../shared/utils/score';
 import { getLandingFixture } from './__fixtures__';
 import type { DailyResults } from './types';
@@ -33,6 +39,8 @@ export function LandingRoute() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [stats, setStats] = useState<DailyStatsResponse | null>(null);
+  const [dailyRank, setDailyRank] = useState<number | null>(null);
+  const [zenRank, setZenRank] = useState<number | null>(null);
 
   // Dev-only fixture injection — `?mock=unplayed|completed|partial` renders
   // the page with canned data so visual-regression work can reach either
@@ -56,6 +64,36 @@ export function LandingRoute() {
       cancelled = true;
     };
   }, [authReady]);
+
+  // Fetch the player's rank for podium-badge display. Only when the player
+  // has actually finished today's puzzle — otherwise rank isn't meaningful
+  // (and for in-progress zen, it would shift through the day). Failures are
+  // non-fatal: the badge just doesn't render.
+  useEffect(() => {
+    if (!authReady || !cachedDaily || !cachedDailyResult) return;
+    let cancelled = false;
+    fetchLeaderboard(cachedDaily.date)
+      .then((lb) => {
+        if (!cancelled) setDailyRank(lb.currentPlayer?.rank ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady, cachedDaily, cachedDailyResult]);
+
+  useEffect(() => {
+    if (!authReady || !cachedDailyZen || !cachedDailyZenSession?.ended_at) return;
+    let cancelled = false;
+    fetchDailyZenLeaderboard(cachedDailyZen.date)
+      .then((lb) => {
+        if (!cancelled) setZenRank(lb.currentPlayer?.rank ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady, cachedDailyZen, cachedDailyZenSession?.ended_at]);
 
   const handleFreePlay = async () => {
     setDailyInfo(null);
@@ -103,7 +141,9 @@ export function LandingRoute() {
         dailyConfig={mockFixture.dailyConfig}
         zenConfig={mockFixture.zenConfig}
         dailyResults={mockFixture.dailyResults}
+        dailyRank={mockFixture.dailyRank ?? null}
         zenSession={mockFixture.zenSession ?? null}
+        zenRank={mockFixture.zenRank ?? null}
         displayName={mockFixture.displayName}
         onDisplayNameChange={() => {}}
         onDailyPlay={() => {}}
@@ -153,7 +193,9 @@ export function LandingRoute() {
       dailyConfig={cachedDaily.config}
       zenConfig={cachedDailyZen.config}
       dailyResults={dailyResultsData}
+      dailyRank={dailyRank}
       zenSession={cachedDailyZenSession}
+      zenRank={zenRank}
       displayName={displayName}
       onDisplayNameChange={updateDisplayName}
       onDailyPlay={handleDailyPlay}

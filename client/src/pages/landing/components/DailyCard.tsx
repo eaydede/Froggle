@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { StatusIcon } from "../../../shared/components/StatusIcon";
 import { InkButton } from "../../../shared/components/InkButton";
+import { RankBadge } from "./RankBadge";
 import type { DailyResults } from "../types";
 
 interface DailyCardProps {
   streak: number;
   config: { boardSize: number; timeLimit: number; minWordLength: number };
   results: DailyResults | null;
+  /** Player's rank for today's puzzle. Only the top-3 are surfaced as a badge. */
+  rank?: number | null;
   onPlay: () => void;
   onSeeResult: () => void;
   onSeeLeaderboard: () => void;
@@ -16,11 +19,14 @@ export function DailyCard({
   streak,
   config,
   results,
+  rank,
   onPlay,
   onSeeResult,
   onSeeLeaderboard,
 }: DailyCardProps) {
   const completed = results !== null;
+  const podiumRank: 1 | 2 | 3 | null =
+    completed && (rank === 1 || rank === 2 || rank === 3) ? rank : null;
 
   return (
     <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] flex flex-col overflow-hidden">
@@ -33,6 +39,7 @@ export function DailyCard({
           >
             Timed Daily
           </span>
+          {podiumRank && <RankBadge rank={podiumRank} />}
         </div>
         <StreakBadge streak={streak} />
       </div>
