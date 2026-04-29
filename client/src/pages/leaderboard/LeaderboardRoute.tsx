@@ -85,6 +85,7 @@ export function LeaderboardRoute() {
         displayName: r.displayName,
         subLabel: r.subLabel,
         value: r.value,
+        valueUnit: r.value === 1 ? 'pt' : 'pts',
         isCurrentUser: r.isCurrentUser,
       })),
     [pointsRankings],
