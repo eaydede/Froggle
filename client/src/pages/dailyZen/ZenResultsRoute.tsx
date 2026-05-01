@@ -146,12 +146,11 @@ export function ZenResultsRoute() {
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </IconAction>
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex justify-center">
             <DateChip
               label={`Zen Daily · ${formatDateLabel(targetDate)}`}
               onClick={() => setPickerOpen(true)}
             />
-            <ZenModeBadge isCompetitive={result.is_competitive} />
           </div>
           <IconAction onClick={share} label={copied ? 'Copied to clipboard' : 'Share'}>
             {copied ? (
@@ -168,7 +167,12 @@ export function ZenResultsRoute() {
           </IconAction>
         </div>
 
-        <HeroScore points={totals.points} words={totals.words} />
+        <HeroScore
+          points={totals.points}
+          words={totals.words}
+          primary="words"
+          accessory={<ZenModeBadge isCompetitive={result.is_competitive} />}
+        />
 
         <div
           className="grid gap-2.5 flex-1 min-h-0 px-0.5"
