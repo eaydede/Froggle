@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Position } from 'models';
 import { useGame, type ZenModeChoice } from '../../GameContext';
 import { Board, type FeedbackType, computeFeedbackColors } from '../game/components';
 import { InkButton } from '../../shared/components/InkButton';
@@ -44,6 +43,39 @@ export function ZenGameRoute() {
 
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [displayWord, setDisplayWord] = useState('');
+  const [wordFeedback, setWordFeedback] = useState<FeedbackType>(null);
+  const [isFading, setIsFading] = useState(false);
+  const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleCurrentWordChange = useCallback((word: string) => {
+    if (word) {
+      setDisplayWord(word);
+      setWordFeedback(null);
+      setIsFading(false);
+      if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!feedback || !cachedDailyZen) return;
+    const word = feedback.path.map((p) => cachedDailyZen.board[p.row]?.[p.col] ?? '').join('');
+    setDisplayWord(word);
+    setWordFeedback(feedback.type);
+    setIsFading(false);
+    if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+    if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+    fadeTimerRef.current = setTimeout(() => {
+      setIsFading(true);
+      clearTimerRef.current = setTimeout(() => {
+        setDisplayWord('');
+        setWordFeedback(null);
+        setIsFading(false);
+      }, 300);
+    }, 800);
+  }, [feedback, cachedDailyZen]);
 
   // If the session is already ended, the play page is the wrong destination.
   useEffect(() => {
@@ -103,7 +135,12 @@ export function ZenGameRoute() {
         onEnd={() => setShowEndConfirm(true)}
       />
 
-      <CurrentWordBanner feedback={feedback} board={cachedDailyZen.board} colors={colors} />
+      <CurrentWordBanner
+        word={displayWord}
+        feedbackType={wordFeedback}
+        isFading={isFading}
+        colors={colors}
+      />
 
       <div className="w-full">
         <Board
@@ -118,6 +155,7 @@ export function ZenGameRoute() {
           preactStyleIndex={BOARD_STYLE.preact}
           preactRadius={BOARD_STYLE.preactRadius}
           preactIntensity={BOARD_STYLE.preactIntensity}
+          onCurrentWordChange={handleCurrentWordChange}
         />
       </div>
 
@@ -336,28 +374,34 @@ function ScoreHeader({
 }
 
 function CurrentWordBanner({
-  feedback,
-  board,
+  word,
+  feedbackType,
+  isFading,
   colors,
 }: {
-  feedback: { type: FeedbackType; path: Position[] } | null;
-  board: string[][];
+  word: string;
+  feedbackType: FeedbackType;
+  isFading: boolean;
   colors: Record<string, string>;
 }) {
-  const word = feedback ? feedback.path.map((p) => board[p.row]?.[p.col] ?? '').join('') : '';
   const color =
-    feedback?.type === 'valid'
+    feedbackType === 'valid'
       ? colors.valid
-      : feedback?.type === 'invalid'
+      : feedbackType === 'invalid'
       ? colors.invalid
-      : feedback?.type === 'duplicate'
+      : feedbackType === 'duplicate'
       ? colors.duplicate
       : '#bbb';
+  const animation =
+    feedbackType === 'invalid' || feedbackType === 'duplicate'
+      ? 'word-shake 0.3s ease'
+      : undefined;
   return (
     <div
-      className="h-9 flex items-center justify-center tracking-wider my-2 shrink-0"
+      className={`h-9 flex items-center justify-center tracking-wider my-2 shrink-0 transition-opacity duration-300 ${isFading ? 'opacity-0' : 'opacity-100'}`}
       style={{
         color,
+        animation,
         fontFamily: 'var(--font-cell)',
         fontWeight: 800,
         fontSize: '1.4rem',
