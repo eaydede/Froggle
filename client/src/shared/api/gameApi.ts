@@ -350,6 +350,9 @@ export interface DailyZenSession {
   points: number;
   word_count: number;
   longest_word: string;
+  /** Mode the player committed to when starting the day's session. Locked
+   *  for the day — see startDailyZenSession. */
+  is_competitive: boolean;
   /** Total findable words on this board — server computed each fetch. */
   total_findable: number;
   /** Present while the session is playable; absent / empty after end. */
@@ -375,10 +378,12 @@ export const fetchDailyZenSession = async (
 
 export const startDailyZenSession = async (
   date: string,
+  isCompetitive: boolean,
 ): Promise<DailyZenSession> => {
   const response = await fetch(`${API_URL}/daily/zen/session/${date}/start`, {
     method: 'POST',
     headers: await sessionHeaders(),
+    body: JSON.stringify({ isCompetitive }),
   });
   const data = await response.json();
   return data.session;
@@ -415,6 +420,7 @@ export interface DailyZenResultResponse {
   missed_words: DailyResultMissedWord[];
   ended_at: string;
   ended_by_player: boolean;
+  is_competitive: boolean;
 }
 
 export const fetchDailyZenResult = async (
@@ -434,24 +440,45 @@ export interface DailyZenLeaderboardEntry {
   points: number;
   wordCount: number;
   longestWord: string;
-  inProgress: boolean;
+}
+
+export interface DailyZenLeaderboardInProgressEntry {
+  userId: string;
+  displayName: string;
+  isCompetitive: boolean;
+}
+
+export interface DailyZenLeaderboardCurrentPlayer {
+  /** True when the player chose competitive mode for the day. Casual
+   *  players never receive a rank, even after finishing. */
+  isCompetitive: boolean;
+  /** True only for competitive players who have finalized the puzzle.
+   *  Competitive in-progress players are unranked until they finish. */
+  ranked: boolean;
+  rank: number | null;
+  points: number;
+  wordsFound: number;
+  longestWord: string;
+  /** Size of the ranked list (completed competitive players only). */
+  totalRankedPlayers: number;
 }
 
 export interface DailyZenLeaderboardResponse {
   puzzleNumber: number;
+  /** Counts every player who has a row for the day — casual + competitive,
+   *  in-progress + completed. */
   totalPlayers: number;
+  /** How many players are mid-session right now (across both modes). */
+  inProgressCount: number;
+  /** Mean points across completed competitive rows only — casual and
+   *  in-progress zeroes would otherwise drag the average down. */
   avgScore: number;
   rankings: {
     points: DailyZenLeaderboardEntry[];
     words: DailyZenLeaderboardEntry[];
   };
-  currentPlayer: {
-    points: number;
-    wordsFound: number;
-    longestWord: string;
-    rank: number;
-    totalPlayers: number;
-  } | null;
+  inProgressPlayers: DailyZenLeaderboardInProgressEntry[];
+  currentPlayer: DailyZenLeaderboardCurrentPlayer | null;
 }
 
 export const fetchDailyZenLeaderboard = async (

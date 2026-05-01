@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { InkButton } from "../../../shared/components/InkButton";
 import { StatusIcon } from "../../../shared/components/StatusIcon";
 import { RankBadge, type PodiumRank } from "./RankBadge";
+import { ZenModeBadge } from "../../dailyZen/components/ZenModeBadge";
 import type { DailyZenSession } from "../../../shared/api/gameApi";
 
 interface ZenDailyCardProps {
@@ -33,11 +34,16 @@ export function ZenDailyCard({
   onSeeLeaderboard,
 }: ZenDailyCardProps) {
   const state = deriveState(session);
-  // Zen leaderboard surfaces in-progress players, so the rank is real and
-  // worth showing the moment the player has started — not only after they
-  // finalize. The badge updates as their session evolves.
+  // Casual players opt out of the leaderboard for the day, so the rank
+  // badge would be misleading — gate it on competitive mode. For
+  // competitive players the badge appears as soon as a session exists and
+  // tracks live as the session evolves (in-progress sessions are on the
+  // zen leaderboard too).
+  const isCompetitive = session?.is_competitive ?? false;
   const podiumRank: PodiumRank | null =
-    state !== 'unplayed' && (rank === 1 || rank === 2 || rank === 3) ? rank : null;
+    state !== 'unplayed' && isCompetitive && (rank === 1 || rank === 2 || rank === 3)
+      ? rank
+      : null;
 
   return (
     <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] flex flex-col overflow-hidden">
@@ -52,6 +58,7 @@ export function ZenDailyCard({
           </span>
           {podiumRank && <RankBadge rank={podiumRank} />}
         </div>
+        {session && <ZenModeBadge isCompetitive={session.is_competitive} />}
       </div>
 
       <div className="px-5 py-3 flex flex-col gap-[10px]">

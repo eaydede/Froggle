@@ -4,6 +4,7 @@ import { isValidPath } from 'engine/adjacency.js';
 import { isValidWord } from 'engine/dictionary.js';
 import { scoreWord } from 'engine/scoring.js';
 import type { Database } from '../db/types.js';
+import { getSupabaseAdmin } from '../supabaseAdmin.js';
 import { dictionary } from './dictionary.js';
 import {
   scoreResult,
@@ -28,6 +29,7 @@ export interface ZenSession {
   points: number;
   word_count: number;
   longest_word: string;
+  is_competitive: boolean;
 }
 
 export type SubmitOutcome =
@@ -45,6 +47,7 @@ function parseSession(row: {
   points: number;
   word_count: number;
   longest_word: string;
+  is_competitive: boolean;
 }): ZenSession {
   const board = typeof row.board === 'string' ? JSON.parse(row.board) : (row.board as string[][]);
   const foundWords = typeof row.found_words === 'string'
@@ -61,6 +64,7 @@ function parseSession(row: {
     points: row.points,
     word_count: row.word_count,
     longest_word: row.longest_word,
+    is_competitive: row.is_competitive,
   };
 }
 
@@ -80,12 +84,15 @@ export async function getSession(
 
 // Insert the session row on first interaction. The board is locked in at
 // creation time so the player always sees the same puzzle on resume even
-// if board generation logic changes within the day.
+// if board generation logic changes within the day. The casual/competitive
+// choice is also locked here — onConflict-do-nothing means a re-entry
+// keeps the player's first choice for the day.
 export async function startSession(
   db: Kysely<Database>,
   userId: string,
   date: string,
   board: string[][],
+  isCompetitive: boolean,
 ): Promise<ZenSession> {
   await db
     .insertInto('daily_zen_results')
@@ -94,6 +101,7 @@ export async function startSession(
       date,
       board: JSON.stringify(board),
       found_words: JSON.stringify([]),
+      is_competitive: isCompetitive,
     })
     .onConflict((oc) => oc.columns(['user_id', 'date']).doNothing())
     .execute();
@@ -285,4 +293,162 @@ export async function getDailyZenStats(
   }
 
   return { windowStart, windowEnd, days };
+}
+
+export interface ZenLeaderboardRanking {
+  rank: number;
+  userId: string;
+  displayName: string;
+  points: number;
+  wordCount: number;
+  longestWord: string;
+}
+
+export interface ZenLeaderboardInProgressEntry {
+  userId: string;
+  displayName: string;
+  isCompetitive: boolean;
+}
+
+export interface ZenLeaderboardCurrentPlayer {
+  isCompetitive: boolean;
+  ranked: boolean;
+  rank: number | null;
+  points: number;
+  wordsFound: number;
+  longestWord: string;
+  totalRankedPlayers: number;
+}
+
+export interface ZenLeaderboardResult {
+  puzzleNumber: number;
+  totalPlayers: number;
+  inProgressCount: number;
+  avgScore: number;
+  rankings: {
+    points: ZenLeaderboardRanking[];
+    words: ZenLeaderboardRanking[];
+  };
+  inProgressPlayers: ZenLeaderboardInProgressEntry[];
+  currentPlayer: ZenLeaderboardCurrentPlayer | null;
+}
+
+// Builds the zen leaderboard payload. Only completed competitive rows are
+// ranked; casual players and in-progress competitive players are excluded
+// from the ranked lists. In-progress players (both modes) are surfaced as a
+// score-less presence list so the page can show "X solving right now"
+// without leaking mid-session scores.
+export async function getZenLeaderboard(
+  db: Kysely<Database>,
+  date: string,
+  requestingUserId: string | undefined,
+): Promise<ZenLeaderboardResult> {
+  const rows = await db
+    .selectFrom('daily_zen_results')
+    .selectAll()
+    .where('date', '=', date)
+    .execute();
+
+  const admin = getSupabaseAdmin();
+  const enriched = await Promise.all(
+    rows.map(async (row) => {
+      const words = typeof row.found_words === 'string'
+        ? (JSON.parse(row.found_words) as string[])
+        : (row.found_words as string[]);
+      const points = scoreWords(words);
+      const wordCount = words.length;
+      const displayName = await admin.auth.admin
+        .getUserById(row.user_id)
+        .then((r) => r.data.user?.user_metadata?.display_name || 'Anonymous')
+        .catch(() => 'Anonymous');
+      return {
+        userId: row.user_id,
+        displayName,
+        points,
+        wordCount,
+        longestWord: row.longest_word,
+        inProgress: row.ended_at === null,
+        isCompetitive: row.is_competitive,
+      };
+    }),
+  );
+
+  const ranked = enriched.filter((e) => !e.inProgress && e.isCompetitive);
+  // Casual in-progress players are excluded — they've opted out of the
+  // leaderboard entirely, so showing them as "still solving" would imply a
+  // future ranked appearance that never comes. They still count toward the
+  // overall totalPlayers tally below.
+  const inProgressPlayers: ZenLeaderboardInProgressEntry[] = enriched
+    .filter((e) => e.inProgress && e.isCompetitive)
+    .map((e) => ({
+      userId: e.userId,
+      displayName: e.displayName,
+      isCompetitive: e.isCompetitive,
+    }));
+
+  const byPoints = [...ranked].sort((a, b) => b.points - a.points || b.wordCount - a.wordCount);
+  const byWords = [...ranked].sort((a, b) => b.wordCount - a.wordCount || b.points - a.points);
+
+  let currentPlayer: ZenLeaderboardCurrentPlayer | null = null;
+  if (requestingUserId) {
+    const myRow = enriched.find((e) => e.userId === requestingUserId);
+    if (myRow) {
+      // Zen ranks by words found, not points — the rank we hand to the
+      // client must reflect that primary sort. Casual and in-progress
+      // players surface a row with rank=null so the client can render the
+      // appropriate "not on the leaderboard" / "rank shows when you finish"
+      // copy without an extra round-trip.
+      let rank: number | null = null;
+      let ranked = false;
+      if (myRow.isCompetitive && !myRow.inProgress) {
+        const idx = byWords.findIndex((e) => e.userId === requestingUserId);
+        if (idx >= 0) {
+          rank = idx + 1;
+          ranked = true;
+        }
+      }
+      currentPlayer = {
+        isCompetitive: myRow.isCompetitive,
+        ranked,
+        rank,
+        points: myRow.points,
+        wordsFound: myRow.wordCount,
+        longestWord: myRow.longestWord,
+        totalRankedPlayers: byWords.length,
+      };
+    }
+  }
+
+  // avgScore reflects the competition's typical finished score, so it
+  // excludes casual players and in-progress zeroes that would otherwise
+  // drag the mean down.
+  const totalRankedPoints = ranked.reduce((sum, e) => sum + e.points, 0);
+  const avgScore = ranked.length > 0 ? Math.round(totalRankedPoints / ranked.length) : 0;
+
+  return {
+    puzzleNumber: getDailyZenNumber(date),
+    totalPlayers: enriched.length,
+    inProgressCount: inProgressPlayers.length,
+    avgScore,
+    rankings: {
+      points: byPoints.map((e, i) => ({
+        rank: i + 1,
+        userId: e.userId,
+        displayName: e.displayName,
+        points: e.points,
+        wordCount: e.wordCount,
+        longestWord: e.longestWord,
+      })),
+      words: byWords.map((e, i) => ({
+        rank: i + 1,
+        userId: e.userId,
+        displayName: e.displayName,
+        points: e.points,
+        wordCount: e.wordCount,
+        longestWord: e.longestWord,
+      })),
+    },
+    inProgressPlayers,
+    currentPlayer,
+  };
 }

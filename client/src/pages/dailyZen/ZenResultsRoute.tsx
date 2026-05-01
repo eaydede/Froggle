@@ -22,6 +22,7 @@ import { WordDefinitionPanel } from '../results/components/WordDefinitionPanel';
 import { useShareText } from '../results/hooks/useShareText';
 import { generateShareText } from '../results/utils/shareResults';
 import { formatDateLabel } from '../../shared/utils/formatDate';
+import { ZenModeBadge } from './components/ZenModeBadge';
 
 function getTodayPST(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
@@ -145,11 +146,12 @@ export function ZenResultsRoute() {
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </IconAction>
-          <div className="flex justify-center">
+          <div className="flex flex-col items-center gap-2">
             <DateChip
               label={`Zen Daily · ${formatDateLabel(targetDate)}`}
               onClick={() => setPickerOpen(true)}
             />
+            <ZenModeBadge isCompetitive={result.is_competitive} />
           </div>
           <IconAction onClick={share} label={copied ? 'Copied to clipboard' : 'Share'}>
             {copied ? (
