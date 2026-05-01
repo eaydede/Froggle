@@ -31,6 +31,15 @@ const loadMuted = (): boolean => {
   } catch { return false; }
 };
 
+export type ZenModeChoice = 'competitive' | 'casual';
+
+const loadZenModeChoice = (): ZenModeChoice => {
+  try {
+    const raw = localStorage.getItem('froggle-zen-mode-choice');
+    return raw === 'casual' ? 'casual' : 'competitive';
+  } catch { return 'competitive'; }
+};
+
 interface GameContextValue {
   // Game state
   game: Game | null;
@@ -54,6 +63,11 @@ interface GameContextValue {
   dailyZenLoaded: boolean;
   setCachedDailyZenSession: (session: DailyZenSession | null) => void;
   refreshDailyZenSession: () => Promise<void>;
+  /** Player's most recent zen mode choice. Used as the pre-selected
+   *  default on the start-page gate; the persisted session row remains
+   *  the source of truth once a day is in progress. */
+  lastZenModeChoice: ZenModeChoice;
+  setLastZenModeChoice: (choice: ZenModeChoice) => void;
 
   // Board code
   boardCode: string;
@@ -189,6 +203,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [cachedDailyZen, setCachedDailyZen] = useState<DailyZenInfo | null>(null);
   const [cachedDailyZenSession, setCachedDailyZenSession] = useState<DailyZenSession | null>(null);
   const [dailyZenLoaded, setDailyZenLoaded] = useState(false);
+  const [lastZenModeChoice, setLastZenModeChoiceState] = useState<ZenModeChoice>(loadZenModeChoice);
+
+  const setLastZenModeChoice = useCallback((choice: ZenModeChoice) => {
+    setLastZenModeChoiceState(choice);
+    try { localStorage.setItem('froggle-zen-mode-choice', choice); } catch { /* ignore */ }
+  }, []);
 
   const refreshDailyZenSession = async () => {
     if (!cachedDailyZen) return;
@@ -411,6 +431,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       dailyInfo, setDailyInfo, cachedDaily, cachedDailyResult, dailyResultLoaded, refreshDaily,
       cachedDailyZen, cachedDailyZenSession, dailyZenLoaded,
       setCachedDailyZenSession, refreshDailyZenSession,
+      lastZenModeChoice, setLastZenModeChoice,
       boardCode, setBoardCode, sharedSeed, handleCodeChange,
       lastConfig, setLastConfig,
       muted, toggleMute,

@@ -5,10 +5,12 @@ import {
   fetchDailyZenLeaderboard,
   fetchDailyZenStats,
   type DailyStatsDay,
+  type DailyZenLeaderboardInProgressEntry,
   type DailyZenLeaderboardResponse,
   type DailyZenStatsResponse,
 } from '../../shared/api/gameApi';
 import { IconAction } from '../../shared/components/IconAction';
+import { StatusIcon } from '../../shared/components/StatusIcon';
 import { DateChip } from '../../shared/components/DateChip';
 import { DateTimelinePicker } from '../../shared/components/DateTimelinePicker';
 import { InlineStats } from '../leaderboard/components/InlineStats';
@@ -81,7 +83,8 @@ export function ZenLeaderboardRoute() {
     if (!data) return [];
     // Zen leaderboard is ranked by words found rather than points — the
     // primary value players are chasing in the untimed mode is breadth, not
-    // score-per-minute.
+    // score-per-minute. Server already filters to completed competitive
+    // rows; in-progress players surface in the presence section instead.
     return data.rankings.words.map((e) => ({
       rank: e.rank,
       userId: e.userId,
@@ -90,20 +93,34 @@ export function ZenLeaderboardRoute() {
       value: e.wordCount,
       valueUnit: e.wordCount === 1 ? 'word' : 'words',
       isCurrentUser: e.userId === currentUserId,
-      inProgress: e.inProgress,
     }));
   }, [data, currentUserId]);
 
   // Mirror the timed leaderboard's "you" stat: top-percent when ≤30%,
-  // otherwise the absolute rank as a fallback so the user always knows
-  // where they stand at a glance.
+  // otherwise the absolute rank as a fallback. Suppressed for casual and
+  // competitive-in-progress players, who don't yet have a meaningful rank.
   const youStats = useMemo(() => {
-    if (!data?.currentPlayer) return { topPercent: undefined as number | undefined | null, fallback: undefined as string | undefined };
-    const { rank, totalPlayers } = data.currentPlayer;
-    if (totalPlayers <= 0) return { topPercent: null, fallback: undefined };
-    const pct = Math.ceil((rank / totalPlayers) * 100);
+    const empty = { topPercent: undefined as number | undefined | null, fallback: undefined as string | undefined };
+    if (!data?.currentPlayer || !data.currentPlayer.ranked || data.currentPlayer.rank == null) {
+      return empty;
+    }
+    const { rank, totalRankedPlayers } = data.currentPlayer;
+    if (totalRankedPlayers <= 0) return { topPercent: null, fallback: undefined };
+    const pct = Math.ceil((rank / totalRankedPlayers) * 100);
     if (pct <= 30) return { topPercent: pct, fallback: undefined };
     return { topPercent: null, fallback: `#${rank}` };
+  }, [data]);
+
+  const currentPlayerNote = useMemo(() => {
+    const cp = data?.currentPlayer;
+    if (!cp) return null;
+    if (!cp.isCompetitive) {
+      return "You're playing casually today — casual scores aren't ranked.";
+    }
+    if (!cp.ranked) {
+      return 'Your rank will appear once you finish the puzzle.';
+    }
+    return null;
   }, [data]);
 
   return (
@@ -159,7 +176,27 @@ export function ZenLeaderboardRoute() {
               youTopPercent={youStats.topPercent}
               youFallback={youStats.fallback}
             />
-            <LeaderboardList entries={entries} />
+            {currentPlayerNote && (
+              <div
+                className="mt-2 px-3 py-2 rounded-lg bg-[var(--ink-whisper)] text-caption text-[color:var(--ink-muted)] text-center leading-[1.4]"
+                style={{ fontWeight: 500 }}
+              >
+                {currentPlayerNote}
+              </div>
+            )}
+            {data.inProgressPlayers.length > 0 && (
+              <InProgressPresence players={data.inProgressPlayers} />
+            )}
+            {entries.length > 0 ? (
+              <LeaderboardList entries={entries} />
+            ) : (
+              <div
+                className="mt-3 text-small text-[color:var(--ink-muted)] text-center leading-relaxed"
+                style={{ fontWeight: 500 }}
+              >
+                No one has finished today's zen puzzle yet.
+              </div>
+            )}
           </>
         )}
       </div>
@@ -175,6 +212,44 @@ export function ZenLeaderboardRoute() {
         selectedDate={date}
         todayDate={getTodayPST()}
       />
+    </div>
+  );
+}
+
+// Score-less presence list shown above the ranked entries. Hides any
+// mid-session score from view so finishing the puzzle remains the only way
+// to put a number on the board.
+function InProgressPresence({ players }: { players: DailyZenLeaderboardInProgressEntry[] }) {
+  const label = players.length === 1 ? '1 player solving' : `${players.length} players solving`;
+  return (
+    <div className="mt-3 rounded-xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] overflow-hidden">
+      <div
+        className="flex items-center gap-1.5 px-3 py-[9px] text-label-xs uppercase tracking-[0.08em] text-[color:var(--ink-muted)] bg-[var(--ink-whisper)] leading-none font-[family-name:var(--font-structure)]"
+        style={{ fontWeight: 700 }}
+      >
+        <StatusIcon state="in-progress" />
+        <span className="tabular-nums">{label}</span>
+      </div>
+      <div className="max-h-[140px] overflow-y-auto [scrollbar-width:thin]">
+        {players.map((p, i) => (
+          <div
+            key={p.userId}
+            className={[
+              'flex items-center justify-between px-3.5 py-2 text-[13px] text-[color:var(--ink)]',
+              i === 0 ? '' : 'border-t border-[var(--ink-border-subtle)]',
+            ].join(' ')}
+            style={{ fontWeight: 500 }}
+          >
+            <span className="truncate">{p.displayName}</span>
+            <span
+              className="text-caption text-[color:var(--ink-soft)] uppercase tracking-[0.08em] font-[family-name:var(--font-structure)]"
+              style={{ fontWeight: 600 }}
+            >
+              still solving
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

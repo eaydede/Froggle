@@ -28,6 +28,7 @@ export interface DailyZenResultsTable {
   points: Generated<number>;
   word_count: Generated<number>;
   longest_word: Generated<string>;
+  is_competitive: Generated<boolean>;
 }
 
 export interface Database {

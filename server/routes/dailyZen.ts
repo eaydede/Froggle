@@ -6,13 +6,12 @@ import { findAllWords } from 'engine/solver.js';
 import { scoreWord } from 'engine/scoring.js';
 import { requireAuth } from '../middleware/auth.js';
 import { getDb } from '../db/index.js';
-import { getSupabaseAdmin } from '../supabaseAdmin.js';
 import { dictionary } from '../services/dictionary.js';
-import { scoreWords } from '../services/DailyService.js';
 import {
   endSession,
   getDailyZenStats,
   getSession,
+  getZenLeaderboard,
   startSession,
   submitWord,
 } from '../services/DailyZenService.js';
@@ -85,7 +84,10 @@ dailyZenRouter.post('/session/:date/start', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Can only start today\'s zen session' });
     }
     const board = generateSeededBoard(getDailyZenConfig(date).boardSize, getDailyZenSeed(date));
-    const session = await startSession(getDb(), req.userId!, date, board);
+    // Default to competitive when omitted so existing clients (and any
+    // missing-body case) preserve the pre-feature behavior.
+    const isCompetitive = req.body?.isCompetitive !== false;
+    const session = await startSession(getDb(), req.userId!, date, board, isCompetitive);
     const { totalFindable, salt, wordHashes } = solveBoard(session.board, date);
     res.json({ session: { ...session, total_findable: totalFindable, salt, wordHashes } });
   } catch (err) {
@@ -162,6 +164,7 @@ dailyZenRouter.get('/results/:date', requireAuth, async (req, res) => {
         missed_words: missedWords,
         ended_at: session.ended_at,
         ended_by_player: session.ended_by_player,
+        is_competitive: session.is_competitive,
       },
     });
   } catch (err) {
@@ -184,79 +187,14 @@ dailyZenRouter.get('/stats', requireAuth, async (req, res) => {
   }
 });
 
-// Leaderboard for a zen daily date. Includes both in-progress and finalized
-// sessions so players can watch each other's standings shift through the day;
-// the `inProgress` flag lets the client distinguish the two visually.
+// Leaderboard for a zen daily date. Casual players and in-progress
+// competitive players are excluded from the ranked lists; in-progress
+// players (both modes) come back as a score-less presence list. See
+// `getZenLeaderboard` for the full shape.
 dailyZenRouter.get('/leaderboard/:date', async (req, res) => {
   try {
-    const db = getDb();
-    const rows = await db
-      .selectFrom('daily_zen_results')
-      .selectAll()
-      .where('date', '=', req.params.date)
-      .execute();
-
-    const admin = getSupabaseAdmin();
-    const enriched = await Promise.all(
-      rows.map(async (row) => {
-        const words = typeof row.found_words === 'string'
-          ? (JSON.parse(row.found_words) as string[])
-          : (row.found_words as string[]);
-        const points = scoreWords(words);
-        const wordCount = words.length;
-        const displayName = await admin.auth.admin
-          .getUserById(row.user_id)
-          .then((r) => r.data.user?.user_metadata?.display_name || 'Anonymous')
-          .catch(() => 'Anonymous');
-        return {
-          userId: row.user_id,
-          displayName,
-          points,
-          wordCount,
-          longestWord: row.longest_word,
-          inProgress: row.ended_at === null,
-        };
-      }),
-    );
-
-    const byPoints = [...enriched].sort((a, b) => b.points - a.points || b.wordCount - a.wordCount);
-    const byWords = [...enriched].sort((a, b) => b.wordCount - a.wordCount || b.points - a.points);
-
-    const requestingUserId = req.userId;
-    let currentPlayer: {
-      points: number;
-      wordsFound: number;
-      longestWord: string;
-      rank: number;
-      totalPlayers: number;
-    } | null = null;
-    if (requestingUserId) {
-      // Zen ranks by words found, not points — the rank we hand to the
-      // client must reflect that primary sort.
-      const idx = byWords.findIndex((e) => e.userId === requestingUserId);
-      if (idx >= 0) {
-        const me = byWords[idx];
-        currentPlayer = {
-          points: me.points,
-          wordsFound: me.wordCount,
-          longestWord: me.longestWord,
-          rank: idx + 1,
-          totalPlayers: byWords.length,
-        };
-      }
-    }
-
-    const totalPoints = enriched.reduce((sum, e) => sum + e.points, 0);
-    res.json({
-      puzzleNumber: getDailyZenNumber(req.params.date),
-      totalPlayers: enriched.length,
-      avgScore: enriched.length > 0 ? Math.round(totalPoints / enriched.length) : 0,
-      rankings: {
-        points: byPoints.map((e, i) => ({ ...e, rank: i + 1 })),
-        words: byWords.map((e, i) => ({ ...e, rank: i + 1 })),
-      },
-      currentPlayer,
-    });
+    const result = await getZenLeaderboard(getDb(), req.params.date, req.userId);
+    res.json(result);
   } catch (err) {
     console.error('Failed to fetch zen leaderboard:', err);
     res.status(500).json({ error: 'Failed to fetch leaderboard' });
