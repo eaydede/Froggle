@@ -168,7 +168,12 @@ export function ZenResultsRoute() {
           </IconAction>
         </div>
 
-        <HeroScore points={totals.points} words={totals.words} />
+        <HeroScore
+          points={totals.points}
+          words={totals.words}
+          primary="words"
+          accessory={<ZenModeBadge isCompetitive={result.is_competitive} />}
+        />
 
         <div
           className="grid gap-2.5 flex-1 min-h-0 px-0.5"
