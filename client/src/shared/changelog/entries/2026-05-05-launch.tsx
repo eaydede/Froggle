@@ -1,8 +1,8 @@
 import type { ChangelogEntry } from '../types';
 
 const entry: ChangelogEntry = {
-  id: 'changelog-launch-2026-05-04',
-  date: '2026-05-04',
+  id: 'changelog-launch-2026-05-05',
+  date: '2026-05-05',
   kind: 'minor',
   title: "What's new lives here",
   body: (
