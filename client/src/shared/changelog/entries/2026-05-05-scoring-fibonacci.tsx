@@ -11,8 +11,8 @@ function RarityDot({ color }: { color: string }) {
 }
 
 const entry: ChangelogEntry = {
-  id: 'scoring-fibonacci-2026-05-04',
-  date: '2026-05-04',
+  id: 'scoring-fibonacci-2026-05-05',
+  date: '2026-05-05',
   kind: 'major',
   title: 'New scoring',
   body: (
