@@ -187,6 +187,23 @@ button, input, select, textarea {
   100% { transform: translateX(0); }
 }
 
+/* Changelog notification dot — gentle pulse to draw the eye without
+   demanding attention. Composes a static surface-panel ring with an
+   expanding gold halo so the dot stays visually separated from the
+   button at all phases of the animation. */
+@keyframes changelog-dot-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 2px var(--surface-panel),
+      0 0 0 0 rgba(202, 158, 52, 0.55);
+  }
+  70% {
+    box-shadow:
+      0 0 0 2px var(--surface-panel),
+      0 0 0 7px rgba(202, 158, 52, 0);
+  }
+}
+
 /* Results page gold glow animations */
 @keyframes gold-glow-square {
   0%   { box-shadow: 2px 0 4px rgba(232,189,80,0.5), -1px 0 2px rgba(196,144,10,0.15); }
