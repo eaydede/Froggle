@@ -393,15 +393,13 @@ export async function getZenLeaderboard(
   if (requestingUserId) {
     const myRow = enriched.find((e) => e.userId === requestingUserId);
     if (myRow) {
-      // Zen ranks by words found, not points — the rank we hand to the
-      // client must reflect that primary sort. Casual and in-progress
-      // players surface a row with rank=null so the client can render the
-      // appropriate "not on the leaderboard" / "rank shows when you finish"
-      // copy without an extra round-trip.
+      // Casual and in-progress players surface a row with rank=null so the
+      // client can render the appropriate "not on the leaderboard" / "rank
+      // shows when you finish" copy without an extra round-trip.
       let rank: number | null = null;
       let ranked = false;
       if (myRow.isCompetitive && !myRow.inProgress) {
-        const idx = byWords.findIndex((e) => e.userId === requestingUserId);
+        const idx = byPoints.findIndex((e) => e.userId === requestingUserId);
         if (idx >= 0) {
           rank = idx + 1;
           ranked = true;
@@ -414,7 +412,7 @@ export async function getZenLeaderboard(
         points: myRow.points,
         wordsFound: myRow.wordCount,
         longestWord: myRow.longestWord,
-        totalRankedPlayers: byWords.length,
+        totalRankedPlayers: byPoints.length,
       };
     }
   }

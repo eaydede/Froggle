@@ -119,18 +119,10 @@ function ScoreBlock({
           className="text-display-lg leading-none font-[family-name:var(--font-structure)] tracking-[-0.03em] tabular-nums"
           style={{ fontWeight: 800 }}
         >
-          {words}
-          {totalWords !== undefined && (
-            <span
-              className="text-logo text-[color:var(--ink-muted)]"
-              style={{ fontWeight: 600 }}
-            >
-              /{totalWords}
-            </span>
-          )}
+          {points}
         </span>
         <span className="text-small text-[color:var(--ink-muted)]" style={{ fontWeight: 600 }}>
-          {words === 1 ? "word" : "words"}
+          {points === 1 ? "pt" : "pts"}
         </span>
       </div>
       <div className="flex flex-col items-end gap-0.5 leading-tight min-w-0">
@@ -138,7 +130,8 @@ function ScoreBlock({
           className="text-small text-[color:var(--ink-muted)] tabular-nums"
           style={{ fontWeight: 500 }}
         >
-          {points} pts
+          {words}
+          {totalWords !== undefined && `/${totalWords}`} {words === 1 ? "word" : "words"}
         </span>
         {longestWord && (
           <span

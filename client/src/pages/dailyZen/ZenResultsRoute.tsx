@@ -170,7 +170,7 @@ export function ZenResultsRoute() {
         <HeroScore
           points={totals.points}
           words={totals.words}
-          primary="words"
+          primary="points"
           accessory={<ZenModeBadge isCompetitive={result.is_competitive} />}
         />
 

@@ -352,13 +352,13 @@ function ScoreHeader({
           className="text-2xl leading-none font-[family-name:var(--font-structure)] tabular-nums tracking-[-0.02em]"
           style={{ fontWeight: 800 }}
         >
-          {words}
+          {points}
         </span>
         <span className="text-small text-[color:var(--ink-muted)]" style={{ fontWeight: 600 }}>
-          {words === 1 ? 'word' : 'words'}
+          {points === 1 ? 'pt' : 'pts'}
         </span>
         <span className="text-small text-[color:var(--ink-soft)] ml-2 tabular-nums" style={{ fontWeight: 500 }}>
-          {points} {points === 1 ? 'pt' : 'pts'}
+          {words} {words === 1 ? 'word' : 'words'}
         </span>
       </div>
       <button
