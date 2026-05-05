@@ -40,11 +40,11 @@ export const changelogEntries: ChangelogEntry[] = [
             <strong>5</strong> <em>(was 3)</em>
           </li>
           <li>
-            <RarityDot color="var(--rarity-legendary)" /> 7 letters:{' '}
+            <RarityDot color="var(--rarity-mythic)" /> 7 letters:{' '}
             <strong>8</strong> <em>(was 5)</em>
           </li>
           <li>
-            <RarityDot color="var(--rarity-mythic)" /> 8+ letters:{' '}
+            <RarityDot color="var(--rarity-legendary)" /> 8+ letters:{' '}
             <strong>13</strong> <em>(was 11)</em>
           </li>
         </ul>
