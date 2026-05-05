@@ -11,12 +11,16 @@
     "dev": "concurrently 'npm run dev:server' 'npm run dev:client'",
     "dev:server": "npm run dev --workspace=server",
     "dev:client": "npm run dev --workspace=client",
-    "backfill:daily": "tsx scripts/backfillDailyAggregates.ts"
+    "backfill:daily": "tsx scripts/backfillDailyAggregates.ts",
+    "rescore:results": "tsx scripts/rescoreResults.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.27",
     "concurrently": "^9.2.1",
     "postcss": "^8.5.8",
-    "tailwindcss": "^4.2.1"
+    "tailwindcss": "^4.2.1",
+    "vitest": "^4.1.5"
   }
 }

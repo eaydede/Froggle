@@ -25,6 +25,7 @@ const saveSeen = (ids: string[]): void => {
 
 interface UseChangelog {
   entries: ChangelogEntry[];
+  seen: Set<string>;
   hasUnseen: boolean;
   hasUnseenMajor: boolean;
   markAllSeen: () => void;
@@ -46,6 +47,7 @@ export function useChangelog(): UseChangelog {
 
   return {
     entries: changelogEntries,
+    seen,
     hasUnseen: unseenEntries.length > 0,
     hasUnseenMajor: unseenEntries.some((e) => e.kind === 'major'),
     markAllSeen,

@@ -8,15 +8,27 @@ function formatDate(iso: string): string {
 }
 
 export function ChangelogControl() {
-  const { entries, hasUnseen, hasUnseenMajor, markAllSeen } = useChangelog();
+  const { entries, seen, hasUnseen, hasUnseenMajor, markAllSeen } = useChangelog();
   const [open, setOpen] = useState(false);
   const autoOpenedRef = useRef(false);
+  // Snapshot the seen set when the modal opens, so the "New" pill keeps
+  // marking the entries that were unseen at open-time even though the close
+  // handler will mark them seen.
+  const [seenAtOpen, setSeenAtOpen] = useState<Set<string>>(() => new Set());
+
+  const handleOpen = () => {
+    setSeenAtOpen(new Set(seen));
+    setOpen(true);
+  };
 
   useEffect(() => {
     if (autoOpenedRef.current) return;
     autoOpenedRef.current = true;
-    if (hasUnseenMajor) setOpen(true);
-  }, [hasUnseenMajor]);
+    if (hasUnseenMajor) {
+      setSeenAtOpen(new Set(seen));
+      setOpen(true);
+    }
+  }, [hasUnseenMajor, seen]);
 
   useEffect(() => {
     if (!open) return;
@@ -36,7 +48,7 @@ export function ChangelogControl() {
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={handleOpen}
         aria-label={hasUnseen ? "What's new (unread updates)" : "What's new"}
         className="relative w-[34px] h-[34px] rounded-[10px] flex items-center justify-center bg-transparent border-none text-[color:var(--ink)] cursor-pointer"
         style={{ WebkitTapHighlightColor: 'transparent' }}
@@ -84,7 +96,13 @@ export function ChangelogControl() {
                   Nothing yet — check back soon.
                 </p>
               ) : (
-                entries.map((entry) => <EntryView key={entry.id} entry={entry} />)
+                entries.map((entry) => (
+                  <EntryView
+                    key={entry.id}
+                    entry={entry}
+                    isNew={!seenAtOpen.has(entry.id)}
+                  />
+                ))
               )}
             </div>
 
@@ -105,7 +123,7 @@ export function ChangelogControl() {
   );
 }
 
-function EntryView({ entry }: { entry: ChangelogEntry }) {
+function EntryView({ entry, isNew }: { entry: ChangelogEntry; isNew: boolean }) {
   return (
     <article className="flex flex-col gap-1.5">
       <header className="flex items-center justify-between gap-3">
@@ -115,7 +133,7 @@ function EntryView({ entry }: { entry: ChangelogEntry }) {
         >
           {formatDate(entry.date)}
         </span>
-        {entry.kind === 'major' && (
+        {isNew && (
           <span
             className="text-caption uppercase tracking-[0.12em] text-[color:var(--podium-gold)] font-[family-name:var(--font-structure)]"
             style={{ fontWeight: 700 }}
