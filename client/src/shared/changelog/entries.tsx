@@ -1,26 +1,19 @@
 import type { ChangelogEntry } from './types';
 
-// Newest first. `kind: 'major'` auto-pops the modal once for users who haven't
-// dismissed that entry yet; `kind: 'minor'` only lights the notification dot.
-// Body accepts any ReactNode — use <strong>, <em>, <a>, <ul>/<li>, <code>, and
-// <p> blocks freely; the modal styles them for you.
-export const changelogEntries: ChangelogEntry[] = [
-  {
-    id: 'changelog-launch-2026-05-04',
-    date: '2026-05-04',
-    kind: 'minor',
-    title: "What's new lives here",
-    body: (
-      <>
-        <p>
-          Tap the sparkle on the top left of the landng page to see what&apos;s changed — new features,
-          fixes, and the occasional tweak.
-        </p>
-        <p>
-          <strong>Big updates</strong> pop open on their own. Smaller ones just
-          light up the gold dot.
-        </p>
-      </>
-    ),
-  },
-];
+// One file per entry under ./entries/, default-exporting a ChangelogEntry.
+// This avoids merge conflicts when multiple branches add entries in parallel:
+// each new entry is a new file, so there's no shared array head to fight over.
+//
+// Filename convention: YYYY-MM-DD-<slug>.tsx. Keep `id` unique across entries
+// (the convention naturally enforces this).
+const modules = import.meta.glob<{ default: ChangelogEntry }>(
+  './entries/*.tsx',
+  { eager: true },
+);
+
+export const changelogEntries: ChangelogEntry[] = Object.values(modules)
+  .map((m) => m.default)
+  .sort((a, b) => {
+    if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+    return a.id < b.id ? 1 : -1;
+  });
