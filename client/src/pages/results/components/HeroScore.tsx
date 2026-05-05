@@ -1,9 +1,7 @@
 interface HeroScoreProps {
   points: number;
   words: number;
-  /** Which stat headlines the hero. Defaults to 'points'; zen results
-   *  pass 'words' since breadth (not score-per-minute) is what the
-   *  untimed mode optimizes for. */
+  /** Which stat headlines the hero. Defaults to 'points'. */
   primary?: 'points' | 'words';
   /** Optional run-level metadata rendered inline next to the subtitle
    *  (e.g. a mode badge). Sits alongside the secondary stat so callers

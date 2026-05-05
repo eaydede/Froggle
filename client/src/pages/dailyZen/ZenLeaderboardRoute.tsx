@@ -81,17 +81,15 @@ export function ZenLeaderboardRoute() {
 
   const entries: LbListEntry[] = useMemo(() => {
     if (!data) return [];
-    // Zen leaderboard is ranked by words found rather than points — the
-    // primary value players are chasing in the untimed mode is breadth, not
-    // score-per-minute. Server already filters to completed competitive
-    // rows; in-progress players surface in the presence section instead.
-    return data.rankings.words.map((e) => ({
+    // Server already filters to completed competitive rows; in-progress
+    // players surface in the presence section instead.
+    return data.rankings.points.map((e) => ({
       rank: e.rank,
       userId: e.userId,
       displayName: e.displayName,
-      subLabel: `${e.points} ${e.points === 1 ? 'pt' : 'pts'}`,
-      value: e.wordCount,
-      valueUnit: e.wordCount === 1 ? 'word' : 'words',
+      subLabel: `${e.wordCount} ${e.wordCount === 1 ? 'word' : 'words'}`,
+      value: e.points,
+      valueUnit: e.points === 1 ? 'pt' : 'pts',
       isCurrentUser: e.userId === currentUserId,
     }));
   }, [data, currentUserId]);
