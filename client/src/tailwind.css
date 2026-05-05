@@ -204,6 +204,35 @@ button, input, select, textarea {
   }
 }
 
+/* Daily Zen tier celebration — inline treatments on the tier strip in the
+   play HUD. The strip itself stays in place; the dot pulses, a soft tier-
+   colored wash flashes across the row, and a "TIER UP" tag animates in
+   beside the tier name. No overlay = no board obstruction. */
+@keyframes zen-tier-strip-dot {
+  0%   { transform: scale(1); }
+  20%  { transform: scale(1.45); }
+  60%  { transform: scale(1); }
+  100% { transform: scale(1); }
+}
+@keyframes zen-tier-strip-flash {
+  0%   { opacity: 0; }
+  20%  { opacity: 0.18; }
+  100% { opacity: 0; }
+}
+@keyframes zen-tier-strip-tag {
+  0%   { opacity: 0; transform: translateX(4px); }
+  15%  { opacity: 1; transform: translateX(0); }
+  85%  { opacity: 1; transform: translateX(0); }
+  100% { opacity: 0; transform: translateX(-2px); }
+}
+
+/* Dev-only hold variant — keeps the tag at peak so screenshot tooling
+   can capture the celebration treatment without racing the animation. */
+@keyframes zen-tier-strip-tag-hold {
+  0%   { opacity: 0; transform: translateX(4px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
 /* Results page gold glow animations */
 @keyframes gold-glow-square {
   0%   { box-shadow: 2px 0 4px rgba(232,189,80,0.5), -1px 0 2px rgba(196,144,10,0.15); }

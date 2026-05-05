@@ -5,7 +5,8 @@
   "main": "index.ts",
   "exports": {
     ".": "./index.ts",
-    "./seedCode": "./seedCode.ts"
+    "./seedCode": "./seedCode.ts",
+    "./zenTiers": "./zenTiers.ts"
   },
   "private": true
 }

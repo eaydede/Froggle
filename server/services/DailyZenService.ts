@@ -3,6 +3,7 @@ import type { Position } from 'models';
 import { isValidPath } from 'engine/adjacency.js';
 import { isValidWord } from 'engine/dictionary.js';
 import { scoreWord } from 'engine/scoring.js';
+import { findAllWords } from 'engine/solver.js';
 import type { Database } from '../db/types.js';
 import { getSupabaseAdmin } from '../supabaseAdmin.js';
 import { dictionary } from './dictionary.js';
@@ -30,6 +31,10 @@ export interface ZenSession {
   word_count: number;
   longest_word: string;
   is_competitive: boolean;
+  /** Sum of scoreWord() across every findable word on the board. Locked at
+   *  session start so resumes never see a different ceiling. Null only on
+   *  pre-tier rows that predate the column. */
+  theoretical_max_score: number | null;
 }
 
 export type SubmitOutcome =
@@ -48,6 +53,7 @@ function parseSession(row: {
   word_count: number;
   longest_word: string;
   is_competitive: boolean;
+  theoretical_max_score: number | null;
 }): ZenSession {
   const board = typeof row.board === 'string' ? JSON.parse(row.board) : (row.board as string[][]);
   const foundWords = typeof row.found_words === 'string'
@@ -65,6 +71,7 @@ function parseSession(row: {
     word_count: row.word_count,
     longest_word: row.longest_word,
     is_competitive: row.is_competitive,
+    theoretical_max_score: row.theoretical_max_score,
   };
 }
 
@@ -87,6 +94,12 @@ export async function getSession(
 // if board generation logic changes within the day. The casual/competitive
 // choice is also locked here — onConflict-do-nothing means a re-entry
 // keeps the player's first choice for the day.
+//
+// theoretical_max_score is also frozen at start: it's the sum of every
+// findable word's score on this board, which the client divides into to
+// derive the player's tier. Computing once on insert avoids per-request
+// solver work and guarantees the ceiling never shifts mid-day if the
+// dictionary or scoring changes.
 export async function startSession(
   db: Kysely<Database>,
   userId: string,
@@ -94,6 +107,10 @@ export async function startSession(
   board: string[][],
   isCompetitive: boolean,
 ): Promise<ZenSession> {
+  const minWordLength = getDailyZenConfig(date).minWordLength;
+  const allWords = findAllWords(board, dictionary, minWordLength);
+  const theoreticalMaxScore = allWords.reduce((sum, w) => sum + scoreWord(w.word), 0);
+
   await db
     .insertInto('daily_zen_results')
     .values({
@@ -102,6 +119,7 @@ export async function startSession(
       board: JSON.stringify(board),
       found_words: JSON.stringify([]),
       is_competitive: isCompetitive,
+      theoretical_max_score: theoreticalMaxScore,
     })
     .onConflict((oc) => oc.columns(['user_id', 'date']).doNothing())
     .execute();
