@@ -7,7 +7,7 @@
     "dev": "tsx --env-file=../.env index.ts"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.103.0",
+    "@supabase/supabase-js": "2.103.0",
     "@types/cors": "^2.8.19",
     "cors": "^2.8.6",
     "engine": "1.0.0",
