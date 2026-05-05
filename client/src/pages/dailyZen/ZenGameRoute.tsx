@@ -394,7 +394,7 @@ function ScoreHeader({
   return (
     <div
       className="grid items-center gap-2.5 pt-3.5 shrink-0"
-      style={{ gridTemplateColumns: '32px 1fr auto' }}
+      style={{ gridTemplateColumns: '32px 1fr 32px' }}
     >
       <IconAction onClick={onBack} label="Back to home">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -415,14 +415,11 @@ function ScoreHeader({
           {words} {words === 1 ? 'word' : 'words'}
         </span>
       </div>
-      <button
-        type="button"
-        onClick={onEnd}
-        className="px-3 h-8 rounded-[10px] text-[11px] uppercase tracking-[0.08em] text-[color:var(--ink-muted)] hover:text-[color:var(--ink)] hover:bg-[var(--ink-whisper)] bg-transparent border-none transition-colors duration-200 cursor-pointer font-[family-name:var(--font-structure)]"
-        style={{ fontWeight: 700, WebkitTapHighlightColor: 'transparent' }}
-      >
-        End
-      </button>
+      <IconAction onClick={onEnd} label="End puzzle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 6L6 18M6 6l12 12" />
+        </svg>
+      </IconAction>
     </div>
   );
 }

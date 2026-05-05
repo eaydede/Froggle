@@ -63,16 +63,10 @@ export function TierLadderSheet({ open, onClose, points, maxScore }: TierLadderS
 
         <div className="text-center px-[22px] pb-3 border-b border-[var(--ink-border-subtle)] shrink-0">
           <div
-            className="italic leading-none tracking-[-0.02em] text-[28px] text-[color:var(--ink)] font-[family-name:var(--font-display)] mb-2"
+            className="italic leading-none tracking-[-0.02em] text-[28px] text-[color:var(--ink)] font-[family-name:var(--font-display)]"
             style={{ fontWeight: 600 }}
           >
             Tier ladder
-          </div>
-          <div
-            className="text-[12px] text-[color:var(--ink-muted)]"
-            style={{ fontWeight: 500 }}
-          >
-            <span className="tabular-nums">{points}</span> of <span className="tabular-nums">{maxScore}</span> possible points today
           </div>
         </div>
 

@@ -120,7 +120,6 @@ export function TierStrip({ points, maxScore, celebrating }: TierStripProps) {
           </span>
         ) : (
           <NextHint
-            nextName={next?.tier.name}
             pointsToNext={next?.pointsToNext}
             atTop={atTop}
             topColorToken={current?.colorToken}
@@ -161,12 +160,10 @@ function TierDot({
 }
 
 function NextHint({
-  nextName,
   pointsToNext,
   atTop,
   topColorToken,
 }: {
-  nextName?: string;
   pointsToNext?: number;
   atTop: boolean;
   topColorToken?: string;
@@ -184,13 +181,13 @@ function NextHint({
       </span>
     );
   }
-  if (!nextName || !pointsToNext) return null;
+  if (!pointsToNext) return null;
   return (
     <span
-      className="text-[10px] uppercase tracking-[0.06em] leading-none text-[color:var(--ink-soft)] shrink-0 font-[family-name:var(--font-structure)] tabular-nums"
+      className="text-[10px] uppercase tracking-[0.08em] leading-none text-[color:var(--ink-soft)] shrink-0 font-[family-name:var(--font-structure)] tabular-nums"
       style={{ fontWeight: 600 }}
     >
-      +{pointsToNext} {nextName}
+      +{pointsToNext} next
     </span>
   );
 }
