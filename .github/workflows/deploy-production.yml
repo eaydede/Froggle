@@ -43,6 +43,11 @@ jobs:
           # is hardcoded since both projects live in us-east-1.
           DATABASE_URL: postgres://postgres.${{ secrets.SUPABASE_PROJECT_REF_PROD }}:${{ secrets.SUPABASE_DB_PASSWORD_PROD }}@aws-1-us-east-1.pooler.supabase.com:6543/postgres
 
+      - name: Rescore daily results
+        run: npm run rescore:results
+        env:
+          DATABASE_URL: postgres://postgres.${{ secrets.SUPABASE_PROJECT_REF_PROD }}:${{ secrets.SUPABASE_DB_PASSWORD_PROD }}@aws-1-us-east-1.pooler.supabase.com:6543/postgres
+
       - name: Install Fly CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
 

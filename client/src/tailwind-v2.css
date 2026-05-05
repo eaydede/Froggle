@@ -57,13 +57,17 @@
 
   /* Word-rarity palette — used as 4px left stripes on word rows.
      Tiers are score-driven: 1→common, 2→uncommon, 3→rare, 5→epic,
-     11+→legendary. Kept intentionally muted so they read as an
-     accent, not as the primary visual. */
+     8→legendary, 13→mythic. Each color also has a matching emoji
+     square (⬜🟨🟩🟦🟪🟧) for the text-share results format. Orange
+     stays pinned to the top tier — it's the color returning players
+     associate with the best word — and yellow slots in low so the
+     established orange-is-peak mental model survives. */
   --rarity-common:    #8F8A80;
-  --rarity-uncommon:  #4E9B3A;
-  --rarity-rare:      #2B7DB8;
-  --rarity-epic:      #9B4AAC;
-  --rarity-legendary: #D17A28;
+  --rarity-uncommon:  #EAD419;
+  --rarity-rare:      #4E9B3A;
+  --rarity-epic:      #2B7DB8;
+  --rarity-legendary: #9B4AAC;
+  --rarity-mythic:    #D17A28;
 
   /* Compare page — neutral two-player palette. "You" leans blue,
      opponent leans amber, shared words use a muted grey. */
@@ -130,10 +134,11 @@
   --logo-dot: #8FB06E;
 
   --rarity-common:    #A39C8F;
-  --rarity-uncommon:  #8BB366;
-  --rarity-rare:      #6FA3C8;
-  --rarity-epic:      #B086C0;
-  --rarity-legendary: #E09A5C;
+  --rarity-uncommon:  #FFE34D;
+  --rarity-rare:      #8BB366;
+  --rarity-epic:      #6FA3C8;
+  --rarity-legendary: #B086C0;
+  --rarity-mythic:    #E09A5C;
 
   --compare-you:     #7DAECF;
   --compare-you-bg:  rgba(125, 174, 207, 0.18);
