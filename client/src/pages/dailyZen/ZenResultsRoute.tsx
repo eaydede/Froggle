@@ -51,6 +51,7 @@ export function ZenResultsRoute() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { cachedDailyZen, dailyZenLoaded, authReady } = useGame();
   const urlDate = searchParams.get('date');
+  const fromSource = searchParams.get('from');
   const targetDate = urlDate ?? cachedDailyZen?.date ?? null;
 
   const [result, setResult] = useState<DailyZenResultResponse | null>(null);
@@ -150,7 +151,16 @@ export function ZenResultsRoute() {
           className="grid items-center gap-2.5 pt-3.5 shrink-0"
           style={{ gridTemplateColumns: '32px 1fr 32px' }}
         >
-          <IconAction onClick={() => navigate('/')} label="Close">
+          <IconAction
+            onClick={() => {
+              if (fromSource === 'leaderboard' && targetDate) {
+                navigate(`/daily/zen/leaderboard?date=${targetDate}`);
+              } else {
+                navigate('/');
+              }
+            }}
+            label="Close"
+          >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>

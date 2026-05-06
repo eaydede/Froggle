@@ -42,9 +42,12 @@ export function DailyComparePage({ data, onBack, onShare }: DailyComparePageProp
 
   const mins = Math.floor(data.config.timeLimit / 60);
   const secs = data.config.timeLimit % 60;
-  const timer = isFinite(data.config.timeLimit)
-    ? `${mins}:${String(secs).padStart(2, '0')}`
-    : '∞';
+  // Zen dailies submit timeLimit: 0 to mean "unlimited"; treat any
+  // non-positive limit as ∞ so the stats strip reads correctly there.
+  const timer =
+    data.config.timeLimit > 0 && isFinite(data.config.timeLimit)
+      ? `${mins}:${String(secs).padStart(2, '0')}`
+      : '∞';
 
   return (
     <div className="fixed inset-0 flex justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] overflow-hidden">

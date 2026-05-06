@@ -331,6 +331,9 @@ export interface ZenLeaderboardInProgressEntry {
 export interface ZenLeaderboardCurrentPlayer {
   isCompetitive: boolean;
   ranked: boolean;
+  /** True once the player has finalized their session (regardless of mode).
+   *  The compare feature gates on this — casual finishers can compare too. */
+  completed: boolean;
   rank: number | null;
   points: number;
   wordsFound: number;
@@ -349,6 +352,97 @@ export interface ZenLeaderboardResult {
   };
   inProgressPlayers: ZenLeaderboardInProgressEntry[];
   currentPlayer: ZenLeaderboardCurrentPlayer | null;
+}
+
+export type ZenCompareError = 'unplayed' | 'opponent-missing' | 'forbidden';
+
+export interface ZenComparePlayer {
+  userId: string;
+  displayName: string;
+  points: number;
+  wordCount: number;
+  foundWords: { word: string; score: number }[];
+}
+
+export interface ZenCompareResult {
+  date: string;
+  puzzleNumber: number;
+  board: string[][];
+  me: ZenComparePlayer;
+  them: ZenComparePlayer;
+  config: { boardSize: number; minWordLength: number; timeLimit: number };
+}
+
+// Side-by-side comparison of two finalized zen sessions. Both players must
+// have ended_at set; mode (casual vs competitive) doesn't matter — the gate
+// is "have they finished today's puzzle".
+export async function getZenCompare(
+  db: Kysely<Database>,
+  date: string,
+  meUserId: string,
+  otherUserId: string,
+): Promise<{ ok: true; data: ZenCompareResult } | { ok: false; error: ZenCompareError }> {
+  if (otherUserId === meUserId) return { ok: false, error: 'forbidden' };
+
+  const rows = await db
+    .selectFrom('daily_zen_results')
+    .selectAll()
+    .where('date', '=', date)
+    .where('user_id', 'in', [meUserId, otherUserId])
+    .execute();
+
+  const mine = rows.find((r) => r.user_id === meUserId);
+  const theirs = rows.find((r) => r.user_id === otherUserId);
+
+  if (!mine || mine.ended_at === null) return { ok: false, error: 'unplayed' };
+  if (!theirs || theirs.ended_at === null) return { ok: false, error: 'opponent-missing' };
+
+  const admin = getSupabaseAdmin();
+  const [meName, themName] = await Promise.all(
+    [meUserId, otherUserId].map((uid) =>
+      admin.auth.admin
+        .getUserById(uid)
+        .then((r) => r.data.user?.user_metadata?.display_name || 'Anonymous')
+        .catch(() => 'Anonymous'),
+    ),
+  );
+
+  const parse = (r: typeof rows[number]) => {
+    const board: string[][] = typeof r.board === 'string' ? JSON.parse(r.board) : (r.board as string[][]);
+    const words: string[] = typeof r.found_words === 'string'
+      ? JSON.parse(r.found_words)
+      : (r.found_words as string[]);
+    return { board, words };
+  };
+
+  const me = parse(mine);
+  const them = parse(theirs);
+  const cfg = getDailyZenConfig(date);
+
+  return {
+    ok: true,
+    data: {
+      date,
+      puzzleNumber: getDailyZenNumber(date),
+      // Both players solve the same seeded board; either copy is fine.
+      board: me.board,
+      me: {
+        userId: meUserId,
+        displayName: meName,
+        points: scoreWords(me.words),
+        wordCount: me.words.length,
+        foundWords: me.words.map((word) => ({ word, score: scoreWord(word) })),
+      },
+      them: {
+        userId: otherUserId,
+        displayName: themName,
+        points: scoreWords(them.words),
+        wordCount: them.words.length,
+        foundWords: them.words.map((word) => ({ word, score: scoreWord(word) })),
+      },
+      config: { boardSize: cfg.boardSize, minWordLength: cfg.minWordLength, timeLimit: 0 },
+    },
+  };
 }
 
 // Builds the zen leaderboard payload. Only completed competitive rows are
@@ -426,6 +520,7 @@ export async function getZenLeaderboard(
       currentPlayer = {
         isCompetitive: myRow.isCompetitive,
         ranked,
+        completed: !myRow.inProgress,
         rank,
         points: myRow.points,
         wordsFound: myRow.wordCount,

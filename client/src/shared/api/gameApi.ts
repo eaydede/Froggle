@@ -461,6 +461,9 @@ export interface DailyZenLeaderboardCurrentPlayer {
   /** True only for competitive players who have finalized the puzzle.
    *  Competitive in-progress players are unranked until they finish. */
   ranked: boolean;
+  /** True once the player has finalized today's session, regardless of mode.
+   *  The compare feature gates on this — casual finishers can compare too. */
+  completed: boolean;
   rank: number | null;
   points: number;
   wordsFound: number;
@@ -494,6 +497,26 @@ export const fetchDailyZenLeaderboard = async (
     headers: await sessionHeaders(),
   });
   return response.json();
+};
+
+/** Fetches a side-by-side compare payload for a zen daily. The shape
+ *  mirrors `DailyCompareResponse` so the existing compare page renders both
+ *  modes; only the timer slot differs (zen returns timeLimit=0). */
+export const fetchDailyZenCompare = async (
+  date: string,
+  otherUserId: string,
+): Promise<{ ok: true; data: DailyCompareResponse } | { ok: false; error: DailyCompareError }> => {
+  const response = await fetch(
+    `${API_URL}/daily/zen/compare/${date}?other=${encodeURIComponent(otherUserId)}`,
+    { headers: await sessionHeaders() },
+  );
+  if (response.ok) {
+    return { ok: true, data: await response.json() };
+  }
+  if (response.status === 409) return { ok: false, error: 'unplayed' };
+  if (response.status === 404) return { ok: false, error: 'opponent-missing' };
+  if (response.status === 400) return { ok: false, error: 'forbidden' };
+  return { ok: false, error: 'unknown' };
 };
 
 export const fetchProfile = async (): Promise<{ display_name: string }> => {
