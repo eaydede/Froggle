@@ -11,9 +11,9 @@ import {
   startDailyZenSession,
 } from '../../shared/api/gameApi';
 import { TeaIcon, TrophyIcon, ZenModeBadge } from './components/ZenModeBadge';
-import { TierStrip } from './components/TierStrip';
-import { useZenTierCelebration } from './components/useZenTierCelebration';
-import { ZEN_TIERS } from 'models/zenTiers';
+import { RankStrip } from './components/RankStrip';
+import { useZenRankCelebration } from './components/useZenRankCelebration';
+import { ZEN_RANKS } from 'models/zenRanks';
 
 type WordSort = 'recent' | 'score';
 
@@ -53,13 +53,13 @@ export function ZenGameRoute() {
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { celebrating, seed: seedCelebration } = useZenTierCelebration(
+  const { celebrating, seed: seedCelebration } = useZenRankCelebration(
     session?.points ?? 0,
     session?.theoretical_max_score ?? null,
   );
 
-  // Dev-only fixture: ?mockCross=<tier-id> drops the local session into the
-  // band just below the target tier and bumps points across after a short
+  // Dev-only fixture: ?mockCross=<rank-id> drops the local session into the
+  // band just below the target rank and bumps points across after a short
   // delay so the real celebration hook fires the same way it would on a
   // genuine word submission. Lets Playwright (and humans) capture the
   // animation reliably without coercing real gameplay through the board.
@@ -73,16 +73,16 @@ export function ZenGameRoute() {
     if (!max) return;
     if (!mockCrossParam) return;
 
-    const targetIdx = ZEN_TIERS.findIndex((t) => t.id === mockCrossParam);
+    const targetIdx = ZEN_RANKS.findIndex((r) => r.id === mockCrossParam);
     if (targetIdx < 0) return;
-    const target = ZEN_TIERS[targetIdx];
-    const prev = targetIdx > 0 ? ZEN_TIERS[targetIdx - 1] : null;
+    const target = ZEN_RANKS[targetIdx];
+    const prev = targetIdx > 0 ? ZEN_RANKS[targetIdx - 1] : null;
     const startPoints = prev ? Math.ceil(prev.threshold * max) : 0;
     const crossPoints = Math.ceil(target.threshold * max);
 
-    // Seed the celebration hook to the tier just below the target so the
+    // Seed the celebration hook to the rank just below the target so the
     // initial points jump (0 → startPoints) doesn't fire a celebration of
-    // the wrong tier. The bump 2s later then crosses cleanly into target.
+    // the wrong rank. The bump 2s later then crosses cleanly into target.
     seedCelebration(targetIdx - 1);
     setCachedDailyZenSession({ ...session, points: startPoints });
     const captured = { ...session, points: crossPoints };
@@ -186,7 +186,7 @@ export function ZenGameRoute() {
         colors={colors}
       />
 
-      <TierStrip
+      <RankStrip
         points={session.points}
         maxScore={session.theoretical_max_score}
         celebrating={celebrating}

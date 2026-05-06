@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
-import { ZEN_TIERS, getNextZenTier, getZenTier, type ZenTier } from 'models/zenTiers';
-import { TierLadderSheet } from './TierLadderSheet';
+import { ZEN_RANKS, getNextZenRank, getZenRank, type ZenRank } from 'models/zenRanks';
+import { RankLadderSheet } from './RankLadderSheet';
 
-interface TierStripProps {
+interface RankStripProps {
   points: number;
   /** Theoretical max for the day's board. Null on legacy session rows;
    *  in that case the strip is hidden so the layout stays clean. */
   maxScore: number | null;
   /** When non-null, the strip plays a brief celebration treatment for the
-   *  given tier — dot pulse, bar flash, "TIER UP" tag. The parent owns the
+   *  given rank — dot pulse, bar flash, "RANK UP" tag. The parent owns the
    *  state so the celebration trigger lines up with the actual cross. */
-  celebrating?: ZenTier | null;
+  celebrating?: ZenRank | null;
 }
 
 const CELEBRATION_TAG_MS = 1800;
@@ -21,13 +21,12 @@ const DEV_MOCK_CROSS_PRESENT =
   typeof window !== 'undefined' &&
   new URLSearchParams(window.location.search).has('mockCross');
 
-// One-row tier indicator placed in the play HUD's top header, sitting in
-// the center column between the back button and the End button. Tapping
+// One-row rank indicator placed above the board in the play HUD. Tapping
 // opens the full ladder. The strip handles its own celebration treatment
 // when a cross is signalled — the dot pulses, the bar flashes, and a short
-// "TIER UP" tag overlays the next-tier hint, all inline so the board is
+// "RANK UP" tag overlays the next-rank hint, all inline so the board is
 // never obstructed.
-export function TierStrip({ points, maxScore, celebrating }: TierStripProps) {
+export function RankStrip({ points, maxScore, celebrating }: RankStripProps) {
   const [ladderOpen, setLadderOpen] = useState(false);
   const [tagVisible, setTagVisible] = useState(false);
 
@@ -41,14 +40,14 @@ export function TierStrip({ points, maxScore, celebrating }: TierStripProps) {
 
   if (maxScore == null || maxScore <= 0) return null;
 
-  const current = getZenTier(points, maxScore);
-  const next = getNextZenTier(points, maxScore);
+  const current = getZenRank(points, maxScore);
+  const next = getNextZenRank(points, maxScore);
 
-  const accent = current?.colorToken ?? next?.tier.colorToken ?? '--ink-faint';
+  const accent = current?.colorToken ?? next?.rank.colorToken ?? '--ink-faint';
 
   let fill = 1;
   if (next) {
-    const nextScore = next.tier.threshold * maxScore;
+    const nextScore = next.rank.threshold * maxScore;
     const prevScore = current ? current.threshold * maxScore : 0;
     const span = nextScore - prevScore;
     fill = span > 0 ? Math.min(1, Math.max(0, (points - prevScore) / span)) : 0;
@@ -62,7 +61,7 @@ export function TierStrip({ points, maxScore, celebrating }: TierStripProps) {
       <button
         type="button"
         onClick={() => setLadderOpen(true)}
-        aria-label="View tier ladder"
+        aria-label="View rank ladder"
         className="w-full min-w-0 flex items-center gap-2.5 px-3 py-2.5 mb-3 rounded-xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] hover:border-[var(--ink-border)] active:bg-[var(--ink-whisper)] transition-colors duration-150 cursor-pointer relative overflow-hidden"
         style={{ WebkitTapHighlightColor: 'transparent' }}
       >
@@ -71,13 +70,13 @@ export function TierStrip({ points, maxScore, celebrating }: TierStripProps) {
             aria-hidden
             className="absolute inset-0 pointer-events-none"
             style={{
-              animation: 'zen-tier-strip-flash 1.6s ease',
+              animation: 'zen-rank-strip-flash 1.6s ease',
               background: `var(${celebrating!.colorToken})`,
               opacity: 0,
             }}
           />
         )}
-        <TierDot colorToken={accent} dim={!current} celebrating={isCelebrating} />
+        <RankDot colorToken={accent} dim={!current} celebrating={isCelebrating} />
         <span
           className="text-[10px] uppercase tracking-[0.1em] text-[color:var(--ink-muted)] leading-none shrink-0 font-[family-name:var(--font-structure)]"
           style={{ fontWeight: 700 }}
@@ -92,8 +91,8 @@ export function TierStrip({ points, maxScore, celebrating }: TierStripProps) {
           aria-valuenow={Math.round(fill * 100)}
           aria-label={
             atTop
-              ? `Top tier: ${current?.name ?? ''}`
-              : `${Math.round(fill * 100)}% toward ${next?.tier.name ?? ''}`
+              ? `Top rank: ${current?.name ?? ''}`
+              : `${Math.round(fill * 100)}% toward ${next?.rank.name ?? ''}`
           }
         >
           <div
@@ -112,11 +111,11 @@ export function TierStrip({ points, maxScore, celebrating }: TierStripProps) {
               fontWeight: 800,
               color: `var(${celebrating!.colorToken})`,
               animation: DEV_MOCK_CROSS_PRESENT
-                ? 'zen-tier-strip-tag-hold 0.4s ease forwards'
-                : 'zen-tier-strip-tag 1.6s ease',
+                ? 'zen-rank-strip-tag-hold 0.4s ease forwards'
+                : 'zen-rank-strip-tag 1.6s ease',
             }}
           >
-            Tier up
+            Rank up
           </span>
         ) : (
           <NextHint
@@ -127,7 +126,7 @@ export function TierStrip({ points, maxScore, celebrating }: TierStripProps) {
         )}
         <ChevronIcon />
       </button>
-      <TierLadderSheet
+      <RankLadderSheet
         open={ladderOpen}
         onClose={() => setLadderOpen(false)}
         points={points}
@@ -137,7 +136,7 @@ export function TierStrip({ points, maxScore, celebrating }: TierStripProps) {
   );
 }
 
-function TierDot({
+function RankDot({
   colorToken,
   dim,
   celebrating,
@@ -153,7 +152,7 @@ function TierDot({
       style={{
         backgroundColor: `var(${colorToken})`,
         opacity: dim ? 0.45 : 1,
-        animation: celebrating ? 'zen-tier-strip-dot 1.6s ease' : undefined,
+        animation: celebrating ? 'zen-rank-strip-dot 1.6s ease' : undefined,
       }}
     />
   );
@@ -212,4 +211,4 @@ function ChevronIcon() {
 }
 
 // Re-export so consumers can iterate the ladder when needed.
-export { ZEN_TIERS };
+export { ZEN_RANKS };

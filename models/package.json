@@ -6,7 +6,7 @@
   "exports": {
     ".": "./index.ts",
     "./seedCode": "./seedCode.ts",
-    "./zenTiers": "./zenTiers.ts"
+    "./zenRanks": "./zenRanks.ts"
   },
   "private": true
 }

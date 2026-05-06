@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ZEN_TIERS, type ZenTier, getZenTier } from 'models/zenTiers';
+import { ZEN_RANKS, type ZenRank, getZenRank } from 'models/zenRanks';
 
 // Window the celebration state lingers after a cross before the hook self-
 // clears, in sync with the strip's animation. Bumped during dev fixture
@@ -10,31 +10,31 @@ const DEV_HOLD_FOREVER =
   typeof window !== 'undefined' &&
   new URLSearchParams(window.location.search).has('mockCross');
 
-// Detects when the player crosses into a new tier and surfaces the just-
-// reached tier so the page can render a celebration. The first observation
+// Detects when the player crosses into a new rank and surfaces the just-
+// reached rank so the page can render a celebration. The first observation
 // for a given session is intentionally a no-op — resuming with an existing
-// tier shouldn't fire a celebration on page load. The hook self-clears
+// rank shouldn't fire a celebration on page load. The hook self-clears
 // after CELEBRATION_WINDOW_MS so a follow-up cross can fire cleanly.
-export function useZenTierCelebration(points: number, maxScore: number | null) {
-  const [celebrating, setCelebrating] = useState<ZenTier | null>(null);
+export function useZenRankCelebration(points: number, maxScore: number | null) {
+  const [celebrating, setCelebrating] = useState<ZenRank | null>(null);
   const initialized = useRef(false);
-  const lastTierIdx = useRef(-1);
+  const lastRankIdx = useRef(-1);
 
   useEffect(() => {
     if (maxScore == null || maxScore <= 0) return;
-    const tier = getZenTier(points, maxScore);
-    const idx = tier ? ZEN_TIERS.findIndex((t) => t.id === tier.id) : -1;
+    const rank = getZenRank(points, maxScore);
+    const idx = rank ? ZEN_RANKS.findIndex((r) => r.id === rank.id) : -1;
 
     if (!initialized.current) {
       initialized.current = true;
-      lastTierIdx.current = idx;
+      lastRankIdx.current = idx;
       return;
     }
 
-    if (tier && idx > lastTierIdx.current) {
-      setCelebrating(tier);
+    if (rank && idx > lastRankIdx.current) {
+      setCelebrating(rank);
     }
-    lastTierIdx.current = idx;
+    lastRankIdx.current = idx;
   }, [points, maxScore]);
 
   useEffect(() => {
@@ -46,13 +46,13 @@ export function useZenTierCelebration(points: number, maxScore: number | null) {
 
   const dismiss = useCallback(() => setCelebrating(null), []);
 
-  // Forces the hook into an "already initialized at tierIdx" state so
-  // subsequent cross-detection compares against the seeded tier rather than
+  // Forces the hook into an "already initialized at rankIdx" state so
+  // subsequent cross-detection compares against the seeded rank rather than
   // whatever the first observation happened to be. Reserved for dev-only
   // fixture wiring; production code never touches it.
-  const seed = useCallback((tierIdx: number) => {
+  const seed = useCallback((rankIdx: number) => {
     initialized.current = true;
-    lastTierIdx.current = tierIdx;
+    lastRankIdx.current = rankIdx;
   }, []);
 
   return { celebrating, dismiss, seed };

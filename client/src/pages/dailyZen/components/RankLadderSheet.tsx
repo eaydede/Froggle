@@ -1,18 +1,18 @@
 import { useEffect } from 'react';
-import { ZEN_TIERS, getZenTier } from 'models/zenTiers';
+import { ZEN_RANKS, getZenRank } from 'models/zenRanks';
 
-interface TierLadderSheetProps {
+interface RankLadderSheetProps {
   open: boolean;
   onClose: () => void;
   points: number;
   maxScore: number;
 }
 
-// Bottom sheet revealing the full tier ladder with point thresholds for the
+// Bottom sheet revealing the full rank ladder with point thresholds for the
 // day's board. Mirrors ExpandedWordsModal in shape — slide-up + scrim,
 // drag-handle pill, escape-to-close — so the play HUD's secondary surfaces
 // share a single language.
-export function TierLadderSheet({ open, onClose, points, maxScore }: TierLadderSheetProps) {
+export function RankLadderSheet({ open, onClose, points, maxScore }: RankLadderSheetProps) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -22,7 +22,7 @@ export function TierLadderSheet({ open, onClose, points, maxScore }: TierLadderS
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  const currentTier = getZenTier(points, maxScore);
+  const currentRank = getZenRank(points, maxScore);
 
   return (
     <>
@@ -38,7 +38,7 @@ export function TierLadderSheet({ open, onClose, points, maxScore }: TierLadderS
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Tier ladder"
+        aria-label="Rank ladder"
         className={[
           'fixed inset-x-0 bottom-0 z-[160] mx-auto w-full max-w-[420px] bg-[var(--surface-card)] rounded-t-[18px] shadow-[0_-4px_24px_rgba(34,32,28,0.18),0_-1px_2px_rgba(34,32,28,0.06)] flex flex-col overflow-hidden transition-transform duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] font-[family-name:var(--font-ui)]',
           open ? 'translate-y-0' : 'translate-y-full pointer-events-none',
@@ -66,19 +66,19 @@ export function TierLadderSheet({ open, onClose, points, maxScore }: TierLadderS
             className="italic leading-none tracking-[-0.02em] text-[28px] text-[color:var(--ink)] font-[family-name:var(--font-display)]"
             style={{ fontWeight: 600 }}
           >
-            Tier ladder
+            Rank ladder
           </div>
         </div>
 
         <div className="px-[22px] py-3 flex flex-col gap-2">
-          {ZEN_TIERS.map((tier) => {
-            const threshold = Math.ceil(tier.threshold * maxScore);
+          {ZEN_RANKS.map((rank) => {
+            const threshold = Math.ceil(rank.threshold * maxScore);
             const reached = points >= threshold;
-            const isCurrent = currentTier?.id === tier.id;
+            const isCurrent = currentRank?.id === rank.id;
             const remaining = Math.max(0, threshold - points);
             return (
               <div
-                key={tier.id}
+                key={rank.id}
                 className={[
                   'flex items-center gap-3 rounded-lg py-2 pl-3 pr-3 border transition-colors duration-150',
                   isCurrent
@@ -90,7 +90,7 @@ export function TierLadderSheet({ open, onClose, points, maxScore }: TierLadderS
                   aria-hidden
                   className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
                   style={{
-                    backgroundColor: `var(${tier.colorToken})`,
+                    backgroundColor: `var(${rank.colorToken})`,
                     opacity: reached ? 1 : 0.35,
                   }}
                 />
@@ -99,7 +99,7 @@ export function TierLadderSheet({ open, onClose, points, maxScore }: TierLadderS
                     className="text-[14px] leading-tight text-[color:var(--ink)] font-[family-name:var(--font-ui)]"
                     style={{ fontWeight: isCurrent ? 700 : 600 }}
                   >
-                    {tier.name}
+                    {rank.name}
                   </div>
                   <div
                     className="text-[11px] leading-tight text-[color:var(--ink-soft)] mt-0.5 tabular-nums"
@@ -133,7 +133,7 @@ export function TierLadderSheet({ open, onClose, points, maxScore }: TierLadderS
           className="px-[22px] pb-4 pt-0 text-[11px] text-center text-[color:var(--ink-soft)] leading-[1.5]"
           style={{ fontWeight: 500 }}
         >
-          Tiers scale with each board's word count, so the climb feels the same day to day even when point ceilings shift.
+          Ranks scale with each board's word count, so the climb feels the same day to day even when point ceilings shift.
         </div>
       </div>
     </>

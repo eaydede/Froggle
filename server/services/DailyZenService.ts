@@ -33,7 +33,7 @@ export interface ZenSession {
   is_competitive: boolean;
   /** Sum of scoreWord() across every findable word on the board. Locked at
    *  session start so resumes never see a different ceiling. Null only on
-   *  pre-tier rows that predate the column. */
+   *  pre-rank rows that predate the column. */
   theoretical_max_score: number | null;
 }
 
@@ -97,7 +97,7 @@ export async function getSession(
 //
 // theoretical_max_score is also frozen at start: it's the sum of every
 // findable word's score on this board, which the client divides into to
-// derive the player's tier. Computing once on insert avoids per-request
+// derive the player's rank. Computing once on insert avoids per-request
 // solver work and guarantees the ceiling never shifts mid-day if the
 // dictionary or scoring changes.
 export async function startSession(

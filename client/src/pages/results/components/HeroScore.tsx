@@ -8,7 +8,7 @@ interface HeroScoreProps {
    *  can describe the run without adding a new vertical line. */
   accessory?: React.ReactNode;
   /** Renders above the headline value as a small italic crown — used for
-   *  achievement labels (Daily Zen tier) that share the hero's prominence
+   *  achievement labels (Daily Zen rank) that share the hero's prominence
    *  without competing with the numeric stat for size. */
   crown?: React.ReactNode;
 }
