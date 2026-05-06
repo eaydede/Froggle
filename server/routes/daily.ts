@@ -5,9 +5,10 @@ import { findAllWords } from 'engine/solver.js';
 import { scoreWord } from 'engine/scoring.js';
 import { requireAuth } from '../middleware/auth.js';
 import { getDb } from '../db/index.js';
-import { getSupabaseAdmin } from '../supabaseAdmin.js';
+import { cachePrivate, cachePublic, noStore } from '../httpCache.js';
 import { dictionary } from '../services/dictionary.js';
 import { scoreResult, scoreWords, getDailyStats } from '../services/DailyService.js';
+import { getDisplayNames } from '../services/displayNames.js';
 import {
   DAILY_LAUNCH_DATE,
   dailyConfigFromSeed,
@@ -24,6 +25,7 @@ dailyRouter.get('/', (_req, res) => {
   const seed = getDailySeed(date);
   const config = getDailyConfig(date);
   const board = generateSeededBoard(config.boardSize, seed);
+  cachePublic(res, 60);
   res.json({
     date,
     number,
@@ -97,6 +99,7 @@ dailyRouter.post('/results', requireAuth, async (req, res) => {
       )
       .execute();
 
+    noStore(res);
     res.json({ success: true });
   } catch (err) {
     console.error('Failed to record daily result:', err);
@@ -115,6 +118,7 @@ dailyRouter.get('/results/:date', requireAuth, async (req, res) => {
       .executeTakeFirst();
 
     if (!result) {
+      noStore(res);
       return res.json({ result: null });
     }
 
@@ -141,6 +145,7 @@ dailyRouter.get('/results/:date', requireAuth, async (req, res) => {
       .map((w) => ({ word: w.word, path: w.path, score: scoreWord(w.word) }))
       .sort((a, b) => b.score - a.score || b.word.length - a.word.length);
 
+    cachePrivate(res, 60);
     res.json({
       result: {
         date: result.date,
@@ -192,15 +197,9 @@ dailyRouter.get('/compare/:date', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Opponent has not played this daily' });
     }
 
-    const admin = getSupabaseAdmin();
-    const [meMeta, themMeta] = await Promise.all(
-      [meUserId, otherUserId].map((uid) =>
-        admin.auth.admin
-          .getUserById(uid)
-          .then((r) => r.data.user?.user_metadata?.display_name || 'Anonymous')
-          .catch(() => 'Anonymous'),
-      ),
-    );
+    const displayNames = await getDisplayNames([meUserId, otherUserId]);
+    const meMeta = displayNames.get(meUserId) ?? 'Anonymous';
+    const themMeta = displayNames.get(otherUserId) ?? 'Anonymous';
 
     const parse = (r: typeof rows[number]) => {
       const board: string[][] = typeof r.board === 'string' ? JSON.parse(r.board) : r.board;
@@ -236,6 +235,7 @@ dailyRouter.get('/compare/:date', requireAuth, async (req, res) => {
       timeLimit: mine.time_limit,
     };
 
+    cachePrivate(res, 30);
     res.json({
       date,
       puzzleNumber: getDailyNumber(date),
@@ -276,6 +276,7 @@ dailyRouter.get('/history', requireAuth, async (req, res) => {
       };
     });
 
+    cachePrivate(res, 60);
     res.json({ entries });
   } catch (err) {
     console.error('Failed to fetch daily history:', err);
@@ -289,11 +290,14 @@ dailyRouter.get('/history', requireAuth, async (req, res) => {
 dailyRouter.get('/stats', requireAuth, async (req, res) => {
   try {
     const db = getDb();
+    const includeDefinitions = req.query.definitions !== '0';
     const stats = await getDailyStats(db, req.userId!, {
       launchDate: DAILY_LAUNCH_DATE,
       today: getDailyDatePST(),
       getPuzzleNumber: getDailyNumber,
+      includeDefinitions,
     });
+    cachePrivate(res, includeDefinitions ? 60 : 120);
     res.json(stats);
   } catch (err) {
     console.error('Failed to fetch daily stats:', err);

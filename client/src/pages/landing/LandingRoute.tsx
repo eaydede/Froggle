@@ -53,7 +53,7 @@ export function LandingRoute() {
   useEffect(() => {
     if (!authReady) return;
     let cancelled = false;
-    fetchDailyStats()
+    fetchDailyStats({ definitions: false })
       .then((s) => {
         if (!cancelled) setStats(s);
       })
@@ -82,15 +82,12 @@ export function LandingRoute() {
     };
   }, [authReady, cachedDaily, cachedDailyResult]);
 
-  // Fetch zen rank as soon as the player has any session for the day —
-  // in-progress sessions are on the zen leaderboard too, so the badge is
-  // worth surfacing while play is ongoing. Re-runs when found_words changes
-  // so the displayed rank tracks the player's progress. Skipped for casual
-  // players — they never appear on the leaderboard, so the badge wouldn't
-  // render and the request would be wasted.
+  // Fetch zen rank for completed competitive sessions. In-progress players
+  // do not have a stable rank yet, and refetching on every found word creates
+  // avoidable leaderboard traffic from the landing page.
   useEffect(() => {
     if (!authReady || !cachedDailyZen || !cachedDailyZenSession) return;
-    if (!cachedDailyZenSession.is_competitive) {
+    if (!cachedDailyZenSession.is_competitive || !cachedDailyZenSession.ended_at) {
       setZenRank(null);
       return;
     }
@@ -103,7 +100,7 @@ export function LandingRoute() {
     return () => {
       cancelled = true;
     };
-  }, [authReady, cachedDailyZen, cachedDailyZenSession?.date, cachedDailyZenSession?.word_count, cachedDailyZenSession?.ended_at, cachedDailyZenSession?.is_competitive]);
+  }, [authReady, cachedDailyZen?.date, cachedDailyZenSession?.date, cachedDailyZenSession?.ended_at, cachedDailyZenSession?.is_competitive]);
 
   const handleFreePlay = async () => {
     setDailyInfo(null);

@@ -60,7 +60,7 @@ export function ZenLeaderboardRoute() {
 
   useEffect(() => {
     if (!authReady) return;
-    fetchDailyZenStats()
+    fetchDailyZenStats({ definitions: false })
       .then(setStats)
       .catch(() => {
         // Non-fatal: picker falls back to empty entries.

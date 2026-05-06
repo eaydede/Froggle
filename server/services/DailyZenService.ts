@@ -5,8 +5,8 @@ import { isValidWord } from 'engine/dictionary.js';
 import { scoreWord } from 'engine/scoring.js';
 import { findAllWords } from 'engine/solver.js';
 import type { Database } from '../db/types.js';
-import { getSupabaseAdmin } from '../supabaseAdmin.js';
 import { dictionary } from './dictionary.js';
+import { getDisplayNames } from './displayNames.js';
 import {
   scoreResult,
   scoreWords,
@@ -220,9 +220,19 @@ export interface DailyZenStatsResponse {
 export async function getDailyZenStats(
   db: Kysely<Database>,
   userId: string,
-  config: { launchDate: string; today: string; windowDays?: number },
+  config: {
+    launchDate: string;
+    today: string;
+    windowDays?: number;
+    includeDefinitions?: boolean;
+  },
 ): Promise<DailyZenStatsResponse> {
-  const { launchDate, today, windowDays = 30 } = config;
+  const {
+    launchDate,
+    today,
+    windowDays = 30,
+    includeDefinitions = true,
+  } = config;
 
   const windowStart = maxDate(addDays(today, -(windowDays - 1)), launchDate);
   const windowEnd = today;
@@ -249,10 +259,11 @@ export async function getDailyZenStats(
   const playersByDate = new Map<string, number>();
   for (const row of playerCountRows) playersByDate.set(row.date, Number(row.players));
 
-  const uniqueLongestWords = Array.from(
-    new Set(userRows.map((r) => r.longest_word).filter((w): w is string => !!w)),
-  );
-  const definitions = await getDefinitions(uniqueLongestWords);
+  const definitions = includeDefinitions
+    ? await getDefinitions(Array.from(
+      new Set(userRows.map((r) => r.longest_word).filter((w): w is string => !!w)),
+    ))
+    : new Map<string, DailyStatsDay['longestWordDefinition']>();
 
   const days: DailyStatsDay[] = [];
   for (let d = windowStart; d <= windowEnd; d = addDays(d, 1)) {
@@ -397,15 +408,9 @@ export async function getZenCompare(
   if (!mine || mine.ended_at === null) return { ok: false, error: 'unplayed' };
   if (!theirs || theirs.ended_at === null) return { ok: false, error: 'opponent-missing' };
 
-  const admin = getSupabaseAdmin();
-  const [meName, themName] = await Promise.all(
-    [meUserId, otherUserId].map((uid) =>
-      admin.auth.admin
-        .getUserById(uid)
-        .then((r) => r.data.user?.user_metadata?.display_name || 'Anonymous')
-        .catch(() => 'Anonymous'),
-    ),
-  );
+  const displayNames = await getDisplayNames([meUserId, otherUserId]);
+  const meName = displayNames.get(meUserId) ?? 'Anonymous';
+  const themName = displayNames.get(otherUserId) ?? 'Anonymous';
 
   const parse = (r: typeof rows[number]) => {
     const board: string[][] = typeof r.board === 'string' ? JSON.parse(r.board) : (r.board as string[][]);
@@ -461,29 +466,23 @@ export async function getZenLeaderboard(
     .where('date', '=', date)
     .execute();
 
-  const admin = getSupabaseAdmin();
-  const enriched = await Promise.all(
-    rows.map(async (row) => {
-      const words = typeof row.found_words === 'string'
-        ? (JSON.parse(row.found_words) as string[])
-        : (row.found_words as string[]);
-      const points = scoreWords(words);
-      const wordCount = words.length;
-      const displayName = await admin.auth.admin
-        .getUserById(row.user_id)
-        .then((r) => r.data.user?.user_metadata?.display_name || 'Anonymous')
-        .catch(() => 'Anonymous');
-      return {
-        userId: row.user_id,
-        displayName,
-        points,
-        wordCount,
-        longestWord: row.longest_word,
-        inProgress: row.ended_at === null,
-        isCompetitive: row.is_competitive,
-      };
-    }),
-  );
+  const displayNames = await getDisplayNames(rows.map((row) => row.user_id));
+  const enriched = rows.map((row) => {
+    const words = typeof row.found_words === 'string'
+      ? (JSON.parse(row.found_words) as string[])
+      : (row.found_words as string[]);
+    const points = scoreWords(words);
+    const wordCount = words.length;
+    return {
+      userId: row.user_id,
+      displayName: displayNames.get(row.user_id) ?? 'Anonymous',
+      points,
+      wordCount,
+      longestWord: row.longest_word,
+      inProgress: row.ended_at === null,
+      isCompetitive: row.is_competitive,
+    };
+  });
 
   const ranked = enriched.filter((e) => !e.inProgress && e.isCompetitive);
   // Casual in-progress players are excluded — they've opted out of the
