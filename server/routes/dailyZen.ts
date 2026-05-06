@@ -26,6 +26,8 @@ import { getDailyDatePST } from '../services/dailyConfig.js';
 
 export const dailyZenRouter = Router();
 
+const solvedBoardCache = new Map<string, { totalFindable: number; words: string[] }>();
+
 dailyZenRouter.get('/', (_req, res) => {
   const date = getDailyDatePST();
   const number = getDailyZenNumber(date);
@@ -53,11 +55,20 @@ function solveBoard(board: string[][], date: string): {
   salt: string;
   wordHashes: string[];
 } {
+  const key = `${date}:${board.flat().join('')}`;
   const minWordLength = getDailyZenConfig(date).minWordLength;
-  const all = findAllWords(board, dictionary, minWordLength);
+  let solved = solvedBoardCache.get(key);
+  if (!solved) {
+    const all = findAllWords(board, dictionary, minWordLength);
+    solved = {
+      totalFindable: all.length,
+      words: all.map((w) => w.word),
+    };
+    solvedBoardCache.set(key, solved);
+  }
   const salt = generateSalt();
-  const wordHashes = all.map((w) => hashWord(w.word, salt));
-  return { totalFindable: all.length, salt, wordHashes };
+  const wordHashes = solved.words.map((word) => hashWord(word, salt));
+  return { totalFindable: solved.totalFindable, salt, wordHashes };
 }
 
 // Returns the player's session for today (or whatever date they ask for).
