@@ -10,14 +10,14 @@ import { useFeedbackSounds } from './pages/game';
 import type { FeedbackType } from './pages/game';
 import type { GameResults } from './shared/types';
 import { scoreWord } from './shared/utils/score';
-import type { DailyInfo, DailyZenInfo, DailyZenSession } from './shared/api/gameApi';
+import type { DailyInfo, DailyZenMeta, DailyZenSession } from './shared/api/gameApi';
 import {
   fetchDaily,
   recordDailyResultToServer,
   fetchDailyResult,
   fetchProfile,
   updateProfile,
-  fetchDailyZen,
+  fetchDailyZenMeta,
   fetchDailyZenSession,
   submitDailyZenWord,
 } from './shared/api/gameApi';
@@ -58,7 +58,7 @@ interface GameContextValue {
   refreshDaily: () => Promise<DailyInfo>;
 
   // Zen Daily
-  cachedDailyZen: DailyZenInfo | null;
+  cachedDailyZen: DailyZenMeta | null;
   cachedDailyZenSession: DailyZenSession | null;
   dailyZenLoaded: boolean;
   setCachedDailyZenSession: (session: DailyZenSession | null) => void;
@@ -200,7 +200,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [dailyResultLoaded, setDailyResultLoaded] = useState(false);
 
   // Zen Daily state
-  const [cachedDailyZen, setCachedDailyZen] = useState<DailyZenInfo | null>(null);
+  const [cachedDailyZen, setCachedDailyZen] = useState<DailyZenMeta | null>(null);
   const [cachedDailyZenSession, setCachedDailyZenSession] = useState<DailyZenSession | null>(null);
   const [dailyZenLoaded, setDailyZenLoaded] = useState(false);
   const [lastZenModeChoice, setLastZenModeChoiceState] = useState<ZenModeChoice>(loadZenModeChoice);
@@ -286,7 +286,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   // is loaded separately below once auth is ready.
   useEffect(() => {
     let cancelled = false;
-    fetchDailyZen()
+    fetchDailyZenMeta()
       .then((info) => {
         if (!cancelled) setCachedDailyZen(info);
       })
@@ -395,10 +395,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const zenValidator = useWordValidator();
 
   useEffect(() => {
-    const salt = cachedDailyZenSession?.salt ?? cachedDailyZen?.salt ?? '';
-    const hashes = cachedDailyZenSession?.wordHashes ?? cachedDailyZen?.wordHashes ?? [];
+    const salt = cachedDailyZenSession?.salt ?? '';
+    const hashes = cachedDailyZenSession?.wordHashes ?? [];
     zenValidator.setSource(salt, hashes);
-  }, [cachedDailyZenSession?.salt, cachedDailyZenSession?.wordHashes, cachedDailyZen?.salt, cachedDailyZen?.wordHashes, zenValidator]);
+  }, [cachedDailyZenSession?.salt, cachedDailyZenSession?.wordHashes, zenValidator]);
 
   useEffect(() => {
     zenValidator.setSubmitted(cachedDailyZenSession?.found_words ?? []);

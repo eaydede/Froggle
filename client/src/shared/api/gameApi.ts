@@ -355,7 +355,7 @@ export const fetchDailyHistory = async (): Promise<{ entries: DailyHistoryEntry[
 
 // ─── Zen Daily mode ────────────────────────────────────────────────────
 
-export interface DailyZenInfo {
+export interface DailyZenMeta {
   date: string;
   number: number;
   seed: number;
@@ -364,6 +364,9 @@ export interface DailyZenInfo {
     boardSize: number;
     minWordLength: number;
   };
+}
+
+export interface DailyZenInfo extends DailyZenMeta {
   /** Salted word hashes + salt for client-side validation. The salt is per-fetch. */
   salt: string;
   wordHashes: string[];
@@ -395,6 +398,10 @@ export interface DailyZenSession {
 
 export const fetchDailyZen = async (): Promise<DailyZenInfo> => {
   return getJson<DailyZenInfo>(`${API_URL}/daily/zen`);
+};
+
+export const fetchDailyZenMeta = async (): Promise<DailyZenMeta> => {
+  return getJson<DailyZenMeta>(`${API_URL}/daily/zen/meta`);
 };
 
 export const fetchDailyZenSession = async (

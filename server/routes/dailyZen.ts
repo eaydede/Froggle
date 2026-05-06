@@ -28,20 +28,27 @@ export const dailyZenRouter = Router();
 
 const solvedBoardCache = new Map<string, { totalFindable: number; words: string[] }>();
 
-dailyZenRouter.get('/', (_req, res) => {
+function getZenDailyPayload() {
   const date = getDailyDatePST();
   const number = getDailyZenNumber(date);
   const seed = getDailyZenSeed(date);
   const config = getDailyZenConfig(date);
   const board = generateSeededBoard(config.boardSize, seed);
+  return { date, number, seed, board, config };
+}
+
+dailyZenRouter.get('/meta', (_req, res) => {
+  cachePublic(res, 60);
+  res.json(getZenDailyPayload());
+});
+
+dailyZenRouter.get('/', (_req, res) => {
+  const payload = getZenDailyPayload();
+  const { date, board } = payload;
   const { salt, wordHashes } = solveBoard(board, date);
   cachePublic(res, 60);
   res.json({
-    date,
-    number,
-    seed,
-    board,
-    config,
+    ...payload,
     salt,
     wordHashes,
   });
