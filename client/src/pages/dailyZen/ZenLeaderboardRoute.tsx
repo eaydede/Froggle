@@ -186,7 +186,24 @@ export function ZenLeaderboardRoute() {
               <InProgressPresence players={data.inProgressPlayers} />
             )}
             {entries.length > 0 ? (
-              <LeaderboardList entries={entries} />
+              <LeaderboardList
+                entries={entries}
+                onCompare={
+                  // Compare requires the current user to have finished today's
+                  // zen daily. Casual finishers qualify too — they have a row
+                  // even though they're not on the ranked list.
+                  data.currentPlayer?.completed
+                    ? (userId) => navigate(`/daily/zen/compare?date=${date}&user=${userId}`)
+                    : undefined
+                }
+                onSelfClick={
+                  // The `from=leaderboard` hint tells the results page's
+                  // Close to route back here instead of the landing page.
+                  data.currentPlayer?.completed
+                    ? () => navigate(`/daily/zen/results?date=${date}&from=leaderboard`)
+                    : undefined
+                }
+              />
             ) : (
               <div
                 className="mt-3 text-small text-[color:var(--ink-muted)] text-center leading-relaxed"

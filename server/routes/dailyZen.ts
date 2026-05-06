@@ -11,6 +11,7 @@ import {
   endSession,
   getDailyZenStats,
   getSession,
+  getZenCompare,
   getZenLeaderboard,
   startSession,
   submitWord,
@@ -185,6 +186,26 @@ dailyZenRouter.get('/stats', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('Failed to fetch zen stats:', err);
     res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
+// Side-by-side comparison of two finalized zen sessions. Mirrors the timed
+// daily compare endpoint's status codes so the client can share its
+// fetch/error machinery.
+dailyZenRouter.get('/compare/:date', requireAuth, async (req, res) => {
+  const otherUserId = typeof req.query.other === 'string' ? req.query.other : '';
+  if (!otherUserId) {
+    return res.status(400).json({ error: 'Missing query param: other' });
+  }
+  try {
+    const result = await getZenCompare(getDb(), req.params.date, req.userId!, otherUserId);
+    if (result.ok) return res.json(result.data);
+    if (result.error === 'unplayed') return res.status(409).json({ error: 'You have not finished this zen daily yet' });
+    if (result.error === 'opponent-missing') return res.status(404).json({ error: 'Opponent has not finished this zen daily' });
+    return res.status(400).json({ error: 'Cannot compare with yourself' });
+  } catch (err) {
+    console.error('Failed to fetch zen compare:', err);
+    res.status(500).json({ error: 'Failed to fetch compare' });
   }
 });
 
