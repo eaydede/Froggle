@@ -194,6 +194,7 @@ export interface DailyStatsConfig {
   today: string;
   getPuzzleNumber: (date: string) => number;
   windowDays?: number;
+  includeDefinitions?: boolean;
 }
 
 // Pure PST calendar arithmetic on YYYY-MM-DD strings. Noon UTC avoids
@@ -221,7 +222,13 @@ export async function getDailyStats(
   userId: string,
   config: DailyStatsConfig
 ): Promise<DailyStatsResponse> {
-  const { launchDate, today, getPuzzleNumber, windowDays = 30 } = config;
+  const {
+    launchDate,
+    today,
+    getPuzzleNumber,
+    windowDays = 30,
+    includeDefinitions = true,
+  } = config;
 
   const windowStart = maxDate(addDays(today, -(windowDays - 1)), launchDate);
   const windowEnd = today;
@@ -268,11 +275,11 @@ export async function getDailyStats(
   const playersByDate = new Map<string, number>();
   for (const row of playerCountRows) playersByDate.set(row.date, Number(row.players));
 
-  // Fetch definitions once per unique longest word — dedupe before calling.
-  const uniqueLongestWords = Array.from(
-    new Set(rankedRows.map((r) => r.longest_word).filter((w): w is string => !!w)),
-  );
-  const definitions = await getDefinitions(uniqueLongestWords);
+  const definitions = includeDefinitions
+    ? await getDefinitions(Array.from(
+      new Set(rankedRows.map((r) => r.longest_word).filter((w): w is string => !!w)),
+    ))
+    : new Map<string, WordDefinition | null>();
 
   const days: DailyStatsDay[] = [];
   for (let d = windowStart; d <= windowEnd; d = addDays(d, 1)) {

@@ -5,6 +5,7 @@ import { supabase } from '../supabase';
 const API_URL = '/api';
 
 let sessionId: string | null = null;
+const inFlightGets = new Map<string, Promise<unknown>>();
 
 export function getSessionId(): string | null {
   return sessionId;
@@ -23,6 +24,35 @@ async function sessionHeaders(): Promise<Record<string, string>> {
   }
 
   return headers;
+}
+
+async function getJson<T>(
+  url: string,
+  options: { auth?: boolean; errorPrefix?: string } = {},
+): Promise<T> {
+  const headers = options.auth ? await sessionHeaders() : undefined;
+  const key = [
+    url,
+    headers?.Authorization ?? '',
+    headers?.['X-Session-Id'] ?? '',
+  ].join('|');
+
+  const existing = inFlightGets.get(key);
+  if (existing) return existing as Promise<T>;
+
+  const pending = fetch(url, headers ? { headers } : undefined)
+    .then(async (response) => {
+      if (options.errorPrefix && !response.ok) {
+        throw new Error(`${options.errorPrefix}: ${response.status}`);
+      }
+      return response.json() as Promise<T>;
+    })
+    .finally(() => {
+      inFlightGets.delete(key);
+    });
+
+  inFlightGets.set(key, pending);
+  return pending;
 }
 
 export const createGame = async (): Promise<{
@@ -119,8 +149,7 @@ export interface DailyInfo {
 }
 
 export const fetchDaily = async (): Promise<DailyInfo> => {
-  const response = await fetch(`${API_URL}/daily`);
-  return response.json();
+  return getJson<DailyInfo>(`${API_URL}/daily`);
 };
 
 // Mirrors DailyStatsResponse in server/services/DailyService.ts.
@@ -152,12 +181,14 @@ export interface DailyStatsResponse {
   days: DailyStatsDay[];
 }
 
-export const fetchDailyStats = async (): Promise<DailyStatsResponse> => {
-  const response = await fetch(`${API_URL}/daily/stats`, {
-    headers: await sessionHeaders(),
+export const fetchDailyStats = async (
+  options: { definitions?: boolean } = {},
+): Promise<DailyStatsResponse> => {
+  const definitions = options.definitions === false ? '?definitions=0' : '';
+  return getJson<DailyStatsResponse>(`${API_URL}/daily/stats${definitions}`, {
+    auth: true,
+    errorPrefix: 'fetchDailyStats',
   });
-  if (!response.ok) throw new Error(`fetchDailyStats: ${response.status}`);
-  return response.json();
 };
 
 export interface DailyZenStatsResponse {
@@ -166,12 +197,14 @@ export interface DailyZenStatsResponse {
   days: DailyStatsDay[];
 }
 
-export const fetchDailyZenStats = async (): Promise<DailyZenStatsResponse> => {
-  const response = await fetch(`${API_URL}/daily/zen/stats`, {
-    headers: await sessionHeaders(),
+export const fetchDailyZenStats = async (
+  options: { definitions?: boolean } = {},
+): Promise<DailyZenStatsResponse> => {
+  const definitions = options.definitions === false ? '?definitions=0' : '';
+  return getJson<DailyZenStatsResponse>(`${API_URL}/daily/zen/stats${definitions}`, {
+    auth: true,
+    errorPrefix: 'fetchDailyZenStats',
   });
-  if (!response.ok) throw new Error(`fetchDailyZenStats: ${response.status}`);
-  return response.json();
 };
 
 export interface DailyConfig {
@@ -214,10 +247,10 @@ export interface DailyResultResponse {
 }
 
 export const fetchDailyResult = async (date: string): Promise<DailyResultResponse | null> => {
-  const response = await fetch(`${API_URL}/daily/results/${date}`, {
-    headers: await sessionHeaders(),
-  });
-  const data = await response.json();
+  const data = await getJson<{ result?: DailyResultResponse | null }>(
+    `${API_URL}/daily/results/${date}`,
+    { auth: true },
+  );
   return data.result ?? null;
 };
 
@@ -254,10 +287,7 @@ export interface LeaderboardResponse {
 }
 
 export const fetchLeaderboard = async (date: string): Promise<LeaderboardResponse> => {
-  const response = await fetch(`${API_URL}/daily/leaderboard/${date}`, {
-    headers: await sessionHeaders(),
-  });
-  return response.json();
+  return getJson<LeaderboardResponse>(`${API_URL}/daily/leaderboard/${date}`, { auth: true });
 };
 
 export interface DailyCompareScoredWord {
@@ -364,8 +394,7 @@ export interface DailyZenSession {
 }
 
 export const fetchDailyZen = async (): Promise<DailyZenInfo> => {
-  const response = await fetch(`${API_URL}/daily/zen`);
-  return response.json();
+  return getJson<DailyZenInfo>(`${API_URL}/daily/zen`);
 };
 
 export const fetchDailyZenSession = async (
@@ -493,10 +522,10 @@ export interface DailyZenLeaderboardResponse {
 export const fetchDailyZenLeaderboard = async (
   date: string,
 ): Promise<DailyZenLeaderboardResponse> => {
-  const response = await fetch(`${API_URL}/daily/zen/leaderboard/${date}`, {
-    headers: await sessionHeaders(),
-  });
-  return response.json();
+  return getJson<DailyZenLeaderboardResponse>(
+    `${API_URL}/daily/zen/leaderboard/${date}`,
+    { auth: true },
+  );
 };
 
 /** Fetches a side-by-side compare payload for a zen daily. The shape

@@ -6,6 +6,7 @@ import { findAllWords } from 'engine/solver.js';
 import { scoreWord } from 'engine/scoring.js';
 import { requireAuth } from '../middleware/auth.js';
 import { getDb } from '../db/index.js';
+import { cachePrivate, cachePublic, noStore } from '../httpCache.js';
 import { dictionary } from '../services/dictionary.js';
 import {
   endSession,
@@ -32,6 +33,7 @@ dailyZenRouter.get('/', (_req, res) => {
   const config = getDailyZenConfig(date);
   const board = generateSeededBoard(config.boardSize, seed);
   const { salt, wordHashes } = solveBoard(board, date);
+  cachePublic(res, 60);
   res.json({
     date,
     number,
@@ -64,8 +66,12 @@ function solveBoard(board: string[][], date: string): {
 dailyZenRouter.get('/session/:date', requireAuth, async (req, res) => {
   try {
     const session = await getSession(getDb(), req.userId!, req.params.date);
-    if (!session) return res.json({ session: null });
+    if (!session) {
+      noStore(res);
+      return res.json({ session: null });
+    }
     const { totalFindable, salt, wordHashes } = solveBoard(session.board, req.params.date);
+    noStore(res);
     res.json({
       session: { ...session, total_findable: totalFindable, salt, wordHashes },
     });
@@ -90,6 +96,7 @@ dailyZenRouter.post('/session/:date/start', requireAuth, async (req, res) => {
     const isCompetitive = req.body?.isCompetitive !== false;
     const session = await startSession(getDb(), req.userId!, date, board, isCompetitive);
     const { totalFindable, salt, wordHashes } = solveBoard(session.board, date);
+    noStore(res);
     res.json({ session: { ...session, total_findable: totalFindable, salt, wordHashes } });
   } catch (err) {
     console.error('Failed to start zen session:', err);
@@ -104,6 +111,7 @@ dailyZenRouter.post('/session/:date/word', requireAuth, async (req, res) => {
   }
   try {
     const outcome = await submitWord(getDb(), req.userId!, req.params.date, path);
+    noStore(res);
     res.json(outcome);
   } catch (err) {
     console.error('Failed to submit zen word:', err);
@@ -117,6 +125,7 @@ dailyZenRouter.post('/session/:date/end', requireAuth, async (req, res) => {
     if (!session) {
       return res.status(404).json({ error: 'No session to end' });
     }
+    noStore(res);
     res.json({ session });
   } catch (err) {
     console.error('Failed to end zen session:', err);
@@ -130,6 +139,7 @@ dailyZenRouter.get('/results/:date', requireAuth, async (req, res) => {
   try {
     const session = await getSession(getDb(), req.userId!, req.params.date);
     if (!session || !session.ended_at) {
+      noStore(res);
       return res.json({ result: null });
     }
     const foundSet = new Set(session.found_words.map((w) => w.toUpperCase()));
@@ -157,6 +167,7 @@ dailyZenRouter.get('/results/:date', requireAuth, async (req, res) => {
       .map((w) => ({ word: w.word, path: w.path, score: scoreWord(w.word) }))
       .sort((a, b) => b.score - a.score || b.word.length - a.word.length);
 
+    cachePrivate(res, 60);
     res.json({
       result: {
         date: session.date,
@@ -181,7 +192,9 @@ dailyZenRouter.get('/stats', requireAuth, async (req, res) => {
     const stats = await getDailyZenStats(getDb(), req.userId!, {
       launchDate: DAILY_ZEN_LAUNCH_DATE,
       today: getDailyDatePST(),
+      includeDefinitions: req.query.definitions !== '0',
     });
+    cachePrivate(res, req.query.definitions !== '0' ? 60 : 120);
     res.json(stats);
   } catch (err) {
     console.error('Failed to fetch zen stats:', err);
@@ -199,7 +212,10 @@ dailyZenRouter.get('/compare/:date', requireAuth, async (req, res) => {
   }
   try {
     const result = await getZenCompare(getDb(), req.params.date, req.userId!, otherUserId);
-    if (result.ok) return res.json(result.data);
+    if (result.ok) {
+      cachePrivate(res, 30);
+      return res.json(result.data);
+    }
     if (result.error === 'unplayed') return res.status(409).json({ error: 'You have not finished this zen daily yet' });
     if (result.error === 'opponent-missing') return res.status(404).json({ error: 'Opponent has not finished this zen daily' });
     return res.status(400).json({ error: 'Cannot compare with yourself' });
@@ -216,6 +232,7 @@ dailyZenRouter.get('/compare/:date', requireAuth, async (req, res) => {
 dailyZenRouter.get('/leaderboard/:date', async (req, res) => {
   try {
     const result = await getZenLeaderboard(getDb(), req.params.date, req.userId);
+    cachePrivate(res, 10);
     res.json(result);
   } catch (err) {
     console.error('Failed to fetch zen leaderboard:', err);

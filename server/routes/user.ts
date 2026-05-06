@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { getSupabaseAdmin } from '../supabaseAdmin.js';
+import { cachePrivate, noStore } from '../httpCache.js';
+import { setCachedDisplayName } from '../services/displayNames.js';
 
 export const userRouter = Router();
 
@@ -18,6 +20,7 @@ userRouter.get('/profile', requireAuth, async (req, res) => {
     }
 
     const displayName = data.user.user_metadata?.display_name || 'Anonymous';
+    cachePrivate(res, 60);
     res.json({ display_name: displayName });
   } catch (err) {
     console.error('Failed to fetch user profile:', err);
@@ -45,7 +48,10 @@ userRouter.put('/profile', requireAuth, async (req, res) => {
       return res.status(500).json({ error: 'Failed to update profile' });
     }
 
-    res.json({ display_name: data.user.user_metadata?.display_name || trimmed });
+    const displayName = data.user.user_metadata?.display_name || trimmed;
+    setCachedDisplayName(req.userId!, displayName);
+    noStore(res);
+    res.json({ display_name: displayName });
   } catch (err) {
     console.error('Failed to update user profile:', err);
     res.status(500).json({ error: 'Failed to update profile' });

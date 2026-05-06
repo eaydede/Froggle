@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { scoreWord } from 'engine/scoring.js';
 import { getDb } from '../db/index.js';
-import { getSupabaseAdmin } from '../supabaseAdmin.js';
 import { scoreWords } from '../services/DailyService.js';
 import { getDailyNumber } from '../services/dailyConfig.js';
+import { getDisplayNames } from '../services/displayNames.js';
+import { cachePrivate } from '../httpCache.js';
 
 export const leaderboardRouter = Router();
 
@@ -16,7 +17,6 @@ leaderboardRouter.get('/:date', async (req, res) => {
 
   try {
     const db = getDb();
-    const admin = getSupabaseAdmin();
 
     const results = await db
       .selectFrom('daily_results')
@@ -27,6 +27,7 @@ leaderboardRouter.get('/:date', async (req, res) => {
     const totalPlayers = results.length;
 
     if (totalPlayers === 0) {
+      cachePrivate(res, 10);
       return res.json({
         puzzleNumber: getDailyNumber(date),
         totalPlayers: 0,
@@ -35,15 +36,7 @@ leaderboardRouter.get('/:date', async (req, res) => {
       });
     }
 
-    const userMap = new Map<string, string>();
-    await Promise.all(results.map(async (r) => {
-      try {
-        const { data } = await admin.auth.admin.getUserById(r.user_id);
-        userMap.set(r.user_id, data.user?.user_metadata?.display_name || 'Anonymous');
-      } catch {
-        userMap.set(r.user_id, 'Anonymous');
-      }
-    }));
+    const userMap = await getDisplayNames(results.map((r) => r.user_id));
 
     const wordCounts = new Map<string, number>();
     const parsedResults = results.map((r) => {
@@ -159,6 +152,7 @@ leaderboardRouter.get('/:date', async (req, res) => {
       ? 0
       : Math.round(scored.reduce((sum, p) => sum + p.points, 0) / scored.length);
 
+    cachePrivate(res, 10);
     res.json({
       puzzleNumber: getDailyNumber(date),
       totalPlayers,

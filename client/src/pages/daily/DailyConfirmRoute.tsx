@@ -63,7 +63,7 @@ export function DailyConfirmRoute() {
   useEffect(() => {
     if (mockFixture || !authReady) return;
     let cancelled = false;
-    fetchDailyStats()
+    fetchDailyStats({ definitions: false })
       .then((stats) => {
         if (cancelled) return;
         const today = stats.days[stats.days.length - 1];

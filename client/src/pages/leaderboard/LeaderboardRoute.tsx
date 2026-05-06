@@ -45,7 +45,7 @@ export function LeaderboardRoute() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDailyStats().then(setStats);
+    fetchDailyStats({ definitions: false }).then(setStats);
   }, []);
 
   useEffect(() => {
