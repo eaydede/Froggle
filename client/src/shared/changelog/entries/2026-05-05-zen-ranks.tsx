@@ -8,11 +8,8 @@ const entry: ChangelogEntry = {
   body: (
     <>
       <p>
-        Zen daily now has five ranks — <strong>Scribe</strong>,{' '}
-        <strong>Wordsmith</strong>, <strong>Linguist</strong>,{' '}
-        <strong>Virtuoso</strong>, and <strong>Legend</strong> — that you
-        earn as your score grows. A small celebration plays when you
-        cross into a new rank.
+        Zen daily now has five ranks that you
+        earn as your score grows!
       </p>
       <p>
         Tap the rank bar above the board to see the full ladder and how
