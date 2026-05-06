@@ -165,6 +165,7 @@ dailyZenRouter.get('/results/:date', requireAuth, async (req, res) => {
         ended_at: session.ended_at,
         ended_by_player: session.ended_by_player,
         is_competitive: session.is_competitive,
+        theoretical_max_score: session.theoretical_max_score,
       },
     });
   } catch (err) {

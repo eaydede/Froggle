@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useGame, type ZenModeChoice } from '../../GameContext';
 import { Board, type FeedbackType, computeFeedbackColors } from '../game/components';
 import { InkButton } from '../../shared/components/InkButton';
@@ -11,6 +11,9 @@ import {
   startDailyZenSession,
 } from '../../shared/api/gameApi';
 import { TeaIcon, TrophyIcon, ZenModeBadge } from './components/ZenModeBadge';
+import { RankStrip } from './components/RankStrip';
+import { useZenRankCelebration } from './components/useZenRankCelebration';
+import { ZEN_RANKS } from 'models/zenRanks';
 
 type WordSort = 'recent' | 'score';
 
@@ -27,6 +30,7 @@ const BOARD_STYLE = {
 
 export function ZenGameRoute() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const {
     cachedDailyZen,
     cachedDailyZenSession: session,
@@ -48,6 +52,46 @@ export function ZenGameRoute() {
   const [isFading, setIsFading] = useState(false);
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { celebrating, seed: seedCelebration } = useZenRankCelebration(
+    session?.points ?? 0,
+    session?.theoretical_max_score ?? null,
+  );
+
+  // Dev-only fixture: ?mockCross=<rank-id> drops the local session into the
+  // band just below the target rank and bumps points across after a short
+  // delay so the real celebration hook fires the same way it would on a
+  // genuine word submission. Lets Playwright (and humans) capture the
+  // animation reliably without coercing real gameplay through the board.
+  // Re-runs the celebration sub-hook reset whenever the param changes so
+  // the same page can be tested repeatedly via client-side navigation.
+  const mockCrossParam = import.meta.env.DEV ? searchParams.get('mockCross') : null;
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    if (!session) return;
+    const max = session.theoretical_max_score;
+    if (!max) return;
+    if (!mockCrossParam) return;
+
+    const targetIdx = ZEN_RANKS.findIndex((r) => r.id === mockCrossParam);
+    if (targetIdx < 0) return;
+    const target = ZEN_RANKS[targetIdx];
+    const prev = targetIdx > 0 ? ZEN_RANKS[targetIdx - 1] : null;
+    const startPoints = prev ? Math.ceil(prev.threshold * max) : 0;
+    const crossPoints = Math.ceil(target.threshold * max);
+
+    // Seed the celebration hook to the rank just below the target so the
+    // initial points jump (0 → startPoints) doesn't fire a celebration of
+    // the wrong rank. The bump 2s later then crosses cleanly into target.
+    seedCelebration(targetIdx - 1);
+    setCachedDailyZenSession({ ...session, points: startPoints });
+    const captured = { ...session, points: crossPoints };
+    const id = setTimeout(() => setCachedDailyZenSession(captured), 2000);
+    return () => clearTimeout(id);
+    // Intentional: re-run whenever the dev fixture parameter changes; the
+    // session ref captured here is fine because we only read its identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mockCrossParam, session?.date]);
 
   const handleCurrentWordChange = useCallback((word: string) => {
     if (word) {
@@ -142,6 +186,12 @@ export function ZenGameRoute() {
         colors={colors}
       />
 
+      <RankStrip
+        points={session.points}
+        maxScore={session.theoretical_max_score}
+        celebrating={celebrating}
+      />
+
       <div className="w-full">
         <Board
           board={cachedDailyZen.board}
@@ -168,7 +218,11 @@ export function ZenGameRoute() {
         onToggleMute={toggleMute}
       />
 
-      <FoundWordsList words={session.found_words} />
+      <FoundWordsList
+        words={session.found_words}
+        points={session.points}
+        wordCount={session.word_count}
+      />
 
       {showEndConfirm && (
         <EndConfirmModal
@@ -340,7 +394,7 @@ function ScoreHeader({
   return (
     <div
       className="grid items-center gap-2.5 pt-3.5 shrink-0"
-      style={{ gridTemplateColumns: '32px 1fr auto' }}
+      style={{ gridTemplateColumns: '32px 1fr 32px' }}
     >
       <IconAction onClick={onBack} label="Back to home">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -361,14 +415,11 @@ function ScoreHeader({
           {words} {words === 1 ? 'word' : 'words'}
         </span>
       </div>
-      <button
-        type="button"
-        onClick={onEnd}
-        className="px-3 h-8 rounded-[10px] text-[11px] uppercase tracking-[0.08em] text-[color:var(--ink-muted)] hover:text-[color:var(--ink)] hover:bg-[var(--ink-whisper)] bg-transparent border-none transition-colors duration-200 cursor-pointer font-[family-name:var(--font-structure)]"
-        style={{ fontWeight: 700, WebkitTapHighlightColor: 'transparent' }}
-      >
-        End
-      </button>
+      <IconAction onClick={onEnd} label="End puzzle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 6L6 18M6 6l12 12" />
+        </svg>
+      </IconAction>
     </div>
   );
 }
@@ -412,15 +463,24 @@ function CurrentWordBanner({
   );
 }
 
-function FoundWordsList({ words }: { words: string[] }) {
+function FoundWordsList({
+  words,
+  points,
+  wordCount,
+}: {
+  words: string[];
+  /** Authoritative run totals from the session row. Falls back to deriving
+   *  from `words` when omitted; in the zen play HUD the session is the
+   *  source of truth. */
+  points?: number;
+  wordCount?: number;
+}) {
   const [sort, setSort] = useState<WordSort>('recent');
   const [expanded, setExpanded] = useState(false);
-  const listRef = useRef<HTMLDivElement>(null);
-  const [atBottom, setAtBottom] = useState(false);
 
   // 'recent' uses the order words were found in (last → first). 'score' ranks
   // by point value, with longer words ahead on a tie so high-effort finds
-  // surface above filler.
+  // surface above filler. Ordering only matters when the modal is open.
   const ordered = useMemo(() => {
     if (sort === 'recent') return [...words].reverse();
     return [...words].sort(
@@ -428,22 +488,9 @@ function FoundWordsList({ words }: { words: string[] }) {
     );
   }, [words, sort]);
 
-  const updateFade = () => {
-    const el = listRef.current;
-    if (!el) return;
-    setAtBottom(el.scrollHeight - el.clientHeight - el.scrollTop < 2);
-  };
-
-  useLayoutEffect(updateFade, [ordered]);
-
-  useEffect(() => {
-    const el = listRef.current;
-    if (!el) return;
-    el.addEventListener('scroll', updateFade);
-    return () => el.removeEventListener('scroll', updateFade);
-  }, []);
-
-  const total = words.reduce((sum, w) => sum + scoreWord(w), 0);
+  const derivedTotal = words.reduce((sum, w) => sum + scoreWord(w), 0);
+  const total = points ?? derivedTotal;
+  const headerCount = wordCount ?? words.length;
   const empty = words.length === 0;
   const handleExpand = () => {
     if (!empty) setExpanded(true);
@@ -451,66 +498,56 @@ function FoundWordsList({ words }: { words: string[] }) {
 
   return (
     <>
-      <div
+      <button
+        type="button"
         onClick={handleExpand}
-        role={empty ? undefined : 'button'}
-        tabIndex={empty ? undefined : 0}
-        onKeyDown={
-          empty
-            ? undefined
-            : (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleExpand();
-                }
-              }
-        }
-        aria-label={empty ? undefined : 'Expand found words'}
+        disabled={empty}
+        aria-label={empty ? 'No words found yet' : 'Expand found words'}
         className={[
-          'w-full mt-3 flex-1 min-h-0 flex flex-col rounded-xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] overflow-hidden',
-          empty ? '' : 'cursor-pointer hover:border-[var(--ink-border)] transition-colors duration-150',
+          'w-full mt-3 flex items-center justify-between gap-3 rounded-xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] px-3.5 py-2.5 shrink-0 font-[family-name:var(--font-structure)]',
+          empty
+            ? 'opacity-70 cursor-default'
+            : 'cursor-pointer hover:border-[var(--ink-border)] transition-colors duration-150',
         ].join(' ')}
         style={{ WebkitTapHighlightColor: 'transparent' }}
       >
-        <SectionHeader
-          count={words.length}
-          total={total}
-          sort={sort}
-          onSortChange={setSort}
-          showExpand={!empty}
-          onExpand={handleExpand}
-        />
-        {empty ? (
-          <div
-            className="px-3 py-3 text-[11px] text-[color:var(--ink-soft)] text-center"
-            style={{ fontWeight: 500 }}
+        <span
+          className="text-[10px] uppercase tracking-[0.1em] text-[color:var(--ink-muted)] tabular-nums"
+          style={{ fontWeight: 700 }}
+        >
+          Found
+          <span className="ml-1.5 text-[color:var(--ink)]">{headerCount}</span>
+        </span>
+        <span
+          className="text-[10px] uppercase tracking-[0.08em] text-[color:var(--ink-soft)] tabular-nums ml-auto"
+          style={{ fontWeight: 600 }}
+        >
+          {total} pts
+        </span>
+        {!empty && (
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+            className="text-[color:var(--ink-faint)] shrink-0"
           >
-            Find your first word to get started.
-          </div>
-        ) : (
-          <div
-            ref={listRef}
-            className="flex-1 min-h-0 overflow-y-auto"
-            style={{
-              WebkitMaskImage: atBottom
-                ? 'none'
-                : 'linear-gradient(to bottom, black calc(100% - 14px), transparent 100%)',
-              maskImage: atBottom
-                ? 'none'
-                : 'linear-gradient(to bottom, black calc(100% - 14px), transparent 100%)',
-              scrollbarWidth: 'thin',
-            }}
-          >
-            {ordered.map((w, i) => (
-              <WordRow key={w} word={w} first={i === 0} />
-            ))}
-          </div>
+            <polyline points="15 3 21 3 21 9" />
+            <polyline points="9 21 3 21 3 15" />
+            <line x1="21" y1="3" x2="14" y2="10" />
+            <line x1="3" y1="21" x2="10" y2="14" />
+          </svg>
         )}
-      </div>
+      </button>
       <ExpandedWordsModal
         open={expanded}
         ordered={ordered}
-        count={words.length}
+        count={headerCount}
         total={total}
         sort={sort}
         onSortChange={setSort}
@@ -617,82 +654,6 @@ function ExpandedWordsModal({
         </div>
       </div>
     </>
-  );
-}
-
-function SectionHeader({
-  count,
-  total,
-  sort,
-  onSortChange,
-  showExpand = false,
-  onExpand,
-  showClose = false,
-  onClose,
-}: {
-  count: number;
-  total: number;
-  sort: WordSort;
-  onSortChange: (v: WordSort) => void;
-  showExpand?: boolean;
-  onExpand?: () => void;
-  showClose?: boolean;
-  onClose?: () => void;
-}) {
-  // SortToggle is wrapped so its clicks don't bubble to the inline card's
-  // expand handler. Same for the expand/close icons — they own their own
-  // tap targets and intentionally stop propagation.
-  return (
-    <div
-      className="flex justify-between items-center px-3 py-[9px] text-label-xs uppercase tracking-[0.08em] text-[color:var(--ink-muted)] bg-[var(--ink-whisper)] leading-none font-[family-name:var(--font-structure)] shrink-0"
-      style={{ fontWeight: 700 }}
-    >
-      <span>
-        Found
-        <span className="tabular-nums"> · {count}</span>
-      </span>
-      <div className="flex items-center gap-2">
-        <span onClick={(e) => e.stopPropagation()}>
-          <SortToggle value={sort} onChange={onSortChange} />
-        </span>
-        <span className="tabular-nums">{total}</span>
-        {showExpand && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onExpand?.();
-            }}
-            aria-label="Expand found words"
-            className="bg-transparent border-none p-0.5 -mr-0.5 cursor-pointer text-[color:var(--ink-muted)] hover:text-[color:var(--ink)] transition-colors duration-150"
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <polyline points="15 3 21 3 21 9" />
-              <polyline points="9 21 3 21 3 15" />
-              <line x1="21" y1="3" x2="14" y2="10" />
-              <line x1="3" y1="21" x2="10" y2="14" />
-            </svg>
-          </button>
-        )}
-        {showClose && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose?.();
-            }}
-            aria-label="Close"
-            className="bg-transparent border-none p-0.5 -mr-0.5 cursor-pointer text-[color:var(--ink-muted)] hover:text-[color:var(--ink)] transition-colors duration-150"
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
-        )}
-      </div>
-    </div>
   );
 }
 

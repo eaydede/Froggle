@@ -355,6 +355,9 @@ export interface DailyZenSession {
   is_competitive: boolean;
   /** Total findable words on this board — server computed each fetch. */
   total_findable: number;
+  /** Sum of every findable word's score on this board. Locked at session
+   *  start. Null on legacy rows that predate the column. */
+  theoretical_max_score: number | null;
   /** Present while the session is playable; absent / empty after end. */
   salt: string;
   wordHashes: string[];
@@ -421,6 +424,9 @@ export interface DailyZenResultResponse {
   ended_at: string;
   ended_by_player: boolean;
   is_competitive: boolean;
+  /** Sum of every findable word's score on this board, locked at session
+   *  start. Null on legacy rows that predate the column. */
+  theoretical_max_score: number | null;
 }
 
 export const fetchDailyZenResult = async (

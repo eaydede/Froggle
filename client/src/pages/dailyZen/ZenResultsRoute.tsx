@@ -23,6 +23,9 @@ import { useShareText } from '../results/hooks/useShareText';
 import { generateShareText } from '../results/utils/shareResults';
 import { formatDateLabel } from '../../shared/utils/formatDate';
 import { ZenModeBadge } from './components/ZenModeBadge';
+import { RankCrown } from './components/RankCrown';
+import { RankLadderSheet } from './components/RankLadderSheet';
+import { getZenRank } from 'models/zenRanks';
 
 function getTodayPST(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
@@ -57,6 +60,7 @@ export function ZenResultsRoute() {
 
   const [stats, setStats] = useState<DailyZenStatsResponse | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [ladderOpen, setLadderOpen] = useState(false);
 
   useEffect(() => {
     if (!authReady || !dailyZenLoaded || !targetDate) return;
@@ -110,6 +114,11 @@ export function ZenResultsRoute() {
       words: result.found_words.length,
     };
   }, [result]);
+
+  const rank = useMemo(() => {
+    if (!result?.theoretical_max_score) return null;
+    return getZenRank(totals.points, result.theoretical_max_score);
+  }, [result?.theoretical_max_score, totals.points]);
 
   const handleHighlight = (word: string | null, path: Position[] | null) => {
     setHighlightedWord(word);
@@ -172,6 +181,11 @@ export function ZenResultsRoute() {
           words={totals.words}
           primary="points"
           accessory={<ZenModeBadge isCompetitive={result.is_competitive} />}
+          crown={
+            rank && result.theoretical_max_score ? (
+              <RankCrown rank={rank} onClick={() => setLadderOpen(true)} />
+            ) : undefined
+          }
         />
 
         <div
@@ -226,6 +240,15 @@ export function ZenResultsRoute() {
         todayDate={getTodayPST()}
         disableMissed
       />
+
+      {result.theoretical_max_score && (
+        <RankLadderSheet
+          open={ladderOpen}
+          onClose={() => setLadderOpen(false)}
+          points={totals.points}
+          maxScore={result.theoretical_max_score}
+        />
+      )}
     </div>
   );
 }
