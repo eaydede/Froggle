@@ -79,5 +79,4 @@ This is the paper trail. Do not add ADR files or "why" comments in code.
 
 ## Known gaps
 
-- No test framework configured. Ask before adding one.
 - No linter/formatter beyond TypeScript. Ask before adding ESLint/Prettier.

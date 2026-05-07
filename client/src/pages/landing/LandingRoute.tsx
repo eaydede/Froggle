@@ -32,6 +32,7 @@ export function LandingRoute() {
     createGame,
     setDailyInfo,
     displayName,
+    nameProfile,
     updateDisplayName,
     theme,
     toggleTheme,
@@ -151,7 +152,16 @@ export function LandingRoute() {
         zenSession={mockFixture.zenSession ?? null}
         zenRank={null}
         displayName={mockFixture.displayName}
-        onDisplayNameChange={() => {}}
+        nameProfile={null}
+        onDisplayNameChange={async () => ({ ok: true as const, profile: {
+          display_name: mockFixture.displayName,
+          public_name: mockFixture.displayName,
+          is_marked: false,
+          is_locked: false,
+          locked_until: null,
+          mask_name: mockFixture.displayName,
+          strikes: 0,
+        } })}
         onDailyPlay={() => {}}
         onDailySeeResult={() => {}}
         onDailyLeaderboard={() => {}}
@@ -202,6 +212,7 @@ export function LandingRoute() {
       zenSession={cachedDailyZenSession}
       zenRank={zenRank}
       displayName={displayName}
+      nameProfile={nameProfile}
       onDisplayNameChange={updateDisplayName}
       onDailyPlay={handleDailyPlay}
       onDailySeeResult={handleDailySeeResult}

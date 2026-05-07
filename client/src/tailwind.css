@@ -75,6 +75,7 @@ button, input, select, textarea {
   --score-11-shadow-dot: rgba(212, 160, 48, 0.4);
   --score-fallback: #8BA89B;
   --accent-gold: #F5C518;
+  --accent-warning: #F59E0B;
 
   /* Font families — single source of truth */
   --font-serif: "Merriweather", Georgia, serif;

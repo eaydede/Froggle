@@ -1,13 +1,15 @@
 import { ChangelogControl } from "./ChangelogControl";
 import { ProfileAvatar } from "./ProfileAvatar";
+import type { ProfileResponse, UpdateProfileResult } from "../../../shared/api/gameApi";
 
 interface AppHeaderProps {
   dateLabel: string;
   displayName: string;
-  onDisplayNameChange: (name: string) => void;
+  nameProfile: ProfileResponse | null;
+  onDisplayNameChange: (name: string) => Promise<UpdateProfileResult>;
 }
 
-export function AppHeader({ dateLabel, displayName, onDisplayNameChange }: AppHeaderProps) {
+export function AppHeader({ dateLabel, displayName, nameProfile, onDisplayNameChange }: AppHeaderProps) {
   return (
     <div className="flex flex-col items-center gap-3 pt-[18px] pb-[22px]">
       <div className="w-full flex justify-between items-center">
@@ -21,7 +23,11 @@ export function AppHeader({ dateLabel, displayName, onDisplayNameChange }: AppHe
           <span className="inline-block w-[5px] h-[5px] rounded-full bg-[var(--logo-dot)] ml-[2px] align-baseline mb-[3px]" />
         </div>
 
-        <ProfileAvatar displayName={displayName} onSave={onDisplayNameChange} />
+        <ProfileAvatar
+          displayName={displayName}
+          nameProfile={nameProfile}
+          onSave={onDisplayNameChange}
+        />
       </div>
 
       <span

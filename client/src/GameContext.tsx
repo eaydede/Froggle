@@ -10,7 +10,7 @@ import { useFeedbackSounds } from './pages/game';
 import type { FeedbackType } from './pages/game';
 import type { GameResults } from './shared/types';
 import { scoreWord } from './shared/utils/score';
-import type { DailyInfo, DailyZenMeta, DailyZenSession } from './shared/api/gameApi';
+import type { DailyInfo, DailyZenMeta, DailyZenSession, ProfileResponse, UpdateProfileResult } from './shared/api/gameApi';
 import {
   fetchDaily,
   recordDailyResultToServer,
@@ -106,7 +106,8 @@ interface GameContextValue {
 
   // Profile
   displayName: string;
-  updateDisplayName: (name: string) => Promise<void>;
+  nameProfile: ProfileResponse | null;
+  updateDisplayName: (name: string) => Promise<UpdateProfileResult>;
 }
 
 const GameContext = createContext<GameContextValue | null>(null);
@@ -147,10 +148,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   // Profile
   const [displayName, setDisplayName] = useState('Anonymous');
+  const [nameProfile, setNameProfile] = useState<ProfileResponse | null>(null);
 
-  const updateDisplayName = async (name: string) => {
-    setDisplayName(name);
-    await updateProfile(name);
+  const applyProfile = (profile: ProfileResponse) => {
+    setNameProfile(profile);
+    setDisplayName(profile.display_name || 'Anonymous');
+  };
+
+  const updateDisplayName = async (name: string): Promise<UpdateProfileResult> => {
+    const result = await updateProfile(name);
+    if (result.ok) applyProfile(result.profile);
+    return result;
   };
 
   const authInitRef = useRef(false);
@@ -188,7 +196,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!authReady) return;
     fetchProfile()
-      .then(({ display_name }) => { if (display_name) setDisplayName(display_name); })
+      .then((profile) => applyProfile(profile))
       .catch(() => {}); // Fall back to default 'Anonymous'
   }, [authReady]);
 
@@ -486,7 +494,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       showHomeConfirm, setShowHomeConfirm,
       theme, toggleTheme,
       session, authReady,
-      displayName, updateDisplayName,
+      displayName, nameProfile, updateDisplayName,
     }}>
       <div data-theme={theme} className="contents">
         {children}
