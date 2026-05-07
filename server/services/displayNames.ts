@@ -1,10 +1,20 @@
 import { getSupabaseAdmin } from '../supabaseAdmin.js';
+import { renderPublicName } from './nameModeration.js';
 
 const ANONYMOUS = 'Anonymous';
-const DISPLAY_NAME_TTL_MS = 10 * 60 * 1000;
+const USER_TTL_MS = 10 * 60 * 1000;
 
-const cache = new Map<string, { displayName: string; expiresAt: number }>();
-const inFlight = new Map<string, Promise<string>>();
+interface UserState {
+  displayName: string;
+  lockedUntilMs: number | null;
+}
+
+interface CachedEntry extends UserState {
+  expiresAt: number;
+}
+
+const cache = new Map<string, CachedEntry>();
+const inFlight = new Map<string, Promise<UserState>>();
 
 function normalizeDisplayName(value: unknown): string {
   if (typeof value !== 'string') return ANONYMOUS;
@@ -12,36 +22,52 @@ function normalizeDisplayName(value: unknown): string {
   return trimmed.length > 0 ? trimmed : ANONYMOUS;
 }
 
-async function fetchDisplayName(userId: string): Promise<string> {
+function parseLockedUntil(value: unknown): number | null {
+  if (typeof value !== 'string') return null;
+  const ms = Date.parse(value);
+  return Number.isFinite(ms) ? ms : null;
+}
+
+async function fetchUserState(userId: string): Promise<UserState> {
   try {
     const { data } = await getSupabaseAdmin().auth.admin.getUserById(userId);
-    return normalizeDisplayName(data.user?.user_metadata?.display_name);
+    return {
+      displayName: normalizeDisplayName(data.user?.user_metadata?.display_name),
+      lockedUntilMs: parseLockedUntil(data.user?.app_metadata?.nameLockedUntil),
+    };
   } catch {
-    return ANONYMOUS;
+    return { displayName: ANONYMOUS, lockedUntilMs: null };
   }
 }
 
-export async function getDisplayName(userId: string): Promise<string> {
+async function getUserState(userId: string): Promise<UserState> {
   const now = Date.now();
   const cached = cache.get(userId);
-  if (cached && cached.expiresAt > now) return cached.displayName;
+  if (cached && cached.expiresAt > now) return cached;
   if (cached) cache.delete(userId);
 
   const existing = inFlight.get(userId);
   if (existing) return existing;
 
-  const pending = fetchDisplayName(userId).then((displayName) => {
-    cache.set(userId, {
-      displayName,
-      expiresAt: Date.now() + DISPLAY_NAME_TTL_MS,
-    });
-    return displayName;
+  const pending = fetchUserState(userId).then((state) => {
+    cache.set(userId, { ...state, expiresAt: Date.now() + USER_TTL_MS });
+    return state;
   }).finally(() => {
     inFlight.delete(userId);
   });
 
   inFlight.set(userId, pending);
   return pending;
+}
+
+export async function getDisplayName(userId: string): Promise<string> {
+  const state = await getUserState(userId);
+  return renderPublicName(
+    userId,
+    state.displayName,
+    { strikes: 0, lockedUntilMs: state.lockedUntilMs },
+    Date.now(),
+  );
 }
 
 export async function getDisplayNames(userIds: string[]): Promise<Map<string, string>> {
@@ -52,9 +78,6 @@ export async function getDisplayNames(userIds: string[]): Promise<Map<string, st
   return new Map(entries);
 }
 
-export function setCachedDisplayName(userId: string, displayName: string): void {
-  cache.set(userId, {
-    displayName: normalizeDisplayName(displayName),
-    expiresAt: Date.now() + DISPLAY_NAME_TTL_MS,
-  });
+export function invalidateDisplayName(userId: string): void {
+  cache.delete(userId);
 }

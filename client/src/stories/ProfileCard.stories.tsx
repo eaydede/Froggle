@@ -56,7 +56,22 @@ function InContextWrapper({ completed }: { completed: boolean }) {
         zenSession={null}
         zenRank={null}
         displayName={name}
-        onDisplayNameChange={setName}
+        nameProfile={null}
+        onDisplayNameChange={async (n) => {
+          setName(n);
+          return {
+            ok: true as const,
+            profile: {
+              display_name: n,
+              public_name: n,
+              is_marked: false,
+              is_locked: false,
+              locked_until: null,
+              mask_name: n,
+              strikes: 0,
+            },
+          };
+        }}
         onDailyPlay={fn()}
         onDailySeeResult={fn()}
         onDailyLeaderboard={fn()}

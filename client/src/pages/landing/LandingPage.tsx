@@ -7,7 +7,7 @@ import {
   ZenDailyCard,
 } from "./components";
 import type { DailyResults } from "./types";
-import type { DailyZenSession } from "../../shared/api/gameApi";
+import type { DailyZenSession, ProfileResponse, UpdateProfileResult } from "../../shared/api/gameApi";
 
 interface LandingPageProps {
   dateLabel: string;
@@ -18,7 +18,8 @@ interface LandingPageProps {
   zenSession: DailyZenSession | null;
   zenRank: number | null;
   displayName: string;
-  onDisplayNameChange: (name: string) => void;
+  nameProfile: ProfileResponse | null;
+  onDisplayNameChange: (name: string) => Promise<UpdateProfileResult>;
   onDailyPlay: () => void;
   onDailySeeResult: () => void;
   onDailyLeaderboard: () => void;
@@ -40,6 +41,7 @@ export function LandingPage({
   zenSession,
   zenRank,
   displayName,
+  nameProfile,
   onDisplayNameChange,
   onDailyPlay,
   onDailySeeResult,
@@ -60,6 +62,7 @@ export function LandingPage({
         <AppHeader
           dateLabel={dateLabel}
           displayName={displayName}
+          nameProfile={nameProfile}
           onDisplayNameChange={onDisplayNameChange}
         />
 
