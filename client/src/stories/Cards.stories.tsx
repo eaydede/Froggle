@@ -39,7 +39,6 @@ function DailyStory({ completed }: { completed: boolean }) {
     <div className="flex gap-8">
       <PaperFrame theme="light">
         <DailyCard
-          streak={9}
           config={{ boardSize: 5, timeLimit: 120, minWordLength: 3 }}
           results={completed ? dailyResults : null}
           onPlay={fn()}
@@ -51,7 +50,6 @@ function DailyStory({ completed }: { completed: boolean }) {
       </PaperFrame>
       <PaperFrame theme="dark">
         <DailyCard
-          streak={9}
           config={{ boardSize: 5, timeLimit: 120, minWordLength: 3 }}
           results={completed ? dailyResults : null}
           onPlay={fn()}

@@ -1,4 +1,11 @@
-import { AppHeader, DailyCard, FreePlayCard, ZenDailyCard, ThemeTogglePill } from "./components";
+import {
+  AppHeader,
+  DailyCard,
+  FreePlayCard,
+  NextDailyHeader,
+  ThemeTogglePill,
+  ZenDailyCard,
+} from "./components";
 import type { DailyResults } from "./types";
 import type { DailyZenSession } from "../../shared/api/gameApi";
 
@@ -6,7 +13,6 @@ interface LandingPageProps {
   dateLabel: string;
   streak: number;
   dailyConfig: { boardSize: number; timeLimit: number; minWordLength: number };
-  zenConfig: { boardSize: number; minWordLength: number };
   dailyResults: DailyResults | null;
   dailyRank: number | null;
   zenSession: DailyZenSession | null;
@@ -29,7 +35,6 @@ export function LandingPage({
   dateLabel,
   streak,
   dailyConfig,
-  zenConfig,
   dailyResults,
   dailyRank,
   zenSession,
@@ -58,9 +63,10 @@ export function LandingPage({
           onDisplayNameChange={onDisplayNameChange}
         />
 
-        <div className="flex-1 flex flex-col justify-center gap-[14px]">
+        <div className="flex-1 flex flex-col justify-center gap-[10px]">
+          <NextDailyHeader streak={streak} />
+
           <DailyCard
-            streak={streak}
             config={dailyConfig}
             results={dailyResults}
             rank={dailyRank}
@@ -70,7 +76,6 @@ export function LandingPage({
           />
           <ZenDailyCard
             session={zenSession}
-            config={zenConfig}
             rank={zenRank}
             onPlay={onZenPlay}
             onResume={onZenResume}

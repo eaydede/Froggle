@@ -51,7 +51,6 @@ function InContextWrapper({ completed }: { completed: boolean }) {
         dateLabel="Tue · Apr 21"
         streak={9}
         dailyConfig={{ boardSize: 5, timeLimit: 120, minWordLength: 3 }}
-        zenConfig={{ boardSize: 5, minWordLength: 3 }}
         dailyResults={results}
         dailyRank={null}
         zenSession={null}

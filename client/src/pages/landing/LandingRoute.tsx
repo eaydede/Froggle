@@ -146,7 +146,6 @@ export function LandingRoute() {
         dateLabel={mockFixture.dateLabel}
         streak={mockFixture.streak}
         dailyConfig={mockFixture.dailyConfig}
-        zenConfig={mockFixture.zenConfig}
         dailyResults={mockFixture.dailyResults}
         dailyRank={null}
         zenSession={mockFixture.zenSession ?? null}
@@ -198,7 +197,6 @@ export function LandingRoute() {
       dateLabel={formatToday(cachedDaily.date)}
       streak={stats?.currentStreak ?? 0}
       dailyConfig={cachedDaily.config}
-      zenConfig={cachedDailyZen.config}
       dailyResults={dailyResultsData}
       dailyRank={dailyRank}
       zenSession={cachedDailyZenSession}
