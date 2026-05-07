@@ -26,20 +26,29 @@ import { getDailyDatePST } from '../services/dailyConfig.js';
 
 export const dailyZenRouter = Router();
 
-dailyZenRouter.get('/', (_req, res) => {
+const solvedBoardCache = new Map<string, { totalFindable: number; words: string[] }>();
+
+function getZenDailyPayload() {
   const date = getDailyDatePST();
   const number = getDailyZenNumber(date);
   const seed = getDailyZenSeed(date);
   const config = getDailyZenConfig(date);
   const board = generateSeededBoard(config.boardSize, seed);
+  return { date, number, seed, board, config };
+}
+
+dailyZenRouter.get('/meta', (_req, res) => {
+  cachePublic(res, 60);
+  res.json(getZenDailyPayload());
+});
+
+dailyZenRouter.get('/', (_req, res) => {
+  const payload = getZenDailyPayload();
+  const { date, board } = payload;
   const { salt, wordHashes } = solveBoard(board, date);
   cachePublic(res, 60);
   res.json({
-    date,
-    number,
-    seed,
-    board,
-    config,
+    ...payload,
     salt,
     wordHashes,
   });
@@ -53,11 +62,20 @@ function solveBoard(board: string[][], date: string): {
   salt: string;
   wordHashes: string[];
 } {
+  const key = `${date}:${board.flat().join('')}`;
   const minWordLength = getDailyZenConfig(date).minWordLength;
-  const all = findAllWords(board, dictionary, minWordLength);
+  let solved = solvedBoardCache.get(key);
+  if (!solved) {
+    const all = findAllWords(board, dictionary, minWordLength);
+    solved = {
+      totalFindable: all.length,
+      words: all.map((w) => w.word),
+    };
+    solvedBoardCache.set(key, solved);
+  }
   const salt = generateSalt();
-  const wordHashes = all.map((w) => hashWord(w.word, salt));
-  return { totalFindable: all.length, salt, wordHashes };
+  const wordHashes = solved.words.map((word) => hashWord(word, salt));
+  return { totalFindable: solved.totalFindable, salt, wordHashes };
 }
 
 // Returns the player's session for today (or whatever date they ask for).

@@ -10,14 +10,14 @@ import { useFeedbackSounds } from './pages/game';
 import type { FeedbackType } from './pages/game';
 import type { GameResults } from './shared/types';
 import { scoreWord } from './shared/utils/score';
-import type { DailyInfo, DailyZenInfo, DailyZenSession } from './shared/api/gameApi';
+import type { DailyInfo, DailyZenMeta, DailyZenSession } from './shared/api/gameApi';
 import {
   fetchDaily,
   recordDailyResultToServer,
   fetchDailyResult,
   fetchProfile,
   updateProfile,
-  fetchDailyZen,
+  fetchDailyZenMeta,
   fetchDailyZenSession,
   submitDailyZenWord,
 } from './shared/api/gameApi';
@@ -58,7 +58,7 @@ interface GameContextValue {
   refreshDaily: () => Promise<DailyInfo>;
 
   // Zen Daily
-  cachedDailyZen: DailyZenInfo | null;
+  cachedDailyZen: DailyZenMeta | null;
   cachedDailyZenSession: DailyZenSession | null;
   dailyZenLoaded: boolean;
   setCachedDailyZenSession: (session: DailyZenSession | null) => void;
@@ -200,7 +200,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [dailyResultLoaded, setDailyResultLoaded] = useState(false);
 
   // Zen Daily state
-  const [cachedDailyZen, setCachedDailyZen] = useState<DailyZenInfo | null>(null);
+  const [cachedDailyZen, setCachedDailyZen] = useState<DailyZenMeta | null>(null);
   const [cachedDailyZenSession, setCachedDailyZenSession] = useState<DailyZenSession | null>(null);
   const [dailyZenLoaded, setDailyZenLoaded] = useState(false);
   const [lastZenModeChoice, setLastZenModeChoiceState] = useState<ZenModeChoice>(loadZenModeChoice);
@@ -220,15 +220,35 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Fetch today's daily info + result on mount (wait for auth to be ready)
-  // Also migrates any localStorage daily result to the server (one-time bridge for existing users)
+  // Fetch public daily puzzle data immediately. It does not need auth, so
+  // starting it before anonymous sign-in removes one startup waterfall from
+  // the landing splash.
   useEffect(() => {
-    if (!authReady) return;
-    fetchDaily().then(async (info) => {
-      setCachedDaily(info);
-      // Check if user has already played today
+    let cancelled = false;
+    fetchDaily()
+      .then((info) => {
+        if (!cancelled) setCachedDaily(info);
+      })
+      .catch(() => {
+        if (!cancelled) setDailyResultLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Fetch the user's daily result once auth and the public daily date are
+  // both available. Also migrates any localStorage daily result to the server
+  // as a one-time bridge for existing users.
+  useEffect(() => {
+    if (!authReady || !cachedDaily) return;
+    let cancelled = false;
+    setDailyResultLoaded(false);
+
+    (async () => {
       try {
-        const result = await fetchDailyResult(info.date);
+        const result = await fetchDailyResult(cachedDaily.date);
+        if (cancelled) return;
         if (result) {
           setCachedDailyResult(result);
           setDailyResultLoaded(true);
@@ -239,38 +259,65 @@ export function GameProvider({ children }: { children: ReactNode }) {
       }
 
       // Migration: if localStorage has a result for today, upload it to the server
-      const localResult = loadDailyResult(info.date);
+      const localResult = loadDailyResult(cachedDaily.date);
       if (localResult) {
         const wordStrings = localResult.foundWords.map(w => w.word);
         try {
-          await recordDailyResultToServer(info.date, wordStrings, localResult.board, info.config);
+          await recordDailyResultToServer(cachedDaily.date, wordStrings, localResult.board, cachedDaily.config);
+          if (cancelled) return;
           setCachedDailyResult({ found_words: wordStrings, board: localResult.board });
           // Clean up localStorage now that the result is persisted on the server
-          clearDailyResult(info.date);
+          clearDailyResult(cachedDaily.date);
         } catch (err) {
           console.warn('Failed to migrate localStorage daily result to server:', err);
         }
       }
-      setDailyResultLoaded(true);
-    }).catch(() => setDailyResultLoaded(true));
-  }, [authReady]);
+      if (!cancelled) setDailyResultLoaded(true);
+    })().catch(() => {
+      if (!cancelled) setDailyResultLoaded(true);
+    });
 
-  // Fetch zen daily puzzle + any in-progress / ended session for today.
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady, cachedDaily]);
+
+  // Fetch public zen puzzle data immediately. The authenticated session row
+  // is loaded separately below once auth is ready.
   useEffect(() => {
-    if (!authReady) return;
-    fetchDailyZen()
-      .then(async (info) => {
-        setCachedDailyZen(info);
-        try {
-          const session = await fetchDailyZenSession(info.date);
-          setCachedDailyZenSession(session);
-        } catch {
-          // ignore — landing falls back to "Play"
-        }
-        setDailyZenLoaded(true);
+    let cancelled = false;
+    fetchDailyZenMeta()
+      .then((info) => {
+        if (!cancelled) setCachedDailyZen(info);
       })
-      .catch(() => setDailyZenLoaded(true));
-  }, [authReady]);
+      .catch(() => {
+        if (!cancelled) setDailyZenLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!authReady || !cachedDailyZen) return;
+    let cancelled = false;
+    setDailyZenLoaded(false);
+
+    fetchDailyZenSession(cachedDailyZen.date)
+      .then((session) => {
+        if (!cancelled) setCachedDailyZenSession(session);
+      })
+      .catch(() => {
+        // ignore — landing falls back to "Play"
+      })
+      .finally(() => {
+        if (!cancelled) setDailyZenLoaded(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady, cachedDailyZen]);
 
   // Record daily results when a daily game is completed in the current session.
   // Skips if the result for this date has already been cached (either from a prior
@@ -348,10 +395,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const zenValidator = useWordValidator();
 
   useEffect(() => {
-    const salt = cachedDailyZenSession?.salt ?? cachedDailyZen?.salt ?? '';
-    const hashes = cachedDailyZenSession?.wordHashes ?? cachedDailyZen?.wordHashes ?? [];
+    const salt = cachedDailyZenSession?.salt ?? '';
+    const hashes = cachedDailyZenSession?.wordHashes ?? [];
     zenValidator.setSource(salt, hashes);
-  }, [cachedDailyZenSession?.salt, cachedDailyZenSession?.wordHashes, cachedDailyZen?.salt, cachedDailyZen?.wordHashes, zenValidator]);
+  }, [cachedDailyZenSession?.salt, cachedDailyZenSession?.wordHashes, zenValidator]);
 
   useEffect(() => {
     zenValidator.setSubmitted(cachedDailyZenSession?.found_words ?? []);
