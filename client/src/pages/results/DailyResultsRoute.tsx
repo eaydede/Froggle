@@ -234,6 +234,8 @@ export function DailyResultsRoute() {
       onClose={handleClose}
       onPlayAgain={handlePlayAgain}
       daily={daily}
+      findPercents={serverResult?.find_percents}
+      popularityStyle={serverResult?.find_percents ? 'inline' : undefined}
     />
   );
 }

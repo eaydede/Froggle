@@ -63,6 +63,8 @@ export function ResultsRoute() {
       onClose={handleClose}
       onPlayAgain={handlePlayAgain}
       daily={mockFixture?.daily}
+      findPercents={mockFixture?.findPercents}
+      popularityStyle={mockFixture?.popularityStyle}
     />
   );
 }

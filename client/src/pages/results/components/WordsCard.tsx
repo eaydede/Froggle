@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Position } from 'models';
 import type { ScoredWord } from '../../../shared/types';
 import { RARITY_VAR, wordRarity } from '../utils/wordRarity';
+import { formatPercent } from '../utils/formatPercent';
 
 interface WordsCardProps {
   foundWords: ScoredWord[];
@@ -12,6 +13,13 @@ interface WordsCardProps {
   showMissedTab?: boolean;
   highlightedWord?: string | null;
   onHighlightWord?: (word: string | null, path: Position[] | null) => void;
+  /** Per-word percentage of daily players who found it (0-100, uppercased
+   *  word as key). Rendered as an inline % in the All-words view when
+   *  popularityStyle is set. */
+  findPercents?: Record<string, number>;
+  /** Opt-in for the inline popularity column. Only takes effect in the
+   *  All-words view; the Found view stays uncluttered. */
+  popularityStyle?: 'inline';
 }
 
 type Mode = 'found' | 'missed';
@@ -22,6 +30,8 @@ export function WordsCard({
   showMissedTab = true,
   highlightedWord,
   onHighlightWord,
+  findPercents,
+  popularityStyle,
 }: WordsCardProps) {
   const [mode, setMode] = useState<Mode>('found');
   const listRef = useRef<HTMLDivElement>(null);
@@ -108,6 +118,8 @@ export function WordsCard({
             found={w.found}
             highlighted={highlightedWord === w.word}
             onTap={() => tapWord(w.word, w.path)}
+            findPercent={findPercents?.[w.word]}
+            popularityStyle={mode === 'missed' ? popularityStyle : undefined}
           />
         ))}
       </div>
@@ -159,6 +171,8 @@ function WordRow({
   found,
   highlighted,
   onTap,
+  findPercent,
+  popularityStyle,
 }: {
   word: string;
   score: number;
@@ -166,8 +180,11 @@ function WordRow({
   found: boolean;
   highlighted: boolean;
   onTap: () => void;
+  findPercent?: number;
+  popularityStyle?: 'inline';
 }) {
   const rarity = wordRarity(score);
+  const showInline = popularityStyle === 'inline' && findPercent !== undefined;
   return (
     <div
       onClick={onTap}
@@ -185,14 +202,24 @@ function WordRow({
         style={{ background: RARITY_VAR[rarity], opacity: found ? 1 : 0.45 }}
       />
       <span className="tabular-nums">{word}</span>
-      <span
-        className={[
-          'text-[11px] tabular-nums font-[family-name:var(--font-structure)]',
-          found ? 'text-[color:var(--ink-soft)]' : 'text-[color:var(--ink-faint)]',
-        ].join(' ')}
-        style={{ fontWeight: 700 }}
-      >
-        +{score}
+      <span className="flex items-baseline gap-1.5">
+        {showInline && (
+          <span
+            className="text-[10px] tabular-nums text-[color:var(--ink-faint)] font-[family-name:var(--font-structure)]"
+            style={{ fontWeight: 600 }}
+          >
+            {formatPercent(findPercent!)}
+          </span>
+        )}
+        <span
+          className={[
+            'text-[11px] tabular-nums font-[family-name:var(--font-structure)]',
+            found ? 'text-[color:var(--ink-soft)]' : 'text-[color:var(--ink-faint)]',
+          ].join(' ')}
+          style={{ fontWeight: 700 }}
+        >
+          +{score}
+        </span>
       </span>
     </div>
   );

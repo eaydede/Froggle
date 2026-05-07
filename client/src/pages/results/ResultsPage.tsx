@@ -39,6 +39,10 @@ interface ResultsPageProps {
   /** Present only on daily results; swaps the Play again button for the
    *  leaderboard teaser and the center label for the date chip. */
   daily?: DailyResultsExtras;
+  /** Per-word popularity (% of daily players who found the word). Threaded
+   *  into WordsCard for the popularity affordance. */
+  findPercents?: Record<string, number>;
+  popularityStyle?: 'inline';
 }
 
 export function ResultsPage({
@@ -48,6 +52,8 @@ export function ResultsPage({
   onClose,
   onPlayAgain,
   daily,
+  findPercents,
+  popularityStyle,
 }: ResultsPageProps) {
   const [highlightedWord, setHighlightedWord] = useState<string | null>(null);
   const [highlightPath, setHighlightPath] = useState<Position[] | null>(null);
@@ -126,6 +132,8 @@ export function ResultsPage({
             showMissedTab={results.missedWords.length > 0}
             highlightedWord={highlightedWord}
             onHighlightWord={handleHighlight}
+            findPercents={findPercents}
+            popularityStyle={popularityStyle}
           />
         </div>
 

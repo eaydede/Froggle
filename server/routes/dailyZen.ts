@@ -23,6 +23,7 @@ import {
   getDailyZenNumber,
 } from '../services/dailyZenConfig.js';
 import { getDailyDatePST } from '../services/dailyConfig.js';
+import { getZenDailyWordPercents } from '../services/dailyWordStats.js';
 
 export const dailyZenRouter = Router();
 
@@ -185,6 +186,12 @@ dailyZenRouter.get('/results/:date', requireAuth, async (req, res) => {
       .map((w) => ({ word: w.word, path: w.path, score: scoreWord(w.word) }))
       .sort((a, b) => b.score - a.score || b.word.length - a.word.length);
 
+    const findPercents = await getZenDailyWordPercents(
+      getDb(),
+      session.date,
+      getDailyDatePST(),
+    );
+
     cachePrivate(res, 60);
     res.json({
       result: {
@@ -196,6 +203,7 @@ dailyZenRouter.get('/results/:date', requireAuth, async (req, res) => {
         ended_by_player: session.ended_by_player,
         is_competitive: session.is_competitive,
         theoretical_max_score: session.theoretical_max_score,
+        find_percents: findPercents,
       },
     });
   } catch (err) {

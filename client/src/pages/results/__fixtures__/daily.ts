@@ -35,7 +35,22 @@ export const dailyDefaultFixture: GameResults = {
     { word: 'ATE', score: 1, path: [] },
     { word: 'TAN', score: 1, path: [] },
   ],
-  missedWords: [],
+  missedWords: [
+    { word: 'CAPTAINS', score: 13, path: [] },
+    { word: 'PARTITION', score: 13, path: [] },
+    { word: 'ATTAIN', score: 5, path: [] },
+    { word: 'CARTON', score: 5, path: [] },
+    { word: 'ACTION', score: 5, path: [] },
+    { word: 'NATION', score: 5, path: [] },
+    { word: 'PLAIT', score: 3, path: [] },
+    { word: 'CAIRN', score: 3, path: [] },
+    { word: 'CLAIM', score: 3, path: [] },
+    { word: 'PITA', score: 2, path: [] },
+    { word: 'ICAP', score: 2, path: [] },
+    { word: 'ANT', score: 1, path: [] },
+    { word: 'NIP', score: 1, path: [] },
+    { word: 'OAR', score: 1, path: [] },
+  ],
 };
 
 export const dailyDefaultGame: Game = {
@@ -129,6 +144,41 @@ const pickerEntries: DailyEntry[] = [
     config: stubConfig,
   },
 ];
+
+// Stand-in popularity numbers — calibrated so the spread is plausible:
+// short common words near 90%+, mid-tier in the 30–60% range, the long
+// rare finds in the single digits or below 1%.
+export const dailyFindPercents: Record<string, number> = {
+  CAPTIONS: 0.4,
+  CAPTION: 4,
+  PATRON: 11,
+  TRAINS: 38,
+  STRAIN: 22,
+  TRAIN: 71,
+  STARE: 64,
+  PAINT: 58,
+  IRATE: 9,
+  TACIT: 2,
+  TRIO: 81,
+  RATE: 92,
+  ATE: 97,
+  TAN: 89,
+  // missed
+  CAPTAINS: 0.2,
+  PARTITION: 1,
+  ATTAIN: 14,
+  CARTON: 27,
+  ACTION: 49,
+  NATION: 36,
+  PLAIT: 6,
+  CAIRN: 3,
+  CLAIM: 31,
+  PITA: 44,
+  ICAP: 0.4,
+  ANT: 78,
+  NIP: 52,
+  OAR: 41,
+};
 
 export const dailyDefaultExtras: DailyResultsExtras = {
   dateLabel: 'Timed Daily · Tue, Apr 21',

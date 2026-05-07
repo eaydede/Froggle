@@ -244,6 +244,9 @@ export interface DailyResultResponse {
    *  but always present from the current endpoint. */
   missed_words?: DailyResultMissedWord[];
   config: DailyConfig;
+  /** Per-word percentage of today's daily players who found this word
+   *  (uppercase keys, 0–100). Drives the All-words popularity column. */
+  find_percents?: Record<string, number>;
 }
 
 export const fetchDailyResult = async (date: string): Promise<DailyResultResponse | null> => {
@@ -463,6 +466,9 @@ export interface DailyZenResultResponse {
   /** Sum of every findable word's score on this board, locked at session
    *  start. Null on legacy rows that predate the column. */
   theoretical_max_score: number | null;
+  /** Per-word percentage of finalized zen players who found this word
+   *  (uppercase keys, 0–100). Drives the All-words popularity column. */
+  find_percents?: Record<string, number>;
 }
 
 export const fetchDailyZenResult = async (
