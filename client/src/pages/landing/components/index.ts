@@ -3,5 +3,6 @@ export { ChangelogControl } from "./ChangelogControl";
 export { DailyCard } from "./DailyCard";
 export { ZenDailyCard } from "./ZenDailyCard";
 export { FreePlayCard } from "./FreePlayCard";
+export { NextDailyHeader } from "./NextDailyHeader";
 export { ProfileAvatar } from "./ProfileAvatar";
 export { ThemeTogglePill } from "./ThemeTogglePill";
