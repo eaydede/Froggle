@@ -8,6 +8,7 @@ import { getDb } from '../db/index.js';
 import { cachePrivate, cachePublic, noStore } from '../httpCache.js';
 import { dictionary } from '../services/dictionary.js';
 import { scoreResult, scoreWords, getDailyStats } from '../services/DailyService.js';
+import { getTimedDailyWordPercents } from '../services/dailyWordStats.js';
 import { getDisplayNames } from '../services/displayNames.js';
 import {
   DAILY_LAUNCH_DATE,
@@ -145,6 +146,12 @@ dailyRouter.get('/results/:date', requireAuth, async (req, res) => {
       .map((w) => ({ word: w.word, path: w.path, score: scoreWord(w.word) }))
       .sort((a, b) => b.score - a.score || b.word.length - a.word.length);
 
+    const findPercents = await getTimedDailyWordPercents(
+      db,
+      result.date,
+      getDailyDatePST(),
+    );
+
     cachePrivate(res, 60);
     res.json({
       result: {
@@ -154,6 +161,7 @@ dailyRouter.get('/results/:date', requireAuth, async (req, res) => {
         missed_words: missedWords,
         completed_at: result.completed_at,
         config,
+        find_percents: findPercents,
       },
     });
   } catch (err) {

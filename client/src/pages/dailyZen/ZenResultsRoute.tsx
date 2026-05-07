@@ -226,6 +226,8 @@ export function ZenResultsRoute() {
             showMissedTab={result.missed_words.length > 0}
             highlightedWord={highlightedWord}
             onHighlightWord={handleHighlight}
+            findPercents={result.find_percents}
+            popularityStyle={result.find_percents ? 'inline' : undefined}
           />
         </div>
 
