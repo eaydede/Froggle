@@ -39,6 +39,24 @@ describe('containsProfanity', () => {
     expect(containsProfanity('Basketball')).toBe(false);
   });
 
+  it('flags letter-by-letter obfuscations', () => {
+    expect(containsProfanity('D I C K')).toBe(true);
+    expect(containsProfanity('d i c k')).toBe(true);
+    expect(containsProfanity('D.I.C.K')).toBe(true);
+    expect(containsProfanity('D-I-C-K')).toBe(true);
+    expect(containsProfanity('D_I_C_K')).toBe(true);
+    expect(containsProfanity('F U C K')).toBe(true);
+    expect(containsProfanity('B I G   D I C K R R')).toBe(true);
+  });
+
+  it('does not flag legitimate names with initials', () => {
+    expect(containsProfanity('J K Rowling')).toBe(false);
+    expect(containsProfanity('J. R. R. Tolkien')).toBe(false);
+    expect(containsProfanity('A B Smith')).toBe(false);
+    expect(containsProfanity('U.S. Army')).toBe(false);
+    expect(containsProfanity('J.D. Power')).toBe(false);
+  });
+
   it('passes innocuous names', () => {
     expect(containsProfanity('Anonymous')).toBe(false);
     expect(containsProfanity('Cheerful Tadpole')).toBe(false);
