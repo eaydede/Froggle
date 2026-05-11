@@ -33,3 +33,12 @@ npm-debug.log*
 
 # Design mockups (local reference only, not source of truth)
 .mockups/
+
+# Calibration harness output (generated reports — keep local only)
+scripts/output/
+
+# SUBTLEX-US data files (used only by dev calibration tooling; not
+# redistributed — re-download from Ghent and run preprocess-subtlex.ts
+# if you need them for tuning. See scripts/data/README.md.)
+scripts/data/subtlex.tsv
+scripts/data/_tmp/
