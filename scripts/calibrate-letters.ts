@@ -783,7 +783,7 @@ function writeHtmlReport(
   // How to read
   lines.push(`<div class="intro">
     <h3>The goal</h3>
-    <p class="what">Replace the hardcoded Boggle dice with a tunable letter-pool generator that produces boards at least as good as the dice. Each <em>candidate</em> below is a different proposed pool; <strong>baseline_dice</strong> is the current production behavior we're trying to match or beat.</p>
+    <p class="what">Replace the hardcoded predecessor dice with a tunable letter-pool generator that produces boards at least as good as the dice. Each <em>candidate</em> below is a different proposed pool; <strong>baseline_dice</strong> is the current production behavior we're trying to match or beat.</p>
 
     <h3>What "good" means</h3>
     <p class="what">A good board has enough words to find, enough word-length variety, enough recognizable words (not just obscure dictionary entries), and a satisfying long-word ceiling. The metrics below each measure one of those dimensions.</p>

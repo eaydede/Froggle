@@ -11,9 +11,10 @@ pool, then shuffling all cells. Per-board pool counts and per-pool letter
 weights are tuned **per board size** (4×4, 5×5, 6×6) — each size has its
 own config.
 
-The model replaces the original Boggle dice. It ties or beats the dice on
-every metric the calibration harness measures (common-word count,
-length-6+ count, coverage, concentration) without using reject sampling.
+The model replaces the predecessor dice-based generator. It ties or beats
+that baseline on every metric the calibration harness measures (common-
+word count, length-6+ count, coverage, concentration) without using
+reject sampling.
 
 Production config lives in `engine/board.ts` as `SIZE_CONFIG`. That const
 is the source of truth. The interactive `/calibrate` test bench that
@@ -159,7 +160,7 @@ The original dice had one die with a bare Q and one die with a Qu tile.
 Bare Q is effectively a dead letter (no English words have a non-Qu Q
 without surrounding context). Merging Q faces into Qu doubles the Qu
 rate, which:
-- Matches the Boggle convention of always treating Q as part of Qu
+- Matches the standard word-game convention of always treating Q as part of Qu
 - Removes a dead-cell failure mode
 - Keeps the Qu rate close to the dice's effective rate (still ~17%/17%/42%
   per-board across sizes)
@@ -216,7 +217,7 @@ The calibration harness scores candidate models on these axes:
    Full instructions in `scripts/data/README.md`.
 
 All metrics evaluated at N=1000 boards minimum. The harness compares any
-candidate against `baseline_dice` (the historical Boggle dice generator).
+candidate against `baseline_dice` (the predecessor dice-based generator).
 
 ## How to change things safely
 
