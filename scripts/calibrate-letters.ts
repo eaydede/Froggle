@@ -351,6 +351,7 @@ interface AggregateResult {
   lenHistBoards: Record<string, number[]>;       // bucket -> per-board count
   commonLenHistBoards: Record<string, number[]>;
   suffixBoards: Record<string, number[]>;         // suffix -> per-board count of common words
+  tierBoards: Record<string, number[]>;           // tier -> per-board count of 4+ letter words at that SUBTLEX tier
   wordBoardCount: Map<string, number>;           // word -> # boards it appeared on
   samples: Array<{ board: Board; total: number; commonCount: number }>;
 }
@@ -374,6 +375,18 @@ function classifySuffix(word: string): string | null {
   return null;
 }
 
+// SUBTLEX-US Zipf tiers. 3-letter words excluded from tier counts.
+const TIERS = ['easy', 'medium', 'hard', 'impossible'] as const;
+
+function classifyTier(word: string, zipfMap: Map<string, number>): string | null {
+  if (word.length <= 3) return null;
+  const z = zipfMap.get(word);
+  if (z === undefined || z < 2) return 'impossible';
+  if (z < 3) return 'hard';
+  if (z < 4) return 'medium';
+  return 'easy';
+}
+
 function runCandidate(
   generator: (size: number) => Board,
   size: number,
@@ -382,14 +395,18 @@ function runCandidate(
   prefixes: Set<string>,
   common: Set<string>,
   n: number,
+  zipfMap?: Map<string, number>,
 ): AggregateResult {
   const suffixBoards: Record<string, number[]> = {};
   for (const s of SUFFIXES) suffixBoards[s] = [];
+  const tierBoards: Record<string, number[]> = {};
+  for (const t of TIERS) tierBoards[t] = [];
   const result: AggregateResult = {
     totals: [], commonCounts: [], commonFractions: [], longests: [], longSixPlus: [],
     lenHistBoards: { '3': [], '4': [], '5': [], '6': [], '7+': [] },
     commonLenHistBoards: { '3': [], '4': [], '5': [], '6': [], '7+': [] },
     suffixBoards,
+    tierBoards,
     wordBoardCount: new Map(),
     samples: [],
   };
@@ -403,6 +420,8 @@ function runCandidate(
     const commonLenHist: Record<string, number> = { '3': 0, '4': 0, '5': 0, '6': 0, '7+': 0 };
     const suffixHist: Record<string, number> = {};
     for (const s of SUFFIXES) suffixHist[s] = 0;
+    const tierHist: Record<string, number> = {};
+    for (const t of TIERS) tierHist[t] = 0;
     let total = 0, commonCount = 0, longest = 0, longSixPlus = 0;
     for (const w of words) {
       total++;
@@ -417,6 +436,10 @@ function runCandidate(
         const suf = classifySuffix(w);
         if (suf) suffixHist[suf]++;
       }
+      if (zipfMap) {
+        const t = classifyTier(w, zipfMap);
+        if (t) tierHist[t]++;
+      }
       result.wordBoardCount.set(w, (result.wordBoardCount.get(w) ?? 0) + 1);
     }
     result.totals.push(total);
@@ -429,6 +452,7 @@ function runCandidate(
       result.commonLenHistBoards[k].push(commonLenHist[k]);
     }
     for (const s of SUFFIXES) result.suffixBoards[s].push(suffixHist[s]);
+    for (const t of TIERS) result.tierBoards[t].push(tierHist[t]);
     if (sampleIdx.has(i)) result.samples.push({ board, total, commonCount });
   }
   return result;
@@ -541,6 +565,18 @@ function writeReport(
         const d = cc.diversity[bucket];
         lines.push(`| ${candName} | ${bucket} | ${pct(d.coverage)} (${d.distinctSeen}/${d.totalAvailable}) | ${pct(d.concentration)} |`);
       }
+    }
+    lines.push('');
+
+    lines.push('### SUBTLEX tier counts (median per board, 4+ letter words only)');
+    lines.push('');
+    lines.push(`| Candidate | ${TIERS.map(t => t).join(' | ')} |`);
+    lines.push(`|---|${TIERS.map(() => '---').join('|')}|`);
+    for (const candName of candidateOrder) {
+      const cc = results.get(candName)?.get(key);
+      if (!cc) continue;
+      const cells = TIERS.map(t => median(cc.result.tierBoards[t]).toFixed(0));
+      lines.push(`| ${candName} | ${cells.join(' | ')} |`);
     }
     lines.push('');
 
@@ -894,6 +930,32 @@ function writeHtmlReport(
     }
     lines.push('</div>');
 
+    // SUBTLEX tier counts per board (4+ letter words only).
+    lines.push('<h3>SUBTLEX tier counts per board (median, 4+ letters only)</h3>');
+    lines.push('<p class="note"><strong>Recognizability buckets.</strong> Each word a board produces gets classified by its SUBTLEX-US Zipf frequency: easy (≥4) / medium (3–4) / hard (2–3) / impossible (&lt;2 or not in SUBTLEX). 3-letter words are excluded — they\'re trivially attainable and shouldn\'t drive tuning. Use this to see how attainability-skewed each candidate is vs how varied.</p>');
+    let maxTier = 0;
+    for (const candName of candidateOrder) {
+      const cc = results.get(candName)?.get(key);
+      if (!cc) continue;
+      for (const t of TIERS) maxTier = Math.max(maxTier, median(cc.result.tierBoards[t]));
+    }
+    lines.push('<div class="grid2">');
+    for (let col = 0; col < 2; col++) {
+      lines.push('<div>');
+      const tList = TIERS.slice(col * 2, (col + 1) * 2);
+      for (const tier of tList) {
+        lines.push(`<div class="chart-title" style="margin-top:0.5rem">${tier}</div>`);
+        for (const candName of candidateOrder) {
+          const cc = results.get(candName)?.get(key);
+          if (!cc) continue;
+          const m = median(cc.result.tierBoards[tier]);
+          lines.push(simpleBarRow(candName, candName, m, maxTier, m.toFixed(0)));
+        }
+      }
+      lines.push('</div>');
+    }
+    lines.push('</div>');
+
     // Suffix counts — common words ending with each suffix, median per board.
     lines.push('<h3>Suffix counts per board (common words only, median; longest-match)</h3>');
     lines.push('<p class="note"><strong>Morphology density.</strong> How often each suffix pattern shows up in a typical board\'s common-word solutions. A board with more -ing / -ed / -er endings feels more "wordy" and rewards English speakers who can spot the patterns. Each word counts toward its <em>longest</em> matching suffix (WALKERS → -ers, not -er).</p>');
@@ -944,6 +1006,19 @@ async function main() {
 
   const commonByBucket: Record<string, number> = { '3': 0, '4': 0, '5': 0, '6': 0, '7+': 0 };
   for (const w of common) commonByBucket[lengthBucket(w.length)]++;
+
+  console.log('Loading SUBTLEX-US Zipf scores...');
+  const subtlexRaw = fs.readFileSync(path.join(REPO_ROOT, 'scripts/data/subtlex.tsv'), 'utf-8');
+  const zipfMap = new Map<string, number>();
+  for (const line of subtlexRaw.split('\n')) {
+    if (!line) continue;
+    const tab = line.indexOf('\t');
+    if (tab < 0) continue;
+    const w = line.slice(0, tab);
+    const z = parseFloat(line.slice(tab + 1));
+    if (Number.isFinite(z)) zipfMap.set(w, z);
+  }
+  console.log(`  ${zipfMap.size} SUBTLEX words (intersected with enable1)`);
 
   const candidates: Array<{ name: string; generator: (size: number) => Board }> = [
     { name: 'baseline_dice', generator: (size) => generateBoard(size) },
@@ -1005,7 +1080,7 @@ async function main() {
     for (const combo of COMBOS) {
       const key = `${combo.size}x${combo.size}_min${combo.minLen}`;
       const t1 = Date.now();
-      const result = runCandidate(cand.generator, combo.size, combo.minLen, dict, prefixes, common, N_BOARDS);
+      const result = runCandidate(cand.generator, combo.size, combo.minLen, dict, prefixes, common, N_BOARDS, zipfMap);
       const diversity: Record<string, DiversityRow> = {};
       for (const bucket of ['4','5','6','7+'] as const) {
         diversity[bucket] = computeDiversity(result, common, commonByBucket, bucket);
