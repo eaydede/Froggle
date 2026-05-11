@@ -505,6 +505,24 @@ interface ComboRun {
   diversity: Record<string, DiversityRow>;
 }
 
+// Tier data is only populated when SUBTLEX is available. Detect by checking
+// whether any tier count is non-zero across the results.
+function hasTierData(
+  candidateOrder: string[],
+  results: Map<string, Map<string, ComboRun>>,
+): boolean {
+  for (const name of candidateOrder) {
+    const ccs = results.get(name);
+    if (!ccs) continue;
+    for (const cc of ccs.values()) {
+      for (const t of TIERS) {
+        if (cc.result.tierBoards[t].some(v => v > 0)) return true;
+      }
+    }
+  }
+  return false;
+}
+
 function writeReport(
   candidateOrder: string[],
   results: Map<string, Map<string, ComboRun>>,
@@ -512,6 +530,7 @@ function writeReport(
   outputPath: string,
 ) {
   const lines: string[] = [];
+  const tierAvailable = hasTierData(candidateOrder, results);
   lines.push('# Letter Pool Calibration Report');
   lines.push('');
   lines.push(`- Generated: ${new Date().toISOString()}`);
@@ -519,6 +538,9 @@ function writeReport(
   lines.push(`- Dictionary: enable1.txt`);
   lines.push(`- Common-words reference: MIT 10k (intersected with enable1)`);
   lines.push(`- Length-bucket totals in MIT 10k ∩ enable1: 4=${commonByBucket['4']}, 5=${commonByBucket['5']}, 6=${commonByBucket['6']}, 7+=${commonByBucket['7+']}`);
+  if (!tierAvailable) {
+    lines.push('- SUBTLEX tier metric: **not available** (run scripts/preprocess-subtlex.ts to enable)');
+  }
   lines.push('');
   lines.push('Format: median (p10–p90) unless otherwise noted.');
   lines.push('');
@@ -568,17 +590,19 @@ function writeReport(
     }
     lines.push('');
 
-    lines.push('### SUBTLEX tier counts (median per board, 4+ letter words only)');
-    lines.push('');
-    lines.push(`| Candidate | ${TIERS.map(t => t).join(' | ')} |`);
-    lines.push(`|---|${TIERS.map(() => '---').join('|')}|`);
-    for (const candName of candidateOrder) {
-      const cc = results.get(candName)?.get(key);
-      if (!cc) continue;
-      const cells = TIERS.map(t => median(cc.result.tierBoards[t]).toFixed(0));
-      lines.push(`| ${candName} | ${cells.join(' | ')} |`);
+    if (tierAvailable) {
+      lines.push('### SUBTLEX tier counts (median per board, 4+ letter words only)');
+      lines.push('');
+      lines.push(`| Candidate | ${TIERS.map(t => t).join(' | ')} |`);
+      lines.push(`|---|${TIERS.map(() => '---').join('|')}|`);
+      for (const candName of candidateOrder) {
+        const cc = results.get(candName)?.get(key);
+        if (!cc) continue;
+        const cells = TIERS.map(t => median(cc.result.tierBoards[t]).toFixed(0));
+        lines.push(`| ${candName} | ${cells.join(' | ')} |`);
+      }
+      lines.push('');
     }
-    lines.push('');
 
     lines.push('### Suffix counts (mean per board, common words only)');
     lines.push('');
@@ -705,6 +729,7 @@ function writeHtmlReport(
   outputPath: string,
 ) {
   const baselineName = candidateOrder[0];
+  const tierAvailable = hasTierData(candidateOrder, results);
   const css = `
     body { font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif; max-width: 1100px; margin: 2rem auto; padding: 0 1rem; color: #1f2937; line-height: 1.5; }
     h1 { margin-bottom: 0.25rem; }
@@ -930,7 +955,9 @@ function writeHtmlReport(
     }
     lines.push('</div>');
 
-    // SUBTLEX tier counts per board (4+ letter words only).
+    // SUBTLEX tier counts per board (4+ letter words only). Only render when
+    // SUBTLEX data was loaded — otherwise the section is just zeros.
+    if (tierAvailable) {
     lines.push('<h3>SUBTLEX tier counts per board (median, 4+ letters only)</h3>');
     lines.push('<p class="note"><strong>Recognizability buckets.</strong> Each word a board produces gets classified by its SUBTLEX-US Zipf frequency: easy (≥4) / medium (3–4) / hard (2–3) / impossible (&lt;2 or not in SUBTLEX). 3-letter words are excluded — they\'re trivially attainable and shouldn\'t drive tuning. Use this to see how attainability-skewed each candidate is vs how varied.</p>');
     let maxTier = 0;
@@ -955,6 +982,7 @@ function writeHtmlReport(
       lines.push('</div>');
     }
     lines.push('</div>');
+    } // end tierAvailable
 
     // Suffix counts — common words ending with each suffix, median per board.
     lines.push('<h3>Suffix counts per board (common words only, median; longest-match)</h3>');
@@ -1007,18 +1035,29 @@ async function main() {
   const commonByBucket: Record<string, number> = { '3': 0, '4': 0, '5': 0, '6': 0, '7+': 0 };
   for (const w of common) commonByBucket[lengthBucket(w.length)]++;
 
-  console.log('Loading SUBTLEX-US Zipf scores...');
-  const subtlexRaw = fs.readFileSync(path.join(REPO_ROOT, 'scripts/data/subtlex.tsv'), 'utf-8');
-  const zipfMap = new Map<string, number>();
-  for (const line of subtlexRaw.split('\n')) {
-    if (!line) continue;
-    const tab = line.indexOf('\t');
-    if (tab < 0) continue;
-    const w = line.slice(0, tab);
-    const z = parseFloat(line.slice(tab + 1));
-    if (Number.isFinite(z)) zipfMap.set(w, z);
+  // SUBTLEX is optional — only required for the tier metric. If the file
+  // isn't present (e.g. fresh clone without re-running preprocess-subtlex.ts),
+  // skip the tier metric instead of crashing. See scripts/data/README.md
+  // for regeneration instructions.
+  const subtlexPath = path.join(REPO_ROOT, 'scripts/data/subtlex.tsv');
+  let zipfMap: Map<string, number> | undefined;
+  if (fs.existsSync(subtlexPath)) {
+    console.log('Loading SUBTLEX-US Zipf scores...');
+    const subtlexRaw = fs.readFileSync(subtlexPath, 'utf-8');
+    zipfMap = new Map<string, number>();
+    for (const line of subtlexRaw.split('\n')) {
+      if (!line) continue;
+      const tab = line.indexOf('\t');
+      if (tab < 0) continue;
+      const w = line.slice(0, tab);
+      const z = parseFloat(line.slice(tab + 1));
+      if (Number.isFinite(z)) zipfMap.set(w, z);
+    }
+    console.log(`  ${zipfMap.size} SUBTLEX words (intersected with enable1)`);
+  } else {
+    console.log('SUBTLEX file not found — tier metric will be skipped.');
+    console.log('  (regenerate via scripts/preprocess-subtlex.ts; see scripts/data/README.md)');
   }
-  console.log(`  ${zipfMap.size} SUBTLEX words (intersected with enable1)`);
 
   const candidates: Array<{ name: string; generator: (size: number) => Board }> = [
     { name: 'baseline_dice', generator: (size) => generateBoard(size) },

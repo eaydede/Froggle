@@ -198,9 +198,22 @@ The calibration harness scores candidate models on these axes:
 6. **Suffix counts** — per-board mean of `-ed / -er / -ing / -tion / -ly /
    -y / -ers / -ier / -est` endings, longest-match. Morphological density.
 
-7. **SUBTLEX tier counts** — per-board count of 4+ letter words at each
-   Zipf tier (easy ≥4, medium 3–4, hard 2–3, impossible <2). Gradient of
-   attainability beyond binary MIT-10k membership.
+7. **SUBTLEX tier counts** *(opt-in)* — per-board count of 4+ letter
+   words at each Zipf tier (easy ≥4, medium 3–4, hard 2–3, impossible
+   <2). Gradient of attainability beyond binary MIT-10k membership.
+   Useful for diagnosing "boards feel too easy / too rare" without
+   pre-committing to a binary cutoff.
+
+   The SUBTLEX data file is **not committed to the repo** — the original
+   dataset (Brysbaert & New, 2009) is "freely available for research"
+   but the commercial-use status is fuzzy enough that we don't
+   redistribute it. The metric runs **only when** `scripts/data/subtlex.tsv`
+   is present locally. Calibrations without SUBTLEX still produce the
+   other six metrics normally.
+
+   To enable the tier metric: download the SUBTLEX-US zip from Ghent,
+   unzip into `scripts/data/_tmp/`, then `npx tsx scripts/preprocess-subtlex.ts`.
+   Full instructions in `scripts/data/README.md`.
 
 All metrics evaluated at N=1000 boards minimum. The harness compares any
 candidate against `baseline_dice` (the historical Boggle dice generator).
@@ -275,6 +288,8 @@ report compares your candidate against baseline + the current H8.
   raw dice arrays only live in this script now.
 - `scripts/preprocess-subtlex.ts` — converts raw SUBTLEX-US into the
   compact `scripts/data/subtlex.tsv` used by the harness.
-- `scripts/data/mit10k.txt` — MIT 10k common-words list
-- `scripts/data/subtlex.tsv` — preprocessed SUBTLEX-US (word + Zipf)
+- `scripts/data/mit10k.txt` — MIT 10k common-words list (committed)
+- `scripts/data/subtlex.tsv` — preprocessed SUBTLEX-US, **gitignored**;
+  regenerate via `scripts/preprocess-subtlex.ts` if you want the tier
+  metric
 - `scripts/data/README.md` — attribution + regeneration notes
