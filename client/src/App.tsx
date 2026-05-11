@@ -9,6 +9,7 @@ import { LeaderboardRoute } from './pages/leaderboard';
 import { DailyConfirmRoute } from './pages/daily';
 import { DailyCompareRoute, DailyZenCompareRoute } from './pages/compare';
 import { ZenGameRoute, ZenResultsRoute, ZenLeaderboardRoute } from './pages/dailyZen';
+import { CalibrateRoute } from './pages/calibrate';
 import './tailwind.css';
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
   const location = useLocation();
 
   const showTitle = ['/game'].includes(location.pathname);
+  const isWideRoute = location.pathname === '/calibrate';
 
   const handleTitleClick = () => {
     if (game?.status === GameState.InProgress) {
@@ -34,7 +36,7 @@ function App() {
   };
 
   return (
-    <div className="max-w-[800px] mx-auto p-5 bg-[var(--surface-panel)] text-[color:var(--ink)] h-dvh box-border overflow-y-auto flex flex-col touch-pan-y font-[family-name:var(--font-ui)]" style={{ WebkitOverflowScrolling: 'touch' }}>
+    <div className={`${isWideRoute ? 'max-w-[1280px]' : 'max-w-[800px]'} mx-auto p-5 bg-[var(--surface-panel)] text-[color:var(--ink)] h-dvh box-border overflow-y-auto flex flex-col touch-pan-y font-[family-name:var(--font-ui)]`} style={{ WebkitOverflowScrolling: 'touch' }}>
       {showTitle && (
         <h1
           onClick={handleTitleClick}
@@ -81,6 +83,7 @@ function App() {
         <Route path="/daily/zen/results" element={<ZenResultsRoute />} />
         <Route path="/daily/zen/leaderboard" element={<ZenLeaderboardRoute />} />
         <Route path="/daily/zen/compare" element={<DailyZenCompareRoute />} />
+        {import.meta.env.DEV && <Route path="/calibrate" element={<CalibrateRoute />} />}
       </Routes>
     </div>
   );

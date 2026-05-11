@@ -33,3 +33,6 @@ npm-debug.log*
 
 # Design mockups (local reference only, not source of truth)
 .mockups/
+
+# Calibration harness output (generated reports — keep local only)
+scripts/output/
