@@ -14,6 +14,8 @@
     "backfill:daily": "tsx scripts/backfillDailyAggregates.ts",
     "rescore:results": "tsx scripts/rescoreResults.ts",
     "email:daily-summary": "tsx scripts/sendDailySummary.ts",
+    "calibrate-letters": "tsx scripts/calibrate-letters.ts",
+    "tune-quotas": "tsx scripts/tune-quotas.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
