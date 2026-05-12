@@ -2,9 +2,13 @@ import crypto from 'crypto';
 import type { Request, Response, NextFunction } from 'express';
 import { GameController } from './GameController.js';
 
-interface Session {
+export interface Session {
   controller: GameController;
   lastActivity: number;
+  // Once a free-play game finishes we record exactly one history row,
+  // even if the client hits both /end and /results. This flag is the
+  // dedupe — flipped synchronously before the (async) insert is queued.
+  freePlayRecorded: boolean;
 }
 
 const sessions = new Map<string, Session>();
@@ -15,7 +19,7 @@ const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 export function createSession(): { sessionId: string; controller: GameController } {
   const sessionId = crypto.randomUUID();
   const controller = new GameController();
-  sessions.set(sessionId, { controller, lastActivity: Date.now() });
+  sessions.set(sessionId, { controller, lastActivity: Date.now(), freePlayRecorded: false });
   return { sessionId, controller };
 }
 

@@ -13,6 +13,7 @@
     "dev:client": "npm run dev --workspace=client",
     "backfill:daily": "tsx scripts/backfillDailyAggregates.ts",
     "rescore:results": "tsx scripts/rescoreResults.ts",
+    "email:daily-summary": "tsx scripts/sendDailySummary.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
