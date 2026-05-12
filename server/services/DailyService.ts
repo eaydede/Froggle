@@ -9,6 +9,49 @@ export interface ScoredResult {
   longestWord: string;
 }
 
+export interface StartDailyAttemptParams {
+  userId: string;
+  date: string;
+  board: string[][];
+  config: DailyConfig;
+}
+
+// Empty row written on /start so a player who closes the tab (or otherwise
+// abandons mid-play) can't re-enter today's daily as if it were unplayed.
+// The end-of-game write path upserts over this with the full result.
+export function buildStartDailyAttemptRow(params: StartDailyAttemptParams) {
+  return {
+    user_id: params.userId,
+    date: params.date,
+    found_words: '[]',
+    board: JSON.stringify(params.board),
+    board_size: params.config.boardSize,
+    min_word_length: params.config.minWordLength,
+    time_limit: params.config.timeLimit,
+  };
+}
+
+// `do nothing` (not `do update`) is the load-bearing detail: a second call
+// for the same (user_id, date) must not blow away the finalized row a
+// previous /results write may have placed there. Split into builder + run
+// so the conflict shape is verifiable from a unit test without a live DB.
+export function buildStartDailyAttemptQuery(
+  db: Kysely<Database>,
+  params: StartDailyAttemptParams,
+) {
+  return db
+    .insertInto('daily_results')
+    .values(buildStartDailyAttemptRow(params))
+    .onConflict((oc) => oc.columns(['user_id', 'date']).doNothing());
+}
+
+export async function startDailyAttempt(
+  db: Kysely<Database>,
+  params: StartDailyAttemptParams,
+): Promise<void> {
+  await buildStartDailyAttemptQuery(db, params).execute();
+}
+
 // Sums the per-word scores of a word list. Callers that only need the point
 // total share this helper instead of reimplementing the reduce inline.
 export function scoreWords(foundWords: string[]): number {

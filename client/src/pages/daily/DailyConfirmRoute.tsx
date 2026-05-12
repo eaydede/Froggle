@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { GameState } from 'models';
 import { useGame } from '../../GameContext';
 import { DailyConfirmPage } from './DailyConfirmPage';
-import { fetchDailyStats } from '../../shared/api/gameApi';
+import { fetchDailyStats, startDailyAttemptOnServer } from '../../shared/api/gameApi';
 
 function formatLongDate(dateIso: string): string {
   const d = new Date(dateIso + 'T12:00:00');
@@ -47,7 +48,11 @@ export function DailyConfirmRoute() {
     dailyResultLoaded,
     authReady,
     startGame,
+    cancelGame,
+    game,
+    dailyInfo,
     setDailyInfo,
+    abandonDaily,
   } = useGame();
   const [playersCount, setPlayersCount] = useState<number | null>(null);
 
@@ -75,6 +80,32 @@ export function DailyConfirmRoute() {
     };
   }, [authReady, mockFixture]);
 
+  // Re-entering /daily while a daily game is still in progress (browser
+  // back from /game, history nav, etc.) is treated the same as a Froggle-
+  // title cancel: finalize the attempt with whatever was found so far and
+  // tear down the server session. Without this, the confirm page would
+  // still see cachedDailyResult=null and re-offer Start.
+  //
+  // The ref keeps the effect from firing during handleStart's own state
+  // changes — startGame flips game.status to InProgress before navigate
+  // unmounts us, which would otherwise trip the same condition.
+  const startingRef = useRef(false);
+  useEffect(() => {
+    if (mockFixture || startingRef.current) return;
+    if (!dailyInfo) return;
+    if (cachedDailyResult) return;
+    if (game?.status !== GameState.InProgress) return;
+    let cancelled = false;
+    (async () => {
+      await abandonDaily();
+      if (cancelled) return;
+      await cancelGame();
+    })().catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [mockFixture, dailyInfo, cachedDailyResult, game?.status, abandonDaily, cancelGame]);
+
   const handleBack = () => {
     setDailyInfo(null);
     navigate('/');
@@ -90,7 +121,21 @@ export function DailyConfirmRoute() {
       navigate('/daily/results');
       return;
     }
+    startingRef.current = true;
     setDailyInfo(cachedDaily);
+    // Best-effort: write an empty daily_results row before the game starts
+    // so closing the tab mid-play still leaves an attempt on the server.
+    // Non-fatal — if this fails the only regression is the original
+    // tab-close replay bug, which we don't want to gate the game on.
+    try {
+      await startDailyAttemptOnServer(
+        cachedDaily.date,
+        cachedDaily.board,
+        cachedDaily.config,
+      );
+    } catch (err) {
+      console.warn('Failed to mark daily attempt as started:', err);
+    }
     await startGame(
       cachedDaily.config.timeLimit,
       cachedDaily.config.boardSize,

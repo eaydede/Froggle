@@ -56,6 +56,7 @@ interface GameContextValue {
   cachedDailyResult: { found_words: string[]; board: string[][] } | null;
   dailyResultLoaded: boolean;
   refreshDaily: () => Promise<DailyInfo>;
+  abandonDaily: () => Promise<void>;
 
   // Zen Daily
   cachedDailyZen: DailyZenMeta | null;
@@ -479,10 +480,31 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return info;
   };
 
+  // Finalize the current daily attempt without ending the in-progress game
+  // normally — used when the player navigates home mid-daily. Writes the
+  // words found so far so the confirm page can't re-offer Start on the
+  // same date. Cache is set optimistically so the gate flips before the
+  // server round-trip resolves.
+  const abandonDaily = useCallback(async () => {
+    if (!dailyInfo || cachedDailyResult) return;
+    const wordStrings = words.map((w) => w.word);
+    setCachedDailyResult({ found_words: wordStrings, board: dailyInfo.board });
+    try {
+      await recordDailyResultToServer(
+        dailyInfo.date,
+        wordStrings,
+        dailyInfo.board,
+        dailyInfo.config,
+      );
+    } catch (err) {
+      console.warn('Failed to record abandoned daily result:', err);
+    }
+  }, [dailyInfo, cachedDailyResult, words]);
+
   return (
     <GameContext.Provider value={{
       game, words, results, gameSeed, feedback, timeRemaining,
-      dailyInfo, setDailyInfo, cachedDaily, cachedDailyResult, dailyResultLoaded, refreshDaily,
+      dailyInfo, setDailyInfo, cachedDaily, cachedDailyResult, dailyResultLoaded, refreshDaily, abandonDaily,
       cachedDailyZen, cachedDailyZenSession, dailyZenLoaded,
       setCachedDailyZenSession, refreshDailyZenSession,
       lastZenModeChoice, setLastZenModeChoice,

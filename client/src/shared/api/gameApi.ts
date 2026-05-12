@@ -221,6 +221,26 @@ export const recordDailyResultToServer = async (
   return response.json();
 };
 
+// Writes a placeholder daily_results row so the player has been "counted"
+// as having attempted today before they've found a single word — this is
+// what stops a tab-close from looking like an unplayed day next visit.
+export const startDailyAttemptOnServer = async (
+  date: string,
+  board: string[][],
+  config: DailyConfig,
+): Promise<{ success: boolean }> => {
+  const response = await fetch(`${API_URL}/daily/results/start`, {
+    method: 'POST',
+    headers: await sessionHeaders(),
+    body: JSON.stringify({ date, board, config }),
+  });
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    throw new Error(`startDailyAttemptOnServer ${response.status}: ${body}`);
+  }
+  return response.json();
+};
+
 export interface DailyResultMissedWord {
   word: string;
   path: { row: number; col: number }[];

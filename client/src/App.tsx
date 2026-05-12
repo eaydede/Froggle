@@ -12,7 +12,7 @@ import { ZenGameRoute, ZenResultsRoute, ZenLeaderboardRoute } from './pages/dail
 import './tailwind.css';
 
 function App() {
-  const { game, showHomeConfirm, setShowHomeConfirm, cancelGame, setDailyInfo } = useGame();
+  const { game, showHomeConfirm, setShowHomeConfirm, cancelGame, setDailyInfo, dailyInfo, abandonDaily } = useGame();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -28,6 +28,13 @@ function App() {
 
   const handleGoHome = async () => {
     setShowHomeConfirm(false);
+    // Bailing out of a daily mid-play has to leave behind a result row
+    // (with whatever was found so far), otherwise the confirm page sees
+    // no result and re-offers Start — letting the player replay today's
+    // puzzle from scratch.
+    if (dailyInfo && game?.status === GameState.InProgress) {
+      await abandonDaily();
+    }
     setDailyInfo(null);
     if (game) await cancelGame();
     navigate('/');

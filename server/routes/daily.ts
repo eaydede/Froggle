@@ -7,7 +7,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { getDb } from '../db/index.js';
 import { cachePrivate, cachePublic, noStore } from '../httpCache.js';
 import { dictionary } from '../services/dictionary.js';
-import { scoreResult, scoreWords, getDailyStats } from '../services/DailyService.js';
+import { scoreResult, scoreWords, getDailyStats, startDailyAttempt } from '../services/DailyService.js';
 import { getTimedDailyWordPercents } from '../services/dailyWordStats.js';
 import { getDisplayNames } from '../services/displayNames.js';
 import {
@@ -60,6 +60,32 @@ if (process.env.NODE_ENV !== 'production') {
     res.json({ seed, config, board });
   });
 }
+
+// Mark today's daily as in-progress for the player. Idempotent: a second
+// call for an already-finalized day is a no-op (see startDailyAttempt's
+// onConflict). Called from the Start button so abandoning the tab still
+// counts as an attempt and the player can't replay from scratch.
+dailyRouter.post('/results/start', requireAuth, async (req, res) => {
+  const { date, board, config } = req.body;
+
+  if (!date || !board || !config) {
+    return res.status(400).json({ error: 'Missing required fields: date, board, config' });
+  }
+
+  try {
+    await startDailyAttempt(getDb(), {
+      userId: req.userId!,
+      date,
+      board,
+      config,
+    });
+    noStore(res);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Failed to start daily attempt:', err);
+    res.status(500).json({ error: 'Failed to start attempt' });
+  }
+});
 
 dailyRouter.post('/results', requireAuth, async (req, res) => {
   const { date, found_words, board, config } = req.body;
