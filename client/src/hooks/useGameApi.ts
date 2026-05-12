@@ -13,20 +13,9 @@ export const useGameApi = () => {
   const saltRef = useRef<string>('');
   const submittedWordsRef = useRef<Set<string>>(new Set());
 
-  const createGame = async () => {
-    const data = await gameApi.createGame();
-    setGame(data.game);
-    setWords([]);
-    setResults(null);
-    fetchingResults.current = false;
-    wordHashesRef.current = new Set();
-    saltRef.current = '';
-    submittedWordsRef.current = new Set();
-  };
-
   const startGame = async (
-    durationSeconds: number = 180, 
-    boardSize: number = 4, 
+    durationSeconds: number = 180,
+    boardSize: number = 4,
     minWordLength: number = 3,
     predefinedBoard?: string[][],
     seed?: number
@@ -34,7 +23,9 @@ export const useGameApi = () => {
     const data = await gameApi.startGame(durationSeconds, boardSize, minWordLength, predefinedBoard, seed);
     setGame(data.game);
     setWords([]);
+    setResults(null);
     setGameSeed(data.seed);
+    fetchingResults.current = false;
     wordHashesRef.current = new Set(data.wordHashes);
     saltRef.current = data.salt;
     submittedWordsRef.current = new Set();
@@ -114,7 +105,6 @@ export const useGameApi = () => {
     words,
     results,
     gameSeed,
-    createGame,
     startGame,
     cancelGame,
     endGame,

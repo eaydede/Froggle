@@ -84,7 +84,6 @@ interface GameContextValue {
   toggleMute: () => void;
 
   // Actions
-  createGame: () => Promise<void>;
   startGame: (timeLimit: number, boardSize: number, minWordLength: number, board?: string[][], seed?: number) => Promise<any>;
   cancelGame: () => Promise<void>;
   endGame: () => Promise<void>;
@@ -119,7 +118,7 @@ export function useGame() {
 }
 
 export function GameProvider({ children }: { children: ReactNode }) {
-  const { game, words, results, gameSeed, createGame, startGame, cancelGame, endGame, fetchGameState, submitWord } = useGameApi();
+  const { game, words, results, gameSeed, startGame, cancelGame, endGame, fetchGameState, submitWord } = useGameApi();
   const [feedback, setFeedback] = useState<{ type: FeedbackType; path: Position[] } | null>(null);
   const [muted, setMuted] = useState(loadMuted);
   const [dailyInfo, setDailyInfo] = useState<DailyInfo | null>(null);
@@ -490,7 +489,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       boardCode, setBoardCode, sharedSeed, handleCodeChange,
       lastConfig, setLastConfig,
       muted, toggleMute,
-      createGame, startGame, cancelGame, endGame, submitWord, handleSubmitWord, handleSubmitZenWord,
+      startGame, cancelGame, endGame, submitWord, handleSubmitWord, handleSubmitZenWord,
       showHomeConfirm, setShowHomeConfirm,
       theme, toggleTheme,
       session, authReady,

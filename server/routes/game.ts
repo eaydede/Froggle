@@ -28,26 +28,22 @@ function recordIfFinishedOnce(session: Session, userId: string | null): void {
   });
 }
 
-gameRouter.post('/create', (_req, res) => {
-  const { sessionId, controller } = createSession();
-  const game = controller.createGame();
-  res.json({ game, sessionId });
-});
-
+// One-shot game start: allocates a fresh session and runs the controller
+// past the old Config → InProgress hop in a single call. Returns the new
+// sessionId so the client can set it as X-Session-Id for subsequent
+// /submit, /end, /cancel calls.
 gameRouter.post('/start', (req, res) => {
-  const session = getSession(getRequestSessionId(req));
-  if (!session) return res.status(401).json({ error: 'Invalid session' });
-
+  const { sessionId, controller } = createSession();
   const { durationSeconds, boardSize, minWordLength, board, seed } = req.body;
   try {
-    const result = session.controller.startGame(
+    const result = controller.startGame(
       durationSeconds || 180,
       boardSize || 4,
       minWordLength || 3,
       board,
       seed,
     );
-    res.json(result);
+    res.json({ ...result, sessionId });
   } catch (error) {
     res.status(400).json({ error: (error as Error).message });
   }

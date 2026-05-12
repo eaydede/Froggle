@@ -28,31 +28,12 @@ export class GameController {
     this.dictionary = loadDictionary(dictionaryPath);
   }
 
-  createGame(): Game {
-    // Clear any existing game
+  startGame(durationSeconds: number, boardSize: number = 4, minWordLength: number = 3, predefinedBoard?: string[][], seed?: number): { game: Game; wordHashes: string[]; salt: string; seed: number } {
+    // Tear down any prior timer — a stale session that gets reused must
+    // not keep counting toward an old game's deadline.
     if (this.timer) {
       clearTimeout(this.timer);
-    }
-
-    // Create a game in Config state with empty board
-    this.game = {
-      board: [],
-      startedAt: 0,
-      status: GameState.Config,
-      config: {
-        durationSeconds: 180,
-        boardSize: 4,
-        minWordLength: 3,
-      },
-    };
-    this.words = [];
-
-    return this.game;
-  }
-
-  startGame(durationSeconds: number, boardSize: number = 4, minWordLength: number = 3, predefinedBoard?: string[][], seed?: number): { game: Game; wordHashes: string[]; salt: string; seed: number } {
-    if (!this.game || this.game.status !== GameState.Config) {
-      throw new Error('Cannot start game: game not in Config state');
+      this.timer = null;
     }
 
     // Always have a seed — use provided one or generate a new one

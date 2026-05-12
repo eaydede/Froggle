@@ -37,7 +37,6 @@ export interface Room {
 }
 
 export enum GameState {
-  Config = 'Config',
   InProgress = 'InProgress',
   Finished = 'Finished'
 }

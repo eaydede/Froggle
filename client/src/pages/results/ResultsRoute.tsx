@@ -5,7 +5,7 @@ import { ResultsPage } from './ResultsPage';
 import { getResultsFixture } from './__fixtures__';
 
 export function ResultsRoute() {
-  const { game, results, gameSeed, dailyInfo, setDailyInfo, createGame, cancelGame } = useGame();
+  const { game, results, gameSeed, dailyInfo, setDailyInfo, cancelGame } = useGame();
   const navigate = useNavigate();
   const navigatingRef = useRef(false);
   const [searchParams] = useSearchParams();
@@ -35,7 +35,6 @@ export function ResultsRoute() {
       navigate('/');
     } else {
       navigate('/play');
-      await createGame();
     }
   };
 

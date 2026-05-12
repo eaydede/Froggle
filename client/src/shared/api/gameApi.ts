@@ -55,22 +55,9 @@ async function getJson<T>(
   return pending;
 }
 
-export const createGame = async (): Promise<{
-  game: Game;
-  sessionId: string;
-}> => {
-  const response = await fetch(`${API_URL}/game/create`, {
-    method: 'POST',
-    headers: await sessionHeaders(),
-  });
-  const data = await response.json();
-  sessionId = data.sessionId;
-  return data;
-};
-
 export const startGame = async (
-  durationSeconds: number = 180, 
-  boardSize: number = 4, 
+  durationSeconds: number = 180,
+  boardSize: number = 4,
   minWordLength: number = 3,
   predefinedBoard?: string[][],
   seed?: number
@@ -79,13 +66,16 @@ export const startGame = async (
   wordHashes: string[];
   salt: string;
   seed: number;
+  sessionId: string;
 }> => {
   const response = await fetch(`${API_URL}/game/start`, {
     method: 'POST',
     headers: await sessionHeaders(),
     body: JSON.stringify({ durationSeconds, boardSize, minWordLength, board: predefinedBoard, seed }),
   });
-  return response.json();
+  const data = await response.json();
+  sessionId = data.sessionId;
+  return data;
 };
 
 export const cancelGame = async (): Promise<{ success: boolean }> => {

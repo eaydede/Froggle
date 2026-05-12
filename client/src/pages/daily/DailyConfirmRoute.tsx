@@ -46,9 +46,7 @@ export function DailyConfirmRoute() {
     cachedDailyResult,
     dailyResultLoaded,
     authReady,
-    createGame,
     startGame,
-    game,
     setDailyInfo,
   } = useGame();
   const [playersCount, setPlayersCount] = useState<number | null>(null);
@@ -93,7 +91,6 @@ export function DailyConfirmRoute() {
       return;
     }
     setDailyInfo(cachedDaily);
-    if (!game) await createGame();
     await startGame(
       cachedDaily.config.timeLimit,
       cachedDaily.config.boardSize,

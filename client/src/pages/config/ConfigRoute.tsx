@@ -7,14 +7,17 @@ import { decodeGameParams } from '../../shared/utils/gameLink';
 import { fetchDaily } from '../../shared/api/gameApi';
 
 export function ConfigRoute({ mode }: { mode: 'freeplay' | 'daily' }) {
-  const { game, dailyInfo, cachedDailyResult, startGame, cancelGame, createGame, sharedSeed, boardCode, handleCodeChange, setBoardCode, lastConfig, setLastConfig, setDailyInfo } = useGame();
+  const { dailyInfo, cachedDailyResult, startGame, sharedSeed, boardCode, handleCodeChange, setBoardCode, lastConfig, setLastConfig, setDailyInfo } = useGame();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isDaily = mode === 'daily';
   const [ready, setReady] = useState(false);
   const initRef = useRef(false);
 
-  // Handle direct navigation: create game session and fetch daily info if needed
+  // Handle direct navigation: fetch daily info if needed. The server
+  // session is now created lazily by /api/game/start, so the config page
+  // no longer pre-allocates one — there's nothing to clean up if the
+  // player navigates away before clicking Start.
   useEffect(() => {
     if (initRef.current) return;
     initRef.current = true;
@@ -31,10 +34,6 @@ export function ConfigRoute({ mode }: { mode: 'freeplay' | 'daily' }) {
         setDailyInfo(info);
       }
 
-      if (!game) {
-        await createGame();
-      }
-
       setReady(true);
     };
 
@@ -49,8 +48,10 @@ export function ConfigRoute({ mode }: { mode: 'freeplay' | 'daily' }) {
 
   const isSharedGame = sharedGame !== null;
 
-  // Don't render until initialization is complete
-  if (!ready && (isDaily || !game)) return null;
+  // Daily redirects to /daily/results if the player has already played,
+  // so we wait for the init effect to settle before rendering. Free play
+  // has no async init step and can render immediately.
+  if (isDaily && !ready) return null;
 
   const dailyDefaults = isDaily && dailyInfo ? {
     boardSize: dailyInfo.config.boardSize as 4 | 5 | 6,
@@ -82,10 +83,9 @@ export function ConfigRoute({ mode }: { mode: 'freeplay' | 'daily' }) {
     navigate('/game');
   };
 
-  const handleBack = async () => {
+  const handleBack = () => {
     setBoardCode('');
     setDailyInfo(null);
-    await cancelGame();
     navigate('/');
   };
 

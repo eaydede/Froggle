@@ -29,7 +29,6 @@ export function LandingRoute() {
     cachedDailyZenSession,
     dailyZenLoaded,
     authReady,
-    createGame,
     setDailyInfo,
     displayName,
     nameProfile,
@@ -103,9 +102,8 @@ export function LandingRoute() {
     };
   }, [authReady, cachedDailyZen?.date, cachedDailyZenSession?.date, cachedDailyZenSession?.ended_at, cachedDailyZenSession?.is_competitive]);
 
-  const handleFreePlay = async () => {
+  const handleFreePlay = () => {
     setDailyInfo(null);
-    await createGame();
     navigate('/play');
   };
 
