@@ -30,9 +30,26 @@ export interface DailyZenResultsTable {
   longest_word: Generated<string>;
   is_competitive: Generated<boolean>;
   theoretical_max_score: number | null;
+  active_seconds: Generated<number>;
+}
+
+export interface FreePlaySessionsTable {
+  id: Generated<string>;
+  user_id: string | null;
+  date: string;
+  found_words: Generated<string>;
+  board: string;
+  completed_at: Generated<Date>;
+  points: Generated<number>;
+  word_count: Generated<number>;
+  longest_word: Generated<string>;
+  time_limit: number;
+  board_size: number;
+  min_word_length: number;
 }
 
 export interface Database {
   daily_results: DailyResultsTable;
   daily_zen_results: DailyZenResultsTable;
+  free_play_sessions: FreePlaySessionsTable;
 }

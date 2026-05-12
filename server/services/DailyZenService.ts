@@ -1,4 +1,4 @@
-import type { Kysely } from 'kysely';
+import { sql, type Kysely } from 'kysely';
 import type { Position } from 'models';
 import { isValidPath } from 'engine/adjacency.js';
 import { isValidWord } from 'engine/dictionary.js';
@@ -35,7 +35,14 @@ export interface ZenSession {
    *  session start so resumes never see a different ceiling. Null only on
    *  pre-rank rows that predate the column. */
   theoretical_max_score: number | null;
+  active_seconds: number;
 }
+
+// Per-gap cap for active-time accumulation. If the gap between two word
+// submissions exceeds this, only this much is credited — the rest is
+// assumed to be a break. Chosen as a "reasonable thinking pause" for a
+// word game; tune as needed.
+export const ACTIVE_TIME_GAP_CAP_SECONDS = 60;
 
 export type SubmitOutcome =
   | { valid: true; word: string; score: number }
@@ -54,6 +61,7 @@ function parseSession(row: {
   longest_word: string;
   is_competitive: boolean;
   theoretical_max_score: number | null;
+  active_seconds: number;
 }): ZenSession {
   const board = typeof row.board === 'string' ? JSON.parse(row.board) : (row.board as string[][]);
   const foundWords = typeof row.found_words === 'string'
@@ -72,6 +80,7 @@ function parseSession(row: {
     longest_word: row.longest_word,
     is_competitive: row.is_competitive,
     theoretical_max_score: row.theoretical_max_score,
+    active_seconds: row.active_seconds,
   };
 }
 
@@ -165,14 +174,26 @@ export async function submitWord(
   const nextWords = [...session.found_words, word];
   const { points, wordCount, longestWord } = scoreResult(nextWords);
 
+  // Gap-capped active-time accumulation: credit min(elapsed, CAP) seconds
+  // for the gap since the last word submission. The cap prevents long
+  // pauses (tab in the background, walked away) from inflating the
+  // estimate. See ACTIVE_TIME_GAP_CAP_SECONDS for the chosen cap.
+  const now = new Date();
+  const gapSec = Math.max(
+    0,
+    Math.floor((now.getTime() - session.last_active_at.getTime()) / 1000),
+  );
+  const creditSec = Math.min(gapSec, ACTIVE_TIME_GAP_CAP_SECONDS);
+
   await db
     .updateTable('daily_zen_results')
     .set({
       found_words: JSON.stringify(nextWords),
-      last_active_at: new Date(),
+      last_active_at: now,
       points,
       word_count: wordCount,
       longest_word: longestWord,
+      active_seconds: sql<number>`active_seconds + ${creditSec}`,
     })
     .where('user_id', '=', userId)
     .where('date', '=', date)

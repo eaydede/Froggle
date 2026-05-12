@@ -1,0 +1,43 @@
+name: Daily Summary Email
+
+# Sends yesterday's engagement summary (timed daily / zen daily / free play
+# counts + zen active time) to DAILY_SUMMARY_RECIPIENT_EMAIL.
+#
+# Required repo secrets:
+#   SUPABASE_PROJECT_REF_PROD, SUPABASE_DB_PASSWORD_PROD — existing
+#   RESEND_API_KEY                — Resend API key
+#   DAILY_SUMMARY_FROM_EMAIL      — verified Resend sender address
+#   DAILY_SUMMARY_RECIPIENT_EMAIL — destination address
+#
+# Schedule: 09:00 UTC daily ≈ 01:00 PST / 02:00 PDT, so "yesterday in PST"
+# is always the day that just ended. workflow_dispatch is also wired so the
+# job can be triggered ad-hoc from the Actions tab.
+
+on:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+jobs:
+  send:
+    name: Send daily summary email
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Send daily summary
+        run: npm run email:daily-summary
+        env:
+          DATABASE_URL: postgres://postgres.${{ secrets.SUPABASE_PROJECT_REF_PROD }}:${{ secrets.SUPABASE_DB_PASSWORD_PROD }}@aws-1-us-east-1.pooler.supabase.com:6543/postgres
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          DAILY_SUMMARY_FROM_EMAIL: ${{ secrets.DAILY_SUMMARY_FROM_EMAIL }}
+          DAILY_SUMMARY_RECIPIENT_EMAIL: ${{ secrets.DAILY_SUMMARY_RECIPIENT_EMAIL }}
