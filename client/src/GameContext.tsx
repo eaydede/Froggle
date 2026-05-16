@@ -253,6 +253,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (!authReady || !cachedDaily) return;
     let cancelled = false;
     setDailyResultLoaded(false);
+    setCachedDailyResult(null);
 
     (async () => {
       try {
