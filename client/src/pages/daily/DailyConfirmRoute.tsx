@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useGame } from '../../GameContext';
 import { DailyConfirmPage } from './DailyConfirmPage';
-import { fetchDailyStats } from '../../shared/api/gameApi';
+import { fetchDailyStats, startDailyTimedSession } from '../../shared/api/gameApi';
 
 function formatLongDate(dateIso: string): string {
   const d = new Date(dateIso + 'T12:00:00');
@@ -44,11 +44,10 @@ export function DailyConfirmRoute() {
   const {
     cachedDaily,
     cachedDailyResult,
+    cachedDailyTimedSession,
+    setCachedDailyTimedSession,
     dailyResultLoaded,
     authReady,
-    createGame,
-    startGame,
-    game,
     setDailyInfo,
   } = useGame();
   const [playersCount, setPlayersCount] = useState<number | null>(null);
@@ -93,14 +92,14 @@ export function DailyConfirmRoute() {
       return;
     }
     setDailyInfo(cachedDaily);
-    if (!game) await createGame();
-    await startGame(
-      cachedDaily.config.timeLimit,
-      cachedDaily.config.boardSize,
-      cachedDaily.config.minWordLength,
-      undefined,
-      cachedDaily.seed,
-    );
+    // startDailyTimedSession is idempotent server-side (onConflict
+    // do-nothing), so resuming a reload returns the existing session row
+    // with its original started_at — the server-enforced time limit
+    // continues counting from when the player first clicked Start.
+    const session = cachedDailyTimedSession?.ended_at
+      ? null
+      : (cachedDailyTimedSession ?? await startDailyTimedSession(cachedDaily.date));
+    if (session) setCachedDailyTimedSession(session);
     navigate('/game');
   };
 

@@ -146,6 +146,11 @@ export interface DailyInfo {
     timeLimit: number;
     minWordLength: number;
   };
+  /** Per-fetch salted hashes for client-side instant word validation.
+   *  Server still re-validates every accepted word via the session word
+   *  endpoint, so the hashes are a UX aid, not the security boundary. */
+  salt: string;
+  wordHashes: string[];
 }
 
 export const fetchDaily = async (): Promise<DailyInfo> => {
@@ -213,22 +218,69 @@ export interface DailyConfig {
   minWordLength: number;
 }
 
-export const recordDailyResultToServer = async (
+// Session-based timed daily — mirrors the zen session shape. The salt +
+// wordHashes are present while the session is still playable so the
+// client can do local hash validation; they're stripped from the
+// finalized response.
+export interface DailyTimedSession {
+  date: string;
+  board: string[][];
+  found_words: string[];
+  started_at: string;
+  ended_at: string | null;
+  points: number;
+  word_count: number;
+  longest_word: string;
+  time_limit: number;
+  total_findable: number;
+  salt: string;
+  wordHashes: string[];
+}
+
+export const fetchDailyTimedSession = async (
   date: string,
-  foundWords: string[],
-  board: string[][],
-  config: DailyConfig,
-): Promise<{ success: boolean }> => {
-  const response = await fetch(`${API_URL}/daily/results`, {
+): Promise<DailyTimedSession | null> => {
+  const response = await fetch(`${API_URL}/daily/session/${date}`, {
+    headers: await sessionHeaders(),
+  });
+  if (!response.ok) return null;
+  const data = await response.json();
+  return data.session ?? null;
+};
+
+export const startDailyTimedSession = async (
+  date: string,
+): Promise<DailyTimedSession> => {
+  const response = await fetch(`${API_URL}/daily/session/${date}/start`, {
     method: 'POST',
     headers: await sessionHeaders(),
-    body: JSON.stringify({ date, found_words: foundWords, board, config }),
   });
-  if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    throw new Error(`recordDailyResultToServer ${response.status}: ${body}`);
-  }
+  const data = await response.json();
+  return data.session;
+};
+
+export const submitDailyTimedWord = async (
+  date: string,
+  path: Position[],
+): Promise<{ valid: boolean; word?: string; score?: number; reason?: string }> => {
+  const response = await fetch(`${API_URL}/daily/session/${date}/word`, {
+    method: 'POST',
+    headers: await sessionHeaders(),
+    body: JSON.stringify({ path }),
+  });
   return response.json();
+};
+
+export const endDailyTimedSession = async (
+  date: string,
+): Promise<DailyTimedSession | null> => {
+  const response = await fetch(`${API_URL}/daily/session/${date}/end`, {
+    method: 'POST',
+    headers: await sessionHeaders(),
+  });
+  if (!response.ok) return null;
+  const data = await response.json();
+  return data.session ?? null;
 };
 
 export interface DailyResultMissedWord {

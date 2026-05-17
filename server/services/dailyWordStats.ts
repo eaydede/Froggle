@@ -21,17 +21,21 @@ interface AggregateRow {
 }
 
 async function aggregateTimed(db: Kysely<Database>, date: string): Promise<WordPercents> {
-  // Single pass: total players for the date plus per-word find counts.
+  // Only finalized timed sessions count toward popularity. In-progress
+  // sessions would otherwise drag every word's percentage downward — the
+  // denominator must match "people who had a fair shot at finding it".
   // jsonb_array_elements_text unnests the found_words array; the upper()
   // normalization protects against any historical lower-cased entries.
   const totalsQuery = sql<{ total: number | string }>`
-    select count(*)::int as total from daily_results where date = ${date}
+    select count(*)::int as total
+    from daily_results
+    where date = ${date} and ended_at is not null
   `;
   const findsQuery = sql<AggregateRow>`
     select upper(w::text) as word, count(distinct r.user_id)::int as finders
     from daily_results r,
          lateral jsonb_array_elements_text(r.found_words) as w
-    where r.date = ${date}
+    where r.date = ${date} and r.ended_at is not null
     group by upper(w::text)
   `;
   const [totalsResult, findsResult] = await Promise.all([

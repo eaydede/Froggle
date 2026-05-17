@@ -1,7 +1,6 @@
-import { createContext, useCallback, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useCallback, useContext, useState, useEffect, useRef, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import type { Position, Game, Word } from 'models';
-import { GameState } from 'models';
+import { GameState, type Position, type Game, type Word } from 'models';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './shared/supabase';
 import { useGameApi } from './hooks/useGameApi';
@@ -11,18 +10,26 @@ import { useFeedbackSounds } from './pages/game';
 import type { FeedbackType } from './pages/game';
 import type { GameResults } from './shared/types';
 import { scoreWord } from './shared/utils/score';
-import type { DailyInfo, DailyZenMeta, DailyZenSession, ProfileResponse, UpdateProfileResult } from './shared/api/gameApi';
+import type {
+  DailyInfo,
+  DailyTimedSession,
+  DailyZenMeta,
+  DailyZenSession,
+  ProfileResponse,
+  UpdateProfileResult,
+} from './shared/api/gameApi';
 import {
+  endDailyTimedSession,
   fetchDaily,
-  recordDailyResultToServer,
   fetchDailyResult,
-  fetchProfile,
-  updateProfile,
+  fetchDailyTimedSession,
   fetchDailyZenMeta,
   fetchDailyZenSession,
+  fetchProfile,
+  submitDailyTimedWord,
   submitDailyZenWord,
+  updateProfile,
 } from './shared/api/gameApi';
-import { loadDailyResult, clearDailyResult } from './shared/utils/dailyStorage';
 import { decodeSeedCode } from 'models/seedCode';
 import type { GameConfig } from './pages/config';
 
@@ -57,6 +64,18 @@ interface GameContextValue {
   cachedDailyResult: { found_words: string[]; board: string[][] } | null;
   dailyResultLoaded: boolean;
   refreshDaily: () => Promise<DailyInfo>;
+  /** Server-authoritative timed-daily session row. Null until the player
+   *  starts (or resumes) today's puzzle. The `ended_at` field is the
+   *  source of truth for whether the run has been finalized — both
+   *  /game and /daily/results gate on it. */
+  cachedDailyTimedSession: DailyTimedSession | null;
+  setCachedDailyTimedSession: (session: DailyTimedSession | null) => void;
+  /** Game state synthesized from the daily session row so the shared
+   *  /game presenter can render daily mode without a parallel UI. */
+  dailyGame: Game | null;
+  dailyTimeRemaining: number;
+  handleSubmitDailyWord: (path: Position[]) => Promise<void>;
+  endDailyGame: () => Promise<void>;
 
   // Zen Daily
   cachedDailyZen: DailyZenMeta | null;
@@ -204,9 +223,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const timeRemaining = useTimer(game, fetchGameState);
   const { playValid, playInvalid, playDuplicate } = useFeedbackSounds(0, 0, 2);
 
-  // Cached daily result from server
+  // Cached daily result from server (finalized session, post end_at)
   const [cachedDailyResult, setCachedDailyResult] = useState<{ found_words: any[]; board: string[][] } | null>(null);
   const [dailyResultLoaded, setDailyResultLoaded] = useState(false);
+  const [cachedDailyTimedSession, setCachedDailyTimedSession] = useState<DailyTimedSession | null>(null);
 
   // Zen Daily state
   const [cachedDailyZen, setCachedDailyZen] = useState<DailyZenMeta | null>(null);
@@ -246,9 +266,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Fetch the user's daily result once auth and the public daily date are
-  // both available. Also migrates any localStorage daily result to the server
-  // as a one-time bridge for existing users.
+  // Fetch the user's daily session + finalized result once auth and the
+  // public daily are both available. The session row handles mid-game
+  // resume after a reload (same as zen daily); the result row is what
+  // unlocks the "See result" affordance on the confirm page.
   useEffect(() => {
     if (!authReady || !cachedDaily) return;
     let cancelled = false;
@@ -256,33 +277,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setCachedDailyResult(null);
 
     (async () => {
-      try {
-        const result = await fetchDailyResult(cachedDaily.date);
-        if (cancelled) return;
-        if (result) {
-          setCachedDailyResult(result);
-          setDailyResultLoaded(true);
-          return;
-        }
-      } catch {
-        // No server result yet — fall through to localStorage check
-      }
-
-      // Migration: if localStorage has a result for today, upload it to the server
-      const localResult = loadDailyResult(cachedDaily.date);
-      if (localResult) {
-        const wordStrings = localResult.foundWords.map(w => w.word);
-        try {
-          await recordDailyResultToServer(cachedDaily.date, wordStrings, localResult.board, cachedDaily.config);
-          if (cancelled) return;
-          setCachedDailyResult({ found_words: wordStrings, board: localResult.board });
-          // Clean up localStorage now that the result is persisted on the server
-          clearDailyResult(cachedDaily.date);
-        } catch (err) {
-          console.warn('Failed to migrate localStorage daily result to server:', err);
-        }
-      }
-      if (!cancelled) setDailyResultLoaded(true);
+      const [result, session] = await Promise.all([
+        fetchDailyResult(cachedDaily.date).catch(() => null),
+        fetchDailyTimedSession(cachedDaily.date).catch(() => null),
+      ]);
+      if (cancelled) return;
+      if (result) setCachedDailyResult(result);
+      setCachedDailyTimedSession(session);
+      setDailyResultLoaded(true);
     })().catch(() => {
       if (!cancelled) setDailyResultLoaded(true);
     });
@@ -385,28 +387,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Record daily results when a daily game is completed in the current session.
-  // Skips if the result for this date has already been cached (either from a prior
-  // server fetch or from a successful record earlier in this session), which also
-  // prevents false positives when `results` holds state from an unrelated game.
+  // Once the timed daily session is finalized (player called /end or the
+  // server auto-finalized on timeout), prime cachedDailyResult so the
+  // confirm page flips to "See result" without an extra round-trip.
   useEffect(() => {
-    if (!dailyInfo || !results) return;
+    if (!cachedDailyTimedSession?.ended_at) return;
     if (cachedDailyResult) return;
-
-    // Only record if the game that produced these results actually matches today's daily board.
-    const resultsFlat = results.board.flat().join(',');
-    const expectedFlat = dailyInfo.board.flat().join(',');
-    if (resultsFlat !== expectedFlat) return;
-
-    const wordStrings = results.foundWords.map(w => w.word);
-    recordDailyResultToServer(dailyInfo.date, wordStrings, results.board, dailyInfo.config)
-      .then(() => {
-        setCachedDailyResult({ found_words: wordStrings, board: results.board });
-      })
-      .catch((err) => {
-        console.warn('Failed to record daily result to server:', err);
-      });
-  }, [dailyInfo, results, cachedDailyResult]);
+    setCachedDailyResult({
+      found_words: cachedDailyTimedSession.found_words,
+      board: cachedDailyTimedSession.board,
+    });
+  }, [cachedDailyTimedSession?.ended_at, cachedDailyTimedSession?.found_words, cachedDailyTimedSession?.board, cachedDailyResult]);
 
   const toggleMute = () => {
     setMuted(prev => {
@@ -532,6 +523,106 @@ export function GameProvider({ children }: { children: ReactNode }) {
     [cachedDailyZenSession, zenValidator, flashFeedback],
   );
 
+  // Timed daily uses the same hash + optimistic-UI pattern as zen. The
+  // server is canonical for persistence and enforces both dictionary
+  // validity (the salted hashes only cover legal words) and the time
+  // limit (submissions past started_at + timeLimit + grace are rejected
+  // as 'expired'). Words found locally that the server rejects show as
+  // valid for the play instant but never appear in the persisted result.
+  const dailyValidator = useWordValidator();
+
+  useEffect(() => {
+    const salt = cachedDailyTimedSession?.salt ?? '';
+    const hashes = cachedDailyTimedSession?.wordHashes ?? [];
+    dailyValidator.setSource(salt, hashes);
+  }, [cachedDailyTimedSession?.salt, cachedDailyTimedSession?.wordHashes, dailyValidator]);
+
+  useEffect(() => {
+    dailyValidator.setSubmitted(cachedDailyTimedSession?.found_words ?? []);
+  }, [cachedDailyTimedSession?.found_words, dailyValidator]);
+
+  const handleSubmitDailyWord = useCallback(
+    async (path: Position[]) => {
+      const session = cachedDailyTimedSession;
+      if (!session || session.ended_at) return;
+
+      const word = path
+        .map((p) => session.board[p.row]?.[p.col] ?? '')
+        .join('')
+        .toUpperCase();
+
+      if (!dailyValidator.isArmed()) {
+        const outcome = await submitDailyTimedWord(session.date, path);
+        flashFeedback(path, outcome);
+        if (outcome.valid && outcome.word) {
+          const score = outcome.score ?? scoreWord(outcome.word);
+          const nextWords = [...session.found_words, outcome.word];
+          const nextLongest = outcome.word.length > session.longest_word.length
+            ? outcome.word
+            : session.longest_word;
+          setCachedDailyTimedSession({
+            ...session,
+            found_words: nextWords,
+            points: session.points + score,
+            word_count: nextWords.length,
+            longest_word: nextLongest,
+          });
+        }
+        return;
+      }
+
+      const local = dailyValidator.validate(word);
+      flashFeedback(path, local);
+      if (!local.valid) return;
+
+      dailyValidator.recordSubmitted(word);
+      const score = scoreWord(word);
+      const nextWords = [...session.found_words, word];
+      const nextLongest = word.length > session.longest_word.length ? word : session.longest_word;
+      setCachedDailyTimedSession({
+        ...session,
+        found_words: nextWords,
+        points: session.points + score,
+        word_count: nextWords.length,
+        longest_word: nextLongest,
+      });
+
+      const fire = () => submitDailyTimedWord(session.date, path);
+      fire().catch(() => setTimeout(() => fire().catch(() => {}), 200));
+    },
+    [cachedDailyTimedSession, dailyValidator, flashFeedback],
+  );
+
+  // Synthesize a Game-shaped object from the persisted session so the
+  // shared /game presenter can render daily mode without a parallel UI.
+  // The status flip from InProgress → Finished is driven by ended_at,
+  // which the server sets when the timer elapses or /end is called.
+  const dailyGame: Game | null = useMemo(() => {
+    if (!cachedDailyTimedSession) return null;
+    return {
+      board: cachedDailyTimedSession.board,
+      startedAt: new Date(cachedDailyTimedSession.started_at).getTime(),
+      status: cachedDailyTimedSession.ended_at ? GameState.Finished : GameState.InProgress,
+      config: {
+        durationSeconds: cachedDailyTimedSession.time_limit,
+        boardSize: cachedDailyTimedSession.board.length,
+        minWordLength: cachedDaily?.config.minWordLength ?? 3,
+      },
+    };
+  }, [cachedDailyTimedSession, cachedDaily?.config.minWordLength]);
+
+  const endDailyGame = useCallback(async () => {
+    if (!cachedDailyTimedSession || cachedDailyTimedSession.ended_at) return;
+    const ended = await endDailyTimedSession(cachedDailyTimedSession.date);
+    if (ended) setCachedDailyTimedSession(ended);
+  }, [cachedDailyTimedSession]);
+
+  // Local clock-derived timer for daily mode. When it hits 0 we fire
+  // endDailyGame so the server-side row gets finalized; the server
+  // also enforces the limit independently, so a missed /end call still
+  // gets cleaned up on the next read.
+  const dailyTimeRemaining = useTimer(dailyGame, endDailyGame);
+
   const refreshDaily = async () => {
     const info = await fetchDaily();
     setCachedDaily(info);
@@ -542,6 +633,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     <GameContext.Provider value={{
       game, words, results, gameSeed, feedback, timeRemaining,
       dailyInfo, setDailyInfo, cachedDaily, cachedDailyResult, dailyResultLoaded, refreshDaily,
+      cachedDailyTimedSession, setCachedDailyTimedSession,
+      dailyGame, dailyTimeRemaining, handleSubmitDailyWord, endDailyGame,
       cachedDailyZen, cachedDailyZenSession, dailyZenLoaded,
       setCachedDailyZenSession, refreshDailyZenSession,
       lastZenModeChoice, setLastZenModeChoice,
