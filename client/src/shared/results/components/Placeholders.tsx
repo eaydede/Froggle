@@ -30,22 +30,14 @@ export function Placeholders({
   compact = false,
   compareSourceLabel = 'standings',
 }: PlaceholdersProps = {}) {
-  if (compact && variant === 'share') {
-    return (
-      <div className="flex flex-col gap-2 h-full min-h-0">
-        <div
-          className="w-full min-h-0"
-          style={{ flex: '1 1 0' }}
-        >
-          {definitionSlot ?? <DefinitionsPlaceholder />}
-        </div>
-        <SharePrompt onShare={onShare} compact />
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col gap-2 h-full min-h-0">
+      <div
+        className="w-full min-h-0"
+        style={{ flex: '1 1 0' }}
+      >
+        {definitionSlot ?? <DefinitionsPlaceholder />}
+      </div>
       {variant === 'share' ? (
         <SharePrompt onShare={onShare} compact={compact} />
       ) : variant === 'wait' ? (
@@ -53,13 +45,6 @@ export function Placeholders({
       ) : (
         <ComparePrompt compact={compact} sourceLabel={compareSourceLabel} />
       )}
-
-      <div
-        className="w-full min-h-0"
-        style={{ flex: '1 1 0' }}
-      >
-        {definitionSlot ?? <DefinitionsPlaceholder />}
-      </div>
     </div>
   );
 }
@@ -76,8 +61,8 @@ function ComparePrompt({
       className={`w-full flex flex-col items-center justify-center text-center rounded-xl text-[color:var(--ink-muted)] min-h-0 ${compact ? 'px-2 py-2' : 'px-3 py-3'}`}
       style={{
         flex: '2 1 0',
-        border: '1.5px dashed var(--opp-accent)',
-        background: 'var(--opp-accent-soft)',
+        border: compact ? '1.5px dashed var(--ink-faint)' : '1.5px dashed var(--opp-accent)',
+        background: compact ? 'transparent' : 'var(--opp-accent-soft)',
       }}
     >
       <div className="flex items-center gap-1 mb-1.5" aria-hidden>
@@ -106,8 +91,8 @@ function WaitPrompt({ compact = false }: { compact?: boolean }) {
       className={`w-full flex flex-col items-center justify-center text-center rounded-xl text-[color:var(--ink-muted)] min-h-0 ${compact ? 'px-2 py-2' : 'px-3 py-3'}`}
       style={{
         flex: '2 1 0',
-        border: '1.5px dashed var(--opp-accent)',
-        background: 'var(--opp-accent-soft)',
+        border: compact ? '1.5px dashed var(--ink-faint)' : '1.5px dashed var(--opp-accent)',
+        background: compact ? 'transparent' : 'var(--opp-accent-soft)',
       }}
     >
       <div className="flex items-center gap-1 mb-1.5" aria-hidden>

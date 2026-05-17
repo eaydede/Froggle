@@ -117,12 +117,13 @@ function VersusHero({
       style={{ gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)' }}
     >
       <VersusCard
-        side="you"
-        name="You"
-        score={me.points}
-        wordCount={me.wordCount}
-        rank={myRank}
-        isWinner={youWins}
+        side="opp"
+        name={opponent.displayName}
+        initial={oppInitial}
+        score={opponent.points}
+        wordCount={opponent.wordCount}
+        rank={oppRank}
+        isWinner={oppWins}
         align="left"
         compact={compact}
       />
@@ -141,13 +142,12 @@ function VersusHero({
         </span>
       </div>
       <VersusCard
-        side="opp"
-        name={opponent.displayName}
-        initial={oppInitial}
-        score={opponent.points}
-        wordCount={opponent.wordCount}
-        rank={oppRank}
-        isWinner={oppWins}
+        side="you"
+        name="You"
+        score={me.points}
+        wordCount={me.wordCount}
+        rank={myRank}
+        isWinner={youWins}
         align="right"
         compact={compact}
       />
@@ -177,7 +177,6 @@ function VersusCard({
   compact: boolean;
 }) {
   const accent = side === 'you' ? 'var(--you-accent)' : 'var(--opp-accent)';
-  const showInitial = initial !== undefined;
   const initialChar = side === 'you' ? 'Y' : initial ?? '?';
   // Two distinct winner palettes — viewer-side wins use a blue tint so
   // the highlight never collides with the opponent's tan accent on the
@@ -229,9 +228,7 @@ function VersusCard({
           {name}
         </span>
         {align === 'left' && <RankBadge rank={rank} />}
-        {align === 'right' && showInitial && (
-          <Initial char={initialChar} accent={accent} />
-        )}
+        {align === 'right' && <Initial char={initialChar} accent={accent} />}
       </div>
       <div className="inline-flex items-baseline gap-1 mt-1 leading-none">
         <span
