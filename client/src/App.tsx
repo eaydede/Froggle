@@ -70,7 +70,7 @@ function App() {
 
       <Routes>
         <Route path="/" element={<LandingRoute />} />
-        <Route path="/play" element={<ConfigRoute mode="freeplay" />} />
+        <Route path="/play" element={<ConfigRoute />} />
         <Route path="/daily" element={<DailyConfirmRoute />} />
         <Route path="/daily/results" element={<DailyResultsRoute />} />
         <Route path="/game" element={<GameRoute />} />

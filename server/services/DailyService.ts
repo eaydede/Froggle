@@ -1,6 +1,10 @@
 import { sql, type Kysely } from 'kysely';
+import type { Position } from 'models';
+import { isValidPath } from 'engine/adjacency.js';
+import { isValidWord } from 'engine/dictionary.js';
 import { scoreWord } from 'engine/scoring.js';
 import type { Database } from '../db/types.js';
+import { dictionary } from './dictionary.js';
 import { getDailyConfig, type DailyConfig } from './dailyConfig.js';
 
 export interface ScoredResult {
@@ -18,7 +22,6 @@ export function scoreWords(foundWords: string[]): number {
 }
 
 // Computes the aggregates that get persisted alongside a daily_results row.
-// Kept pure and trivially testable so the Phase 3 backfill script can reuse it.
 // Longest-word tiebreak is alphabetical ascending so the stored value is stable
 // regardless of the order words were found in.
 export function scoreResult(foundWords: string[]): ScoredResult {
@@ -233,8 +236,10 @@ export async function getDailyStats(
   const windowStart = maxDate(addDays(today, -(windowDays - 1)), launchDate);
   const windowEnd = today;
 
-  // Query 1: this user's rank + aggregates per date they played.
-  // Tiebreak matches "placed top 3" as presented to users.
+  // Query 1: this user's rank + aggregates per date they played. In-progress
+  // sessions (ended_at is null) are excluded — they don't belong on the
+  // leaderboard and they have no final score to rank by yet. Tiebreak
+  // matches "placed top 3" as presented to users.
   const rankedRows = await db
     .with('ranked', (qb) =>
       qb
@@ -252,6 +257,7 @@ export async function getDailyStats(
         ])
         .where('date', '>=', windowStart)
         .where('date', '<=', windowEnd)
+        .where('ended_at', 'is not', null)
     )
     .selectFrom('ranked')
     .select(['date', 'points', 'word_count', 'longest_word', 'board_size', 'min_word_length', 'time_limit', 'rank'])
@@ -260,12 +266,14 @@ export async function getDailyStats(
 
   // Query 2: total players per date in the window — needed for every day,
   // not just days this user played, so the UI can show player counts on
-  // missed/unplayed days too.
+  // missed/unplayed days too. Excludes in-progress sessions for the same
+  // reason as the rank query.
   const playerCountRows = await db
     .selectFrom('daily_results')
     .select((eb) => ['date', eb.fn.countAll<number>().as('players')])
     .where('date', '>=', windowStart)
     .where('date', '<=', windowEnd)
+    .where('ended_at', 'is not', null)
     .groupBy('date')
     .execute();
 
@@ -362,4 +370,229 @@ export async function getDailyStats(
     windowEnd,
     days,
   };
+}
+
+// ─── Session lifecycle ────────────────────────────────────────────────────
+//
+// Timed daily mode runs as a server-authoritative session: the row is
+// created on /start with started_at = now(), every word goes through
+// path + dictionary validation against the official board, and the row
+// is finalized either by the player or auto-finalized by the server when
+// the time limit elapses. The previous one-shot POST /results endpoint
+// accepted a client word list with no validation, which let an attacker
+// inflate scores arbitrarily — that endpoint no longer exists.
+
+export interface TimedDailySession {
+  date: string;
+  board: string[][];
+  found_words: string[];
+  started_at: Date;
+  ended_at: Date | null;
+  points: number;
+  word_count: number;
+  longest_word: string;
+  time_limit: number;
+}
+
+// Grace window for late submissions. The client perceives the timer
+// hitting zero from its local clock; the same submission reaching the
+// server can be a few hundred ms behind that. A 2s buffer keeps the last
+// fairly-played word from getting rejected on slow connections without
+// meaningfully extending the play window.
+export const TIMED_DAILY_GRACE_SECONDS = 2;
+
+export type TimedSubmitOutcome =
+  | { valid: true; word: string; score: number }
+  | { valid: false; reason: 'invalid' | 'repeat' | 'ended' | 'expired' };
+
+function parseTimedSession(row: {
+  date: string;
+  board: unknown;
+  found_words: unknown;
+  started_at: Date;
+  ended_at: Date | null;
+  points: number;
+  word_count: number;
+  longest_word: string;
+  time_limit: number;
+}): TimedDailySession {
+  const board = typeof row.board === 'string' ? JSON.parse(row.board) : (row.board as string[][]);
+  const foundWords = typeof row.found_words === 'string'
+    ? JSON.parse(row.found_words)
+    : (row.found_words as string[]);
+  return {
+    date: row.date,
+    board,
+    found_words: foundWords,
+    started_at: row.started_at,
+    ended_at: row.ended_at,
+    points: row.points,
+    word_count: row.word_count,
+    longest_word: row.longest_word,
+    time_limit: row.time_limit,
+  };
+}
+
+function isExpired(
+  session: { started_at: Date; time_limit: number },
+  now: Date,
+): boolean {
+  const elapsed = Math.floor((now.getTime() - session.started_at.getTime()) / 1000);
+  return elapsed > session.time_limit + TIMED_DAILY_GRACE_SECONDS;
+}
+
+function expiryInstant(session: { started_at: Date; time_limit: number }): Date {
+  return new Date(session.started_at.getTime() + session.time_limit * 1000);
+}
+
+async function autoFinalizeIfExpired(
+  db: Kysely<Database>,
+  userId: string,
+  date: string,
+  session: TimedDailySession,
+): Promise<TimedDailySession> {
+  if (session.ended_at || !isExpired(session, new Date())) return session;
+  const endedAt = expiryInstant(session);
+  await db
+    .updateTable('daily_results')
+    .set({ ended_at: endedAt, completed_at: endedAt })
+    .where('user_id', '=', userId)
+    .where('date', '=', date)
+    .where('ended_at', 'is', null)
+    .execute();
+  return { ...session, ended_at: endedAt };
+}
+
+export async function getTimedDailySession(
+  db: Kysely<Database>,
+  userId: string,
+  date: string,
+): Promise<TimedDailySession | null> {
+  const row = await db
+    .selectFrom('daily_results')
+    .select([
+      'date',
+      'board',
+      'found_words',
+      'started_at',
+      'ended_at',
+      'points',
+      'word_count',
+      'longest_word',
+      'time_limit',
+    ])
+    .where('user_id', '=', userId)
+    .where('date', '=', date)
+    .executeTakeFirst();
+  if (!row) return null;
+  return autoFinalizeIfExpired(db, userId, date, parseTimedSession(row));
+}
+
+// Idempotent. The board is locked in at creation time so resumes after a
+// reload always see the same puzzle even if generation logic shifts.
+export async function startTimedDailySession(
+  db: Kysely<Database>,
+  userId: string,
+  date: string,
+  board: string[][],
+  config: DailyConfig,
+): Promise<TimedDailySession> {
+  await db
+    .insertInto('daily_results')
+    .values({
+      user_id: userId,
+      date,
+      board: JSON.stringify(board),
+      found_words: JSON.stringify([]),
+      board_size: config.boardSize,
+      min_word_length: config.minWordLength,
+      time_limit: config.timeLimit,
+    })
+    .onConflict((oc) => oc.columns(['user_id', 'date']).doNothing())
+    .execute();
+
+  const session = await getTimedDailySession(db, userId, date);
+  if (!session) throw new Error('Failed to start timed daily session');
+  return session;
+}
+
+// Trust-but-verify: validate path, derive the word from the stored board,
+// dictionary-check it, dedupe, then atomically append. The time-limit
+// check is also enforced here — past the deadline + grace, the row is
+// auto-finalized and the submission is rejected as 'expired'.
+export async function submitTimedDailyWord(
+  db: Kysely<Database>,
+  userId: string,
+  date: string,
+  path: Position[],
+): Promise<TimedSubmitOutcome> {
+  const session = await getTimedDailySession(db, userId, date);
+  if (!session) return { valid: false, reason: 'invalid' };
+  if (session.ended_at) return { valid: false, reason: 'ended' };
+
+  const config = getDailyConfig(date);
+  if (!isValidPath(path, config.boardSize)) {
+    return { valid: false, reason: 'invalid' };
+  }
+
+  const word = path
+    .map((pos) => session.board[pos.row][pos.col])
+    .join('')
+    .toUpperCase();
+
+  if (word.length < config.minWordLength) {
+    return { valid: false, reason: 'invalid' };
+  }
+  if (!isValidWord(dictionary, word.toLowerCase())) {
+    return { valid: false, reason: 'invalid' };
+  }
+  if (session.found_words.some((w) => w.toUpperCase() === word)) {
+    return { valid: false, reason: 'repeat' };
+  }
+
+  const nextWords = [...session.found_words, word];
+  const { points, wordCount, longestWord } = scoreResult(nextWords);
+
+  await db
+    .updateTable('daily_results')
+    .set({
+      found_words: JSON.stringify(nextWords),
+      points,
+      word_count: wordCount,
+      longest_word: longestWord,
+    })
+    .where('user_id', '=', userId)
+    .where('date', '=', date)
+    .where('ended_at', 'is', null)
+    .execute();
+
+  return { valid: true, word, score: scoreWord(word) };
+}
+
+// Player-triggered finalize. Caps the recorded completion at
+// started_at + time_limit so a slow /end call can't make the row look
+// like the player took longer than allowed. completed_at is updated in
+// lockstep with ended_at to preserve the existing tiebreak semantics
+// (earlier completion ranks first when points + word count are equal).
+export async function endTimedDailySession(
+  db: Kysely<Database>,
+  userId: string,
+  date: string,
+): Promise<TimedDailySession | null> {
+  const session = await getTimedDailySession(db, userId, date);
+  if (!session) return null;
+  if (session.ended_at) return session;
+
+  const now = new Date();
+  const cap = expiryInstant(session);
+  const endedAt = now > cap ? cap : now;
+
+  await db
+    .updateTable('daily_results')
+    .set({ ended_at: endedAt, completed_at: endedAt })
+    .where('user_id', '=', userId)
+    .where('date', '=', date)
+    .where('ended_at', 'is', null)
+    .execute();
+  return getTimedDailySession(db, userId, date);
 }

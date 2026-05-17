@@ -22,6 +22,7 @@ leaderboardRouter.get('/:date', async (req, res) => {
       .selectFrom('daily_results')
       .selectAll()
       .where('date', '=', date)
+      .where('ended_at', 'is not', null)
       .execute();
 
     const totalPlayers = results.length;
