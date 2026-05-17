@@ -5,6 +5,11 @@ import { abbreviatePartOfSpeech } from '../utils/partOfSpeech';
 
 interface WordDefinitionPanelProps {
   word: string;
+  /** When true the panel sizes to its container (height: 100%, min-h-0).
+   *  Used by the challenge results page where the panel slots into a
+   *  fixed-flex region. Default is the legacy fixed-92px height the
+   *  free-play results page expects. */
+  fitContainer?: boolean;
 }
 
 /**
@@ -14,7 +19,7 @@ interface WordDefinitionPanelProps {
  * beneath the mini-board without pushing the page layout around when the
  * fetch lands.
  */
-export function WordDefinitionPanel({ word }: WordDefinitionPanelProps) {
+export function WordDefinitionPanel({ word, fitContainer = false }: WordDefinitionPanelProps) {
   const { definition, loading } = useDefinition(word);
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -32,7 +37,10 @@ export function WordDefinitionPanel({ word }: WordDefinitionPanelProps) {
         type="button"
         onClick={() => setSheetOpen(true)}
         aria-label={`Show definition of ${headword}`}
-        className="relative w-full h-[92px] shrink-0 rounded-lg bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] px-2.5 py-2 pr-[22px] cursor-pointer hover:-translate-y-px hover:border-[var(--ink-border)] hover:shadow-[var(--shadow-card-hover)] transition-[transform,border-color,box-shadow] duration-200 flex flex-col gap-1 overflow-hidden text-left font-[family-name:var(--font-ui)]"
+        className={[
+          'relative w-full rounded-lg bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] px-2.5 py-2 pr-[22px] cursor-pointer hover:-translate-y-px hover:border-[var(--ink-border)] hover:shadow-[var(--shadow-card-hover)] transition-[transform,border-color,box-shadow] duration-200 flex flex-col gap-1 overflow-hidden text-left font-[family-name:var(--font-ui)]',
+          fitContainer ? 'h-full min-h-0' : 'h-[92px] shrink-0',
+        ].join(' ')}
         style={{ WebkitTapHighlightColor: 'transparent' }}
       >
         <span

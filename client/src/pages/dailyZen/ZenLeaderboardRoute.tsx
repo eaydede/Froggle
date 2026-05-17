@@ -193,7 +193,7 @@ export function ZenLeaderboardRoute() {
                   // zen daily. Casual finishers qualify too — they have a row
                   // even though they're not on the ranked list.
                   data.currentPlayer?.completed
-                    ? (userId) => navigate(`/daily/zen/compare?date=${date}&user=${userId}`)
+                    ? (userId) => navigate(`/daily/zen/results?date=${date}&from=leaderboard&compare=${userId}`)
                     : undefined
                 }
                 onSelfClick={

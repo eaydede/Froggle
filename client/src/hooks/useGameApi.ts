@@ -25,13 +25,15 @@ export const useGameApi = () => {
   };
 
   const startGame = async (
-    durationSeconds: number = 180, 
-    boardSize: number = 4, 
+    durationSeconds: number = 180,
+    boardSize: number = 4,
     minWordLength: number = 3,
     predefinedBoard?: string[][],
-    seed?: number
+    seed?: number,
+    challengeId?: string,
+    isDaily?: boolean,
   ) => {
-    const data = await gameApi.startGame(durationSeconds, boardSize, minWordLength, predefinedBoard, seed);
+    const data = await gameApi.startGame(durationSeconds, boardSize, minWordLength, predefinedBoard, seed, challengeId, isDaily);
     setGame(data.game);
     setWords([]);
     setGameSeed(data.seed);

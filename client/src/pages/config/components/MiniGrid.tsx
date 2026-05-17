@@ -51,8 +51,10 @@ export function MiniGrid({ size, selected, animationKey, disabled }: MiniGridPro
 
         let bg = "var(--ink-faint)";
         if (selected) {
-          if (isHi) bg = "var(--ink)";
-          else if (isHi2) bg = "var(--ink-mid)";
+          // Softer than --ink so the diagonal accent doesn't outweigh
+          // adjacent type when the card is selected.
+          if (isHi) bg = "var(--ink-mid)";
+          else if (isHi2) bg = "var(--ink-soft)";
         }
 
         return (

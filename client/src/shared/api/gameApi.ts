@@ -69,11 +69,13 @@ export const createGame = async (): Promise<{
 };
 
 export const startGame = async (
-  durationSeconds: number = 180, 
-  boardSize: number = 4, 
+  durationSeconds: number = 180,
+  boardSize: number = 4,
   minWordLength: number = 3,
   predefinedBoard?: string[][],
-  seed?: number
+  seed?: number,
+  challengeId?: string,
+  isDaily?: boolean,
 ): Promise<{
   game: Game;
   wordHashes: string[];
@@ -83,7 +85,7 @@ export const startGame = async (
   const response = await fetch(`${API_URL}/game/start`, {
     method: 'POST',
     headers: await sessionHeaders(),
-    body: JSON.stringify({ durationSeconds, boardSize, minWordLength, board: predefinedBoard, seed }),
+    body: JSON.stringify({ durationSeconds, boardSize, minWordLength, board: predefinedBoard, seed, challengeId, isDaily }),
   });
   return response.json();
 };
@@ -98,7 +100,7 @@ export const cancelGame = async (): Promise<{ success: boolean }> => {
   return data;
 };
 
-export const endGame = async (): Promise<{ game: Game }> => {
+export const endGame = async (): Promise<{ game: Game; freePlaySessionId?: string | null }> => {
   const response = await fetch(`${API_URL}/game/end`, {
     method: 'POST',
     headers: await sessionHeaders(),
@@ -133,7 +135,8 @@ export const fetchResults = async (): Promise<GameResults> => {
   const response = await fetch(`${API_URL}/game/results`, {
     headers: await sessionHeaders(),
   });
-  return response.json();
+  const data = await response.json();
+  return data as GameResults;
 };
 
 export interface DailyInfo {
@@ -406,6 +409,148 @@ export const fetchDailyHistory = async (): Promise<{ entries: DailyHistoryEntry[
     headers: await sessionHeaders(),
   });
   return response.json();
+};
+
+// ─── Free play history + challenges ───────────────────────────────────
+
+export interface FreePlayHistoryEntry {
+  sessionId: string;
+  challengeId: string | null;
+  date: string;
+  completedAt: string;
+  points: number;
+  wordCount: number;
+  longestWord: string;
+  boardSize: number;
+  timeLimit: number;
+  minWordLength: number;
+  isOwner: boolean;
+  newResults: number;
+  /** Total players in this challenge. 1 for non-shared sessions. */
+  playerCount: number;
+  /** The caller's rank inside the challenge (1 = top score). Null for
+   *  solo sessions where rank isn't meaningful. */
+  rank: number | null;
+}
+
+export const fetchFreePlayUnread = async (): Promise<{ count: number }> => {
+  const response = await fetch(`${API_URL}/freeplay/unread`, {
+    headers: await sessionHeaders(),
+  });
+  if (!response.ok) return { count: 0 };
+  return response.json();
+};
+
+export interface FreePlaySessionResponse {
+  sessionId: string;
+  challengeId: string | null;
+  seed: number | null;
+  completedAt: string;
+  board: string[][];
+  foundWords: { word: string; path: { row: number; col: number }[]; score: number }[];
+  missedWords: { word: string; path: { row: number; col: number }[]; score: number }[];
+  config: { boardSize: number; timeLimit: number; minWordLength: number };
+}
+
+export const fetchFreePlaySession = async (
+  sessionId: string,
+): Promise<FreePlaySessionResponse | null> => {
+  const response = await fetch(`${API_URL}/freeplay/session/${sessionId}`, {
+    headers: await sessionHeaders(),
+  });
+  if (!response.ok) return null;
+  return response.json();
+};
+
+export const fetchFreePlayHistory = async (): Promise<{ entries: FreePlayHistoryEntry[] }> => {
+  const response = await fetch(`${API_URL}/freeplay/history`, {
+    headers: await sessionHeaders(),
+  });
+  if (!response.ok) return { entries: [] };
+  return response.json();
+};
+
+export const createFreePlayChallenge = async (sessionId: string): Promise<{ challengeId: string } | null> => {
+  const response = await fetch(`${API_URL}/freeplay/share/${sessionId}`, {
+    method: 'POST',
+    headers: await sessionHeaders(),
+  });
+  if (!response.ok) return null;
+  return response.json();
+};
+
+export interface FreePlayChallengePreview {
+  challengeId: string;
+  ownerUserId: string | null;
+  ownerDisplayName: string;
+  playerCount: number;
+  alreadyPlayed: boolean;
+  config: { boardSize: number; minWordLength: number; timeLimit: number };
+  seed: number | null;
+}
+
+export const fetchFreePlayChallengePreview = async (
+  challengeId: string,
+): Promise<FreePlayChallengePreview | null> => {
+  const response = await fetch(`${API_URL}/freeplay/challenge/${challengeId}/preview`, {
+    headers: await sessionHeaders(),
+  });
+  if (!response.ok) return null;
+  return response.json();
+};
+
+export const fetchFreePlayChallengeMe = async (
+  challengeId: string,
+): Promise<{ played: boolean; sessionId: string | null }> => {
+  const response = await fetch(`${API_URL}/freeplay/challenge/${challengeId}/me`, {
+    headers: await sessionHeaders(),
+  });
+  if (!response.ok) return { played: false, sessionId: null };
+  return response.json();
+};
+
+export interface FreePlayChallengePlayer {
+  userId: string | null;
+  displayName: string;
+  sessionId: string;
+  points: number;
+  wordCount: number;
+  longestWord: string;
+  completedAt: string;
+  foundWords: { word: string; score: number }[];
+  isOwner: boolean;
+  isYou: boolean;
+}
+
+export interface FreePlayChallengeResponse {
+  challengeId: string;
+  board: string[][];
+  config: { boardSize: number; minWordLength: number; timeLimit: number };
+  /** Numeric seed used to generate the board. Needed when sharing the
+   *  challenge so a recipient's ConfigRoute can rebuild the same board. */
+  seed: number | null;
+  ownerUserId: string | null;
+  players: FreePlayChallengePlayer[];
+  /** Words on the board the caller didn't find. Sorted by score desc.
+   *  Drives the "All words" toggle on the challenge results page. */
+  missedWords: { word: string; path: { row: number; col: number }[]; score: number }[];
+}
+
+export type FreePlayChallengeError = 'not-found' | 'forbidden' | 'unknown';
+
+export const fetchFreePlayChallenge = async (
+  challengeId: string,
+): Promise<
+  | { ok: true; data: FreePlayChallengeResponse }
+  | { ok: false; error: FreePlayChallengeError }
+> => {
+  const response = await fetch(`${API_URL}/freeplay/challenge/${challengeId}`, {
+    headers: await sessionHeaders(),
+  });
+  if (response.ok) return { ok: true, data: await response.json() };
+  if (response.status === 404) return { ok: false, error: 'not-found' };
+  if (response.status === 403) return { ok: false, error: 'forbidden' };
+  return { ok: false, error: 'unknown' };
 };
 
 // ─── Zen Daily mode ────────────────────────────────────────────────────

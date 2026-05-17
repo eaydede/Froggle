@@ -28,6 +28,8 @@ interface LandingPageProps {
   onZenSeeResult: () => void;
   onZenLeaderboard: () => void;
   onFreePlayClick: () => void;
+  onFreePlayHistory?: () => void;
+  freePlayUnread?: number;
   theme: "light" | "dark";
   onToggleTheme: () => void;
 }
@@ -51,6 +53,8 @@ export function LandingPage({
   onZenSeeResult,
   onZenLeaderboard,
   onFreePlayClick,
+  onFreePlayHistory,
+  freePlayUnread,
   theme,
   onToggleTheme,
 }: LandingPageProps) {
@@ -85,7 +89,11 @@ export function LandingPage({
             onSeeResult={onZenSeeResult}
             onSeeLeaderboard={onZenLeaderboard}
           />
-          <FreePlayCard onClick={onFreePlayClick} />
+          <FreePlayCard
+            onClick={onFreePlayClick}
+            onHistory={onFreePlayHistory}
+            unread={freePlayUnread}
+          />
         </div>
       </div>
     </div>

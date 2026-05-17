@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { GameState } from 'models';
 import { useGame } from '../../GameContext';
 import {
+  fetchDailyCompare,
   fetchDailyResult,
   fetchDailyStats,
   fetchLeaderboard,
@@ -13,18 +13,21 @@ import {
 } from '../../shared/api/gameApi';
 import { scoreWord } from '../../shared/utils/score';
 import { formatDateLabel } from '../../shared/utils/formatDate';
-import { ResultsPage, type DailyResultsExtras } from './ResultsPage';
-import type { LeaderboardTeaserEntry } from './components/LeaderboardTeaser';
+import { ResultsView } from '../../shared/results/ResultsView';
+import type {
+  LoadOpponentResult,
+  ResultsRosterEntry,
+} from '../../shared/results/types';
+import { useShareText } from './hooks/useShareText';
+import { generateShareText } from './utils/shareResults';
+import { IconAction } from '../../shared/components/IconAction';
+import { DateChip } from '../../shared/components/DateChip';
+import { DateTimelinePicker } from '../../shared/components/DateTimelinePicker';
+import { ActionButton } from '../../shared/results/components/ActionButton';
 import type { DailyEntry } from '../daily/types';
 
 function getTodayPST(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
-}
-
-function toTeaserEntry(
-  e: LeaderboardResponse['rankings']['points'][number],
-): LeaderboardTeaserEntry {
-  return { rank: e.rank, name: e.displayName, score: e.value };
 }
 
 export function DailyResultsRoute() {
@@ -32,10 +35,8 @@ export function DailyResultsRoute() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const fromSource = searchParams.get('from');
+  const initialOpponentId = searchParams.get('compare');
 
-  // Date resolution: URL ?date takes precedence (enables the date
-  // picker to drive historical navigation). Falls back to dailyInfo
-  // for the common landing/game-end/leaderboard-self entry flows.
   const urlDate = searchParams.get('date');
   const targetDate = urlDate ?? dailyInfo?.date ?? null;
 
@@ -43,10 +44,7 @@ export function DailyResultsRoute() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(null);
   const [stats, setStats] = useState<DailyStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Fetch guard keyed on date. Changing the date re-runs the fetch;
-  // the transient null after handleClose's setDailyInfo(null) doesn't
-  // re-trigger the redirect branch because we've already loaded once.
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const fetchedForRef = useRef<string | null>(null);
 
   // Only trust the in-memory game results when they match the target
@@ -103,8 +101,6 @@ export function DailyResultsRoute() {
       .catch(() => setLeaderboard(null));
   }, [targetDate, liveDailyResults, cachedDailyResult]);
 
-  // Stats for the picker entries — fetched once, independent of the
-  // current target date.
   useEffect(() => {
     fetchDailyStats()
       .then(setStats)
@@ -129,20 +125,18 @@ export function DailyResultsRoute() {
     }));
   }, [stats]);
 
-  const handlePlayAgain = async () => {
-    setDailyInfo(null);
-    if (game) await cancelGame();
-    navigate('/');
-  };
-
   const handleClose = async () => {
     const backToLeaderboard = fromSource === 'leaderboard' && targetDate;
-    const backTarget = backToLeaderboard
-      ? `/leaderboard?date=${targetDate}`
-      : '/';
+    const backTarget = backToLeaderboard ? `/leaderboard?date=${targetDate}` : '/';
     setDailyInfo(null);
     if (game) await cancelGame();
     navigate(backTarget);
+  };
+
+  const handleHome = async () => {
+    setDailyInfo(null);
+    if (game) await cancelGame();
+    navigate('/');
   };
 
   const handleOpenLeaderboard = () => {
@@ -151,60 +145,17 @@ export function DailyResultsRoute() {
   };
 
   const handleChangeDate = (iso: string) => {
-    // Keep any existing `from` hint so the Close destination stays stable
-    // across date changes, but swap out the date param.
     const next = new URLSearchParams(searchParams);
     next.set('date', iso);
     setSearchParams(next, { replace: true });
   };
-
-  const daily: DailyResultsExtras | null = useMemo(() => {
-    if (!targetDate) return null;
-    const pointsRanking = leaderboard?.rankings.points ?? [];
-
-    const TOP_WHEN_USER_IN_TOP = 3;
-    const TOP_WHEN_USER_ABSENT = 2;
-    const currentPlayerRank = leaderboard?.currentPlayer?.rank ?? null;
-    const userInTop =
-      currentPlayerRank !== null && currentPlayerRank <= TOP_WHEN_USER_IN_TOP;
-
-    const top = pointsRanking
-      .slice(0, userInTop ? TOP_WHEN_USER_IN_TOP : TOP_WHEN_USER_ABSENT)
-      .map((e) => ({ ...toTeaserEntry(e), isCurrentUser: e.isCurrentUser }));
-
-    const you: LeaderboardTeaserEntry | null =
-      !userInTop && leaderboard?.currentPlayer
-        ? {
-            rank: leaderboard.currentPlayer.rank,
-            name: 'you',
-            score: leaderboard.currentPlayer.points,
-            isCurrentUser: true,
-          }
-        : null;
-
-    return {
-      dateLabel: `Timed Daily · ${formatDateLabel(targetDate)}`,
-      leaderboardTop: top,
-      leaderboardYou: you,
-      onOpenLeaderboard: handleOpenLeaderboard,
-      onChangeDate: () => {},
-      pickerEntries,
-      onPickerSelect: handleChangeDate,
-      todayDate: getTodayPST(),
-      selectedDate: targetDate,
-    };
-    // handleOpenLeaderboard / handleChangeDate close over stable navigate + setSearchParams
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetDate, leaderboard, pickerEntries]);
-
-  if (loading || !targetDate || !daily) return null;
 
   const displayed = liveDailyResults ?? (serverResult
     ? {
         board: serverResult.board,
         foundWords: serverResult.found_words.map((word) => ({
           word,
-          path: [],
+          path: [] as { row: number; col: number }[],
           score: scoreWord(word),
         })),
         missedWords: (serverResult.missed_words ?? []).map((m) => ({
@@ -215,27 +166,176 @@ export function DailyResultsRoute() {
       }
     : null);
 
-  if (!displayed) return null;
+  const totalPoints = displayed
+    ? displayed.foundWords.reduce((sum, w) => sum + w.score, 0)
+    : 0;
+
+  const roster: ResultsRosterEntry[] = useMemo(() => {
+    if (!leaderboard) return [];
+    return leaderboard.rankings.points.map((e) => ({
+      id: e.userId,
+      rank: e.rank,
+      displayName: e.displayName,
+      points: e.value,
+      isYou: e.isCurrentUser,
+    }));
+  }, [leaderboard]);
+
+  const loadOpponent = useMemo(
+    () =>
+      async (userId: string): Promise<LoadOpponentResult> => {
+        if (!targetDate) return { ok: false, error: 'unknown' };
+        const result = await fetchDailyCompare(targetDate, userId);
+        if (!result.ok) return { ok: false, error: result.error };
+        return {
+          ok: true,
+          opponent: {
+            id: userId,
+            displayName: result.data.them.displayName,
+            points: result.data.them.points,
+            wordCount: result.data.them.wordCount,
+            foundWords: result.data.them.foundWords,
+          },
+        };
+      },
+    [targetDate],
+  );
+
+  const { share, copied } = useShareText(() =>
+    displayed ? generateShareText(displayed.foundWords, { daily: { number: 0 } }) : '',
+  );
+
+  if (loading || !targetDate || !displayed) return null;
+
+  const dateLabel = `Timed Daily · ${formatDateLabel(targetDate)}`;
 
   return (
-    <ResultsPage
-      results={displayed}
-      game={{
-        board: displayed.board,
-        startedAt: 0,
-        status: GameState.Finished,
-        config: {
-          durationSeconds: serverResult?.config?.timeLimit ?? dailyInfo?.config.timeLimit ?? 120,
+    <>
+      <ResultsView
+        me={{
+          displayName: 'You',
+          points: totalPoints,
+          wordCount: displayed.foundWords.length,
+          foundWords: displayed.foundWords,
+          missedWords: displayed.missedWords,
+        }}
+        board={displayed.board}
+        config={{
           boardSize: displayed.board.length,
           minWordLength: serverResult?.config?.minWordLength ?? dailyInfo?.config.minWordLength ?? 3,
-        },
-      }}
-      gameSeed={dailyInfo?.seed}
-      onClose={handleClose}
-      onPlayAgain={handlePlayAgain}
-      daily={daily}
-      findPercents={serverResult?.find_percents}
-      popularityStyle={serverResult?.find_percents ? 'inline' : undefined}
-    />
+          timeLimit: serverResult?.config?.timeLimit ?? dailyInfo?.config.timeLimit ?? 120,
+        }}
+        roster={roster}
+        loadOpponent={loadOpponent}
+        initialOpponentId={initialOpponentId}
+        standingsHeader="Leaderboard"
+        compareSourceLabel="leaderboard"
+        findPercents={serverResult?.find_percents}
+        popularityStyle={serverResult?.find_percents ? 'inline' : undefined}
+        topbar={
+          <DailyTopbar
+            label={dateLabel}
+            onClose={handleClose}
+            onShare={share}
+            shareCopied={copied}
+            onLabelClick={() => setDatePickerOpen(true)}
+          />
+        }
+        bottomActions={<DailyBottomActions onHome={handleHome} onLeaderboard={handleOpenLeaderboard} />}
+      />
+      <DateTimelinePicker
+        open={datePickerOpen}
+        onClose={() => setDatePickerOpen(false)}
+        onSelect={(iso) => {
+          setDatePickerOpen(false);
+          handleChangeDate(iso);
+        }}
+        entries={pickerEntries}
+        selectedDate={targetDate}
+        todayDate={getTodayPST()}
+        disableMissed
+        onShare={share}
+      />
+    </>
+  );
+}
+
+function DailyTopbar({
+  label,
+  onClose,
+  onShare,
+  shareCopied,
+  onLabelClick,
+}: {
+  label: string;
+  onClose: () => void;
+  onShare: () => void;
+  shareCopied: boolean;
+  onLabelClick?: () => void;
+}) {
+  return (
+    <header
+      className="grid items-center gap-2 shrink-0"
+      style={{ gridTemplateColumns: '32px 1fr 32px' }}
+    >
+      <IconAction onClick={onClose} label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 6L6 18M6 6l12 12" />
+        </svg>
+      </IconAction>
+      <div className="flex justify-center min-w-0">
+        <DateChip label={label} onClick={onLabelClick} />
+      </div>
+      <IconAction onClick={onShare} label={shareCopied ? 'Copied to clipboard' : 'Share'}>
+        {shareCopied ? (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+            <polyline points="16 6 12 2 8 6" />
+            <line x1="12" y1="2" x2="12" y2="15" />
+          </svg>
+        )}
+      </IconAction>
+    </header>
+  );
+}
+
+function DailyBottomActions({
+  onHome,
+  onLeaderboard,
+}: {
+  onHome: () => void;
+  onLeaderboard: () => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <ActionButton
+        onClick={onHome}
+        label="Home"
+        icon={
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 11l9-8 9 8" />
+            <path d="M5 10v10h14V10" />
+            <path d="M9 20v-6h6v6" />
+          </svg>
+        }
+      />
+      <ActionButton
+        onClick={onLeaderboard}
+        label="Leaderboard"
+        primary
+        icon={
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 20V10" />
+            <path d="M10 20V4" />
+            <path d="M16 20v-7" />
+            <path d="M22 20H2" />
+          </svg>
+        }
+      />
+    </div>
   );
 }
