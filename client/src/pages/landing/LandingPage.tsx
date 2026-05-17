@@ -1,6 +1,7 @@
 import {
   AppHeader,
   DailyCard,
+  FeedbackButton,
   FreePlayCard,
   NextDailyHeader,
   ThemeTogglePill,
@@ -95,6 +96,8 @@ export function LandingPage({
             unread={freePlayUnread}
           />
         </div>
+
+        <FeedbackButton />
       </div>
     </div>
   );

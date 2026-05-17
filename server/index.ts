@@ -10,6 +10,7 @@ import { dailyRouter } from './routes/daily.js';
 import { dailyZenRouter } from './routes/dailyZen.js';
 import { leaderboardRouter } from './routes/leaderboard.js';
 import { freeplayRouter } from './routes/freeplay.js';
+import { feedbackRouter } from './routes/feedback.js';
 import { versionRouter } from './routes/version.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -45,6 +46,7 @@ app.use(
 app.use('/api/game', gameRouter);
 app.use('/api/user', userRouter);
 app.use('/api/freeplay', freeplayRouter);
+app.use('/api/feedback', feedbackRouter);
 app.use('/api/daily/leaderboard', leaderboardRouter);
 app.use('/api/daily/zen', dailyZenRouter);
 app.use('/api/daily', dailyRouter);
