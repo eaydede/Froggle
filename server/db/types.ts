@@ -53,8 +53,16 @@ export interface FreePlaySessionsTable {
   last_viewed_at: Date | null;
 }
 
+export interface FeedbackTable {
+  id: Generated<string>;
+  user_id: string | null;
+  message: string;
+  created_at: Generated<Date>;
+}
+
 export interface Database {
   daily_results: DailyResultsTable;
   daily_zen_results: DailyZenResultsTable;
   free_play_sessions: FreePlaySessionsTable;
+  feedback: FeedbackTable;
 }

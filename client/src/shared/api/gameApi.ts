@@ -780,6 +780,19 @@ export type UpdateProfileResult =
   | { ok: false; reason: 'locked'; lockedUntil: string | null }
   | { ok: false; reason: 'unknown' };
 
+export const submitFeedback = async (message: string): Promise<{ ok: boolean }> => {
+  try {
+    const response = await fetch(`${API_URL}/feedback`, {
+      method: 'POST',
+      headers: await sessionHeaders(),
+      body: JSON.stringify({ message }),
+    });
+    return { ok: response.ok };
+  } catch {
+    return { ok: false };
+  }
+};
+
 export const updateProfile = async (displayName: string): Promise<UpdateProfileResult> => {
   const response = await fetch(`${API_URL}/user/profile`, {
     method: 'PUT',
