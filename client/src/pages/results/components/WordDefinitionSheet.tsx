@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { WordDefinition } from '../hooks/useDefinition';
 import { abbreviatePartOfSpeech } from '../utils/partOfSpeech';
 
@@ -32,7 +33,12 @@ export function WordDefinitionSheet({
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  return (
+  // Portal to document.body so the sheet's `position: fixed` is
+  // viewport-relative. Otherwise the .results-region-fade-in animation on
+  // an ancestor sets a transform, which creates a containing block and
+  // pins the sheet to the right column (where it leaks out over the
+  // bottom action bar even when closed).
+  return createPortal(
     <>
       <div
         aria-hidden
@@ -143,6 +149,7 @@ export function WordDefinitionSheet({
           )}
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
