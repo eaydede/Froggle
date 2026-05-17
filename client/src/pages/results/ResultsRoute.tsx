@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useGame } from '../../GameContext';
 import { ResultsView } from '../../shared/results/ResultsView';
 import type { ResultsRosterEntry } from '../../shared/results/types';
@@ -7,8 +7,18 @@ import { encodeGameLink } from '../../shared/utils/gameLink';
 import { createFreePlayChallenge } from '../../shared/api/gameApi';
 import { useShareText } from './hooks/useShareText';
 import { ActionButton } from '../../shared/results/components/ActionButton';
+import { RESULTS_FIXTURES } from './__fixtures__';
 
 export function ResultsRoute() {
+  const [searchParams] = useSearchParams();
+  const mock = searchParams.get('mock');
+  if (import.meta.env.DEV && mock && RESULTS_FIXTURES[mock]) {
+    return <>{RESULTS_FIXTURES[mock]()}</>;
+  }
+  return <RealResultsRoute />;
+}
+
+function RealResultsRoute() {
   const {
     game,
     results,
