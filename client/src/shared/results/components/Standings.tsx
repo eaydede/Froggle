@@ -8,7 +8,9 @@ interface StandingsProps {
    *  for daily/zen. The right-hand counter always shows row count. */
   header: string;
   compact?: boolean;
-  /** Cap the visible height; rest scrolls behind a soft mask. */
+  /** Cap the visible height; rest scrolls behind a soft mask. Sized so the
+   *  Standings panel doesn't outgrow the Board next to it (Board ≈ 180px,
+   *  header ≈ 20px → inner ≤ 160px). */
   maxHeight?: string;
 }
 
@@ -18,7 +20,7 @@ export function Standings({
   onSelect,
   header,
   compact = false,
-  maxHeight = '190px',
+  maxHeight = '160px',
 }: StandingsProps) {
   return (
     <div className="flex-1 min-w-0 flex flex-col min-h-0">
