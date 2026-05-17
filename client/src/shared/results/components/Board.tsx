@@ -5,13 +5,23 @@ import type { ResultsBoardConfig } from '../types';
 interface BoardProps {
   board: string[][];
   highlightPath: Position[] | null;
+  /** CSS color (typically `var(--rarity-*)`) used to tint lit cells so the
+   *  animation echoes the rarity stripe of the word being replayed. When
+   *  null, lit cells fall back to the neutral ink palette. */
+  highlightColor?: string | null;
   config: ResultsBoardConfig;
   compact?: boolean;
 }
 
 const STEP_MS = 70;
 
-export function Board({ board, highlightPath, config, compact = false }: BoardProps) {
+export function Board({
+  board,
+  highlightPath,
+  highlightColor = null,
+  config,
+  compact = false,
+}: BoardProps) {
   const size = board.length;
   const [animatedCells, setAnimatedCells] = useState<Set<string>>(new Set());
 
@@ -41,16 +51,20 @@ export function Board({ board, highlightPath, config, compact = false }: BoardPr
         {board.map((row, r) =>
           row.map((letter, c) => {
             const lit = animatedCells.has(`${r},${c}`);
+            const litBackground = highlightColor
+              ? `color-mix(in srgb, ${highlightColor} 28%, transparent)`
+              : 'var(--ink-trace)';
+            const litBorder = highlightColor ?? 'var(--ink-mid)';
             return (
               <div
                 key={`${r}-${c}`}
                 className={`${compact ? 'rounded-[4px] text-[13px]' : 'rounded-[4px] text-sm'} flex items-center justify-center tabular-nums font-[family-name:var(--font-structure)] transition-[background,border-color,color] duration-150`}
                 style={{
                   fontWeight: 700,
-                  background: lit ? 'var(--ink-trace)' : 'var(--surface-card)',
+                  background: lit ? litBackground : 'var(--surface-card)',
                   borderWidth: '1px',
                   borderStyle: 'solid',
-                  borderColor: lit ? 'var(--ink-mid)' : 'var(--ink-border-subtle)',
+                  borderColor: lit ? litBorder : 'var(--ink-border-subtle)',
                   color: lit ? 'var(--ink)' : 'var(--ink-muted)',
                 }}
               >

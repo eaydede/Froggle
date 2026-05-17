@@ -5,6 +5,7 @@ import { IconAction } from '../components/IconAction';
 import { findWordPath } from '../utils/findWordPath';
 import { WordsCard } from '../../pages/results/components/WordsCard';
 import { WordDefinitionPanel } from '../../pages/results/components/WordDefinitionPanel';
+import { RARITY_VAR, wordRarity } from '../../pages/results/utils/wordRarity';
 import { Board } from './components/Board';
 import { ResultsHero } from './components/ResultsHero';
 import { Standings } from './components/Standings';
@@ -158,6 +159,19 @@ export function ResultsView({
     return comparePathByWord.get(highlightedWord) ?? null;
   }, [opponent, comparePathByWord, highlightedWord, highlightPath]);
 
+  // Tint the board's animated cells with the rarity color of the word being
+  // replayed, so the preview matches the rarity stripe in the word list. In
+  // compare mode either side may own the word but not both, so look in both.
+  const highlightColor = useMemo(() => {
+    if (!highlightedWord) return null;
+    const score =
+      me.foundWords.find((w) => w.word.toUpperCase() === highlightedWord)?.score ??
+      opponent?.foundWords.find((w) => w.word.toUpperCase() === highlightedWord)
+        ?.score;
+    if (!score || score <= 0) return null;
+    return RARITY_VAR[wordRarity(score)];
+  }, [highlightedWord, me.foundWords, opponent]);
+
   const youCompareRows = useMemo(
     () => (opponent ? alignedRows(me, opponent, 'you', highlightedWord) : null),
     [opponent, me, highlightedWord],
@@ -243,6 +257,7 @@ export function ResultsView({
             <Board
               board={board}
               highlightPath={activeHighlightPath}
+              highlightColor={highlightColor}
               config={config}
               compact
             />
