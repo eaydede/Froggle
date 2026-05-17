@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { getDailySeed } from 'models/seedCode';
+import { generateSalt, hashWord } from 'models';
 import { generateSeededBoard } from 'engine/board.js';
 import { findAllWords } from 'engine/solver.js';
 import { scoreWord } from 'engine/scoring.js';
@@ -7,7 +8,14 @@ import { requireAuth } from '../middleware/auth.js';
 import { getDb } from '../db/index.js';
 import { cachePrivate, cachePublic, noStore } from '../httpCache.js';
 import { dictionary } from '../services/dictionary.js';
-import { scoreResult, scoreWords, getDailyStats } from '../services/DailyService.js';
+import {
+  endTimedDailySession,
+  getDailyStats,
+  getTimedDailySession,
+  scoreWords,
+  startTimedDailySession,
+  submitTimedDailyWord,
+} from '../services/DailyService.js';
 import { getTimedDailyWordPercents } from '../services/dailyWordStats.js';
 import { getDisplayNames } from '../services/displayNames.js';
 import {
@@ -20,20 +28,52 @@ import {
 
 export const dailyRouter = Router();
 
-dailyRouter.get('/', (_req, res) => {
+// Solver result cache keyed by date + board contents. Shared with the
+// /session endpoints so we don't run the solver on every fetch — the
+// salted hashes returned to clients are derived from the cached word
+// list with a fresh per-request salt.
+const solvedBoardCache = new Map<string, { totalFindable: number; words: string[] }>();
+
+function solveBoard(board: string[][], date: string): {
+  totalFindable: number;
+  salt: string;
+  wordHashes: string[];
+} {
+  const key = `${date}:${board.flat().join('')}`;
+  const minWordLength = getDailyConfig(date).minWordLength;
+  let solved = solvedBoardCache.get(key);
+  if (!solved) {
+    const all = findAllWords(board, dictionary, minWordLength);
+    solved = {
+      totalFindable: all.length,
+      words: all.map((w) => w.word),
+    };
+    solvedBoardCache.set(key, solved);
+  }
+  const salt = generateSalt();
+  const wordHashes = solved.words.map((word) => hashWord(word, salt));
+  return { totalFindable: solved.totalFindable, salt, wordHashes };
+}
+
+function getTodayPayload() {
   const date = getDailyDatePST();
   const number = getDailyNumber(date);
   const seed = getDailySeed(date);
   const config = getDailyConfig(date);
   const board = generateSeededBoard(config.boardSize, seed);
+  return { date, number, seed, board, config };
+}
+
+// Public puzzle metadata. The salt + wordHashes payload powers the
+// client's local hash check so word submissions get instant feedback
+// without a server round-trip per attempt — the server still validates
+// every accepted word via /session/:date/word, so the hashes are a UX
+// aid, not the security boundary.
+dailyRouter.get('/', (_req, res) => {
+  const payload = getTodayPayload();
+  const { salt, wordHashes } = solveBoard(payload.board, payload.date);
   cachePublic(res, 60);
-  res.json({
-    date,
-    number,
-    seed,
-    board,
-    config,
-  });
+  res.json({ ...payload, salt, wordHashes });
 });
 
 // Dev-only: preview the config + board for an arbitrary seed without
@@ -61,56 +101,93 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-dailyRouter.post('/results', requireAuth, async (req, res) => {
-  const { date, found_words, board, config } = req.body;
-
-  if (!date || !found_words || !board || !config) {
-    return res.status(400).json({ error: 'Missing required fields: date, found_words, board, config' });
-  }
-
+// Returns the player's session for the given date, or null if they
+// haven't started yet. The salt + wordHashes are included while the
+// session is still playable so the client can do instant local
+// validation. Mirrors the zen daily session shape.
+dailyRouter.get('/session/:date', requireAuth, async (req, res) => {
   try {
-    const { points, wordCount, longestWord } = scoreResult(found_words);
-    const db = getDb();
-    await db
-      .insertInto('daily_results')
-      .values({
-        user_id: req.userId!,
-        date,
-        found_words: JSON.stringify(found_words),
-        board: JSON.stringify(board),
-        points,
-        word_count: wordCount,
-        longest_word: longestWord,
-        board_size: config.boardSize,
-        min_word_length: config.minWordLength,
-        time_limit: config.timeLimit,
-      })
-      .onConflict((oc) =>
-        oc.columns(['user_id', 'date']).doUpdateSet({
-          found_words: JSON.stringify(found_words),
-          board: JSON.stringify(board),
-          completed_at: new Date(),
-          points,
-          word_count: wordCount,
-          longest_word: longestWord,
-          board_size: config.boardSize,
-          min_word_length: config.minWordLength,
-          time_limit: config.timeLimit,
-        }),
-      )
-      .execute();
-
+    const session = await getTimedDailySession(getDb(), req.userId!, req.params.date);
+    if (!session) {
+      noStore(res);
+      return res.json({ session: null });
+    }
+    const { totalFindable, salt, wordHashes } = solveBoard(session.board, req.params.date);
     noStore(res);
-    res.json({ success: true });
+    res.json({
+      session: { ...session, total_findable: totalFindable, salt, wordHashes },
+    });
   } catch (err) {
-    console.error('Failed to record daily result:', err);
-    res.status(500).json({ error: 'Failed to record result' });
+    console.error('Failed to fetch timed daily session:', err);
+    res.status(500).json({ error: 'Failed to fetch session' });
+  }
+});
+
+// Idempotent start. Only today's date is acceptable — backfilling a
+// session for a past date would let a player avoid the time limit.
+dailyRouter.post('/session/:date/start', requireAuth, async (req, res) => {
+  try {
+    const date = req.params.date;
+    const today = getDailyDatePST();
+    if (date !== today) {
+      return res.status(400).json({ error: 'Can only start today\'s daily session' });
+    }
+    const config = getDailyConfig(date);
+    const board = generateSeededBoard(config.boardSize, getDailySeed(date));
+    const session = await startTimedDailySession(getDb(), req.userId!, date, board, config);
+    const { totalFindable, salt, wordHashes } = solveBoard(session.board, date);
+    noStore(res);
+    res.json({ session: { ...session, total_findable: totalFindable, salt, wordHashes } });
+  } catch (err) {
+    console.error('Failed to start timed daily session:', err);
+    res.status(500).json({ error: 'Failed to start session' });
+  }
+});
+
+dailyRouter.post('/session/:date/word', requireAuth, async (req, res) => {
+  const path = req.body?.path;
+  if (!Array.isArray(path)) {
+    return res.status(400).json({ error: 'Missing path' });
+  }
+  try {
+    const outcome = await submitTimedDailyWord(
+      getDb(),
+      req.userId!,
+      req.params.date,
+      path,
+    );
+    noStore(res);
+    res.json(outcome);
+  } catch (err) {
+    console.error('Failed to submit timed daily word:', err);
+    res.status(500).json({ error: 'Failed to submit word' });
+  }
+});
+
+dailyRouter.post('/session/:date/end', requireAuth, async (req, res) => {
+  try {
+    const session = await endTimedDailySession(getDb(), req.userId!, req.params.date);
+    if (!session) {
+      return res.status(404).json({ error: 'No session to end' });
+    }
+    noStore(res);
+    res.json({ session });
+  } catch (err) {
+    console.error('Failed to end timed daily session:', err);
+    res.status(500).json({ error: 'Failed to end session' });
   }
 });
 
 dailyRouter.get('/results/:date', requireAuth, async (req, res) => {
   try {
     const db = getDb();
+    // Auto-finalize on read so a player whose timer ran out without /end
+    // being called still sees their result page.
+    const session = await getTimedDailySession(db, req.userId!, req.params.date);
+    if (!session || !session.ended_at) {
+      noStore(res);
+      return res.json({ result: null });
+    }
     const result = await db
       .selectFrom('daily_results')
       .selectAll()
@@ -198,10 +275,10 @@ dailyRouter.get('/compare/:date', requireAuth, async (req, res) => {
     const mine = rows.find((r) => r.user_id === meUserId);
     const theirs = rows.find((r) => r.user_id === otherUserId);
 
-    if (!mine) {
+    if (!mine || !mine.ended_at) {
       return res.status(409).json({ error: 'You have not played this daily yet' });
     }
-    if (!theirs) {
+    if (!theirs || !theirs.ended_at) {
       return res.status(404).json({ error: 'Opponent has not played this daily' });
     }
 
@@ -265,6 +342,7 @@ dailyRouter.get('/history', requireAuth, async (req, res) => {
       .selectFrom('daily_results')
       .selectAll()
       .where('user_id', '=', req.userId!)
+      .where('ended_at', 'is not', null)
       .orderBy('date', 'desc')
       .execute();
 

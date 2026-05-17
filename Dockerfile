@@ -27,7 +27,12 @@ COPY tsconfig.json .
 # Build the client (VITE_ env vars are available via ARG → ENV)
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY
-RUN npm run build --workspace=client
+
+# Stamp a build ID so the running client can detect when a newer image has
+# shipped and force a reload on tab focus. Written to /app/BUILD_ID, which the
+# server reads at startup.
+RUN date -u +%Y%m%d%H%M%S > /app/BUILD_ID && \
+    npm run build --workspace=client
 
 # Expose the port
 EXPOSE 3000

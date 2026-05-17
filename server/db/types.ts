@@ -4,7 +4,7 @@ export interface DailyResultsTable {
   id: Generated<string>;
   user_id: string;
   date: string;
-  found_words: string; // JSON string
+  found_words: Generated<string>; // JSON string
   board: string; // JSON string
   completed_at: Generated<Date>;
   points: Generated<number>;
@@ -13,6 +13,8 @@ export interface DailyResultsTable {
   board_size: number;
   min_word_length: number;
   time_limit: number;
+  started_at: Generated<Date>;
+  ended_at: Date | null;
 }
 
 export interface DailyZenResultsTable {
