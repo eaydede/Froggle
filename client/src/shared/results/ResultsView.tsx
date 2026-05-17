@@ -251,39 +251,7 @@ export function ResultsView({
 
         <section className="flex justify-between items-stretch gap-2 flex-1 min-h-0 box-border">
           <div
-            key={opponent ? 'left-compare' : 'left-solo'}
-            className="w-1/2 flex flex-col min-h-0 results-region-fade-in"
-          >
-            {opponent && youCompareRows ? (
-              <WordList
-                side="you"
-                headerLabel={`You · ${me.wordCount}`}
-                headerTrail={String(me.points)}
-                rows={youCompareRows}
-                onWordTap={(w) => {
-                  const normalized = w.toUpperCase();
-                  setHighlightedWord((prev) =>
-                    prev === normalized ? null : normalized,
-                  );
-                  setHighlightPath(null);
-                }}
-                scrollSync={scrollSync.left}
-                compact
-              />
-            ) : (
-              <WordsCard
-                foundWords={me.foundWords}
-                missedWords={me.missedWords}
-                showMissedTab={me.missedWords.length > 0}
-                highlightedWord={highlightedWord}
-                onHighlightWord={handleHighlight}
-                findPercents={findPercents}
-                popularityStyle={popularityStyle}
-              />
-            )}
-          </div>
-          <div
-            key={opponent ? 'right-compare' : 'right-solo'}
+            key={opponent ? 'opp-compare' : 'placeholders-solo'}
             className="w-1/2 flex flex-col min-h-0 results-region-fade-in"
           >
             {opponent && oppCompareRows ? (
@@ -300,7 +268,7 @@ export function ResultsView({
                   );
                   setHighlightPath(null);
                 }}
-                scrollSync={scrollSync.right}
+                scrollSync={scrollSync.left}
                 compact
               />
             ) : (
@@ -318,6 +286,38 @@ export function ResultsView({
                     <WordDefinitionPanel word={highlightedWord} fitContainer />
                   ) : undefined
                 }
+              />
+            )}
+          </div>
+          <div
+            key={opponent ? 'you-compare' : 'words-solo'}
+            className="w-1/2 flex flex-col min-h-0 results-region-fade-in"
+          >
+            {opponent && youCompareRows ? (
+              <WordList
+                side="you"
+                headerLabel={`You · ${me.wordCount}`}
+                headerTrail={String(me.points)}
+                rows={youCompareRows}
+                onWordTap={(w) => {
+                  const normalized = w.toUpperCase();
+                  setHighlightedWord((prev) =>
+                    prev === normalized ? null : normalized,
+                  );
+                  setHighlightPath(null);
+                }}
+                scrollSync={scrollSync.right}
+                compact
+              />
+            ) : (
+              <WordsCard
+                foundWords={me.foundWords}
+                missedWords={me.missedWords}
+                showMissedTab={me.missedWords.length > 0}
+                highlightedWord={highlightedWord}
+                onHighlightWord={handleHighlight}
+                findPercents={findPercents}
+                popularityStyle={popularityStyle}
               />
             )}
           </div>
