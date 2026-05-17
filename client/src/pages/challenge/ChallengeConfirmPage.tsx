@@ -190,15 +190,12 @@ function StartButton({ onClick }: { onClick: () => void }) {
 }
 
 function PlayersCount({ count }: { count: number }) {
+  // The viewer hasn't played yet — confirm page redirects elsewhere once
+  // alreadyPlayed flips true — so the count is everyone *else* who has
+  // finished (the originator plus any prior recipients). Empty rendering
+  // when count <= 0 keeps the layout stable if a future state has a
+  // zero-player challenge.
   if (count <= 0) return <div className="h-2" aria-hidden />;
-  const others = Math.max(0, count - 1);
-  if (others === 0) {
-    return (
-      <div className="text-center mt-2 text-xs text-[color:var(--ink-soft)]" style={{ fontWeight: 500 }}>
-        Be the first to take it on.
-      </div>
-    );
-  }
   return (
     <div
       className="text-center mt-2 text-xs text-[color:var(--ink-soft)] tabular-nums"
@@ -208,9 +205,9 @@ function PlayersCount({ count }: { count: number }) {
         className="font-[family-name:var(--font-structure)] text-[color:var(--ink-muted)] tracking-[-0.01em]"
         style={{ fontWeight: 700 }}
       >
-        {others.toLocaleString()}
+        {count.toLocaleString()}
       </span>{' '}
-      {others === 1 ? 'other has' : 'others have'} played
+      {count === 1 ? 'player has' : 'players have'} played so far
     </div>
   );
 }

@@ -349,7 +349,10 @@ freeplayRouter.get('/challenge/:challengeId/preview', requireAuth, async (req, r
 
     const alreadyPlayed = rows.some((r) => r.user_id === req.userId!);
 
-    cachePrivate(res, 30);
+    // No caching — `alreadyPlayed` and `playerCount` need to flip
+    // immediately after the caller finishes the challenge so the confirm
+    // page redirects them on the next visit instead of serving a stale
+    // "not played yet" response.
     res.json({
       challengeId,
       ownerUserId: ownerRow.user_id,

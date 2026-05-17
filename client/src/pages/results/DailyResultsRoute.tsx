@@ -23,6 +23,7 @@ import { generateShareText } from './utils/shareResults';
 import { IconAction } from '../../shared/components/IconAction';
 import { DateChip } from '../../shared/components/DateChip';
 import { DateTimelinePicker } from '../../shared/components/DateTimelinePicker';
+import { ActionButton } from '../../shared/results/components/ActionButton';
 import type { DailyEntry } from '../daily/types';
 
 function getTodayPST(): string {
@@ -311,50 +312,30 @@ function DailyBottomActions({
 }) {
   return (
     <div className="grid grid-cols-2 gap-2">
-      <BarButton onClick={onHome} label="Home" icon="home" />
-      <BarButton onClick={onLeaderboard} label="Leaderboard" icon="leaderboard" primary />
-    </div>
-  );
-}
-
-function BarButton({
-  onClick,
-  label,
-  icon,
-  primary = false,
-}: {
-  onClick: () => void;
-  label: string;
-  icon: 'home' | 'leaderboard';
-  primary?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={[
-        'h-12 rounded-xl border-none flex items-center justify-center gap-2 cursor-pointer select-none transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98] font-[family-name:var(--font-ui)]',
+      <ActionButton
+        onClick={onHome}
+        label="Home"
+        icon={
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 11l9-8 9 8" />
+            <path d="M5 10v10h14V10" />
+            <path d="M9 20v-6h6v6" />
+          </svg>
+        }
+      />
+      <ActionButton
+        onClick={onLeaderboard}
+        label="Leaderboard"
         primary
-          ? 'bg-[var(--ink)] text-[color:var(--ink-inverse)] shadow-[var(--shadow-btn-primary)] hover:-translate-y-px hover:shadow-[var(--shadow-btn-primary-hover)]'
-          : 'bg-[var(--ink-whisper)] text-[color:var(--ink-muted)] hover:bg-[var(--ink-trace)] hover:text-[color:var(--ink)]',
-      ].join(' ')}
-      style={{ fontWeight: 700, WebkitTapHighlightColor: 'transparent' }}
-    >
-      {icon === 'home' ? (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 11l9-8 9 8" />
-          <path d="M5 10v10h14V10" />
-          <path d="M9 20v-6h6v6" />
-        </svg>
-      ) : (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 20V10" />
-          <path d="M10 20V4" />
-          <path d="M16 20v-7" />
-          <path d="M22 20H2" />
-        </svg>
-      )}
-      <span>{label}</span>
-    </button>
+        icon={
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 20V10" />
+            <path d="M10 20V4" />
+            <path d="M16 20v-7" />
+            <path d="M22 20H2" />
+          </svg>
+        }
+      />
+    </div>
   );
 }
