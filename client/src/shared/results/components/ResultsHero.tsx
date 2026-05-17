@@ -4,7 +4,7 @@ export interface HeroPlayer {
   wordCount: number;
 }
 
-interface ChallengeHeroProps {
+interface ResultsHeroProps {
   me: HeroPlayer;
   myRank: number;
   totalPlayers: number;
@@ -16,14 +16,14 @@ interface ChallengeHeroProps {
 // Fixed-height hero so toggling between solo and versus modes doesn't
 // reflow the rows below it. Reserved space accommodates whichever layout
 // is taller.
-export function ChallengeHero({
+export function ResultsHero({
   me,
   myRank,
   totalPlayers,
   opponent,
   oppRank,
   compact = false,
-}: ChallengeHeroProps) {
+}: ResultsHeroProps) {
   return (
     <section className={`shrink-0 box-border flex items-center justify-center ${compact ? 'pt-2 pb-1 h-[82px]' : 'pt-3 pb-2 h-[96px]'}`}>
       {opponent && oppRank !== null ? (

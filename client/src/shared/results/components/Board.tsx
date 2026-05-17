@@ -1,21 +1,17 @@
 import { useEffect, useState } from 'react';
 import type { Position } from 'models';
+import type { ResultsBoardConfig } from '../types';
 
-interface ChallengeBoardProps {
+interface BoardProps {
   board: string[][];
   highlightPath: Position[] | null;
-  config: { boardSize: number; minWordLength: number; timeLimit: number };
+  config: ResultsBoardConfig;
   compact?: boolean;
 }
 
 const STEP_MS = 70;
 
-export function ChallengeBoard({
-  board,
-  highlightPath,
-  config,
-  compact = false,
-}: ChallengeBoardProps) {
+export function Board({ board, highlightPath, config, compact = false }: BoardProps) {
   const size = board.length;
   const [animatedCells, setAnimatedCells] = useState<Set<string>>(new Set());
 

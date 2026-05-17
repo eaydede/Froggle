@@ -1,76 +1,79 @@
-import type { FreePlayChallengePlayer } from '../../../shared/api/gameApi';
+import type { ResultsRosterEntry } from '../types';
 
-interface ChallengeStandingsProps {
-  players: FreePlayChallengePlayer[];
-  selectedSessionId: string | null;
-  mySessionId: string | null;
-  onSelect: (sessionId: string) => void;
+interface StandingsProps {
+  rows: ResultsRosterEntry[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  /** Header label — "Standings" for free-play challenges, "Leaderboard"
+   *  for daily/zen. The right-hand counter always shows row count. */
+  header: string;
   compact?: boolean;
+  /** Cap the visible height; rest scrolls behind a soft mask. */
+  maxHeight?: string;
 }
 
-export function ChallengeStandings({
-  players,
-  selectedSessionId,
-  mySessionId,
+export function Standings({
+  rows,
+  selectedId,
   onSelect,
+  header,
   compact = false,
-}: ChallengeStandingsProps) {
+  maxHeight = '190px',
+}: StandingsProps) {
   return (
     <div className="flex-1 min-w-0 flex flex-col min-h-0">
       <div
         className="flex justify-between items-center pb-2 uppercase font-[family-name:var(--font-structure)] text-label-xs tracking-[0.1em] leading-none text-[color:var(--ink)] shrink-0"
-        style={{
-          fontWeight: 700,
-          borderBottom: '1px solid var(--ink-trace)',
-        }}
+        style={{ fontWeight: 700, borderBottom: '1px solid var(--ink-trace)' }}
       >
-        <span>Standings</span>
+        <span>{header}</span>
         <span
           className="tabular-nums text-[color:var(--ink-soft)]"
           style={{ fontWeight: 700 }}
         >
-          {players.length}
+          {rows.length}
         </span>
       </div>
 
       <div
-        className={`flex-1 min-h-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${compact ? 'flex flex-col gap-1 pt-1' : ''}`}
+        className={`flex-1 min-h-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${compact ? 'flex flex-col gap-1 pt-1' : 'pt-1'}`}
         style={{
-          // Cap the standings so word-list area has room to breathe even
-          // on five-player challenges; the soft mask makes the cap read
-          // as "more below" rather than an abrupt edge.
-          maxHeight: '168px',
+          maxHeight,
           WebkitMaskImage:
             'linear-gradient(to bottom, transparent 0, black 12px, black calc(100% - 12px), transparent 100%)',
           maskImage:
             'linear-gradient(to bottom, transparent 0, black 12px, black calc(100% - 12px), transparent 100%)',
         }}
       >
-        {players.map((p, i) => {
-          const isYou = p.sessionId === mySessionId;
-          const isSelected = p.sessionId === selectedSessionId;
+        {rows.map((row) => {
+          const isSelected = row.id === selectedId;
           const stripe = isSelected
             ? 'var(--opp-accent)'
-            : isYou
+            : row.isYou
               ? 'var(--you-accent)'
+              : rankColor(row.rank);
+          const background = row.isYou
+            ? 'var(--you-accent-soft)'
+            : isSelected
+              ? 'var(--opp-accent-soft)'
               : 'transparent';
           return (
             <button
-              key={p.sessionId}
+              key={row.id}
               type="button"
-              onClick={isYou ? undefined : () => onSelect(p.sessionId)}
-              disabled={isYou}
-              className={`relative w-full flex items-center gap-2 text-left transition-colors duration-150 border-none ${compact ? 'rounded-md' : 'border-b border-[var(--ink-border-subtle)] last:border-b-0'}`}
+              onClick={row.isYou ? undefined : () => onSelect(row.id)}
+              disabled={row.isYou}
+              className="relative w-full flex items-center gap-2 rounded-md border-0 text-left transition-colors duration-150"
               style={{
                 padding: '9px 5px 9px 12px',
                 minHeight: '34px',
-                cursor: isYou ? 'default' : 'pointer',
-                // Selection is signalled purely via the colored left
-                // stripe — no row background tint — so the row stays
-                // visually quiet next to a clean word list.
-                background: compact && isSelected ? 'var(--opp-accent-soft)' : 'transparent',
+                cursor: row.isYou ? 'default' : 'pointer',
+                background,
                 WebkitTapHighlightColor: 'transparent',
               }}
+              aria-label={
+                row.isYou ? 'Your result' : `Compare with ${row.displayName}`
+              }
             >
               <span
                 aria-hidden
@@ -85,22 +88,22 @@ export function ChallengeStandings({
               />
               <span
                 className="tabular-nums font-[family-name:var(--font-structure)] shrink-0 text-label-xs text-[color:var(--ink-soft)]"
-                style={{ fontWeight: 700, width: '12px' }}
+                style={{ fontWeight: 700, width: '16px' }}
               >
-                {i + 1}
+                {row.rank}
               </span>
               <span
                 className="truncate text-xs text-[color:var(--ink)] flex-1 min-w-0"
-                style={{ fontWeight: isYou || isSelected ? 700 : 600 }}
-                title={isYou ? 'You' : p.displayName}
+                style={{ fontWeight: row.isYou || isSelected ? 700 : 600 }}
+                title={row.isYou ? 'You' : row.displayName}
               >
-                {isYou ? 'You' : p.displayName}
+                {row.isYou ? 'You' : row.displayName}
               </span>
               <span
                 className="tabular-nums font-[family-name:var(--font-structure)] shrink-0 text-xs text-[color:var(--ink-muted)]"
                 style={{ fontWeight: 700 }}
               >
-                {p.points}
+                {row.points}
               </span>
             </button>
           );
@@ -108,4 +111,11 @@ export function ChallengeStandings({
       </div>
     </div>
   );
+}
+
+function rankColor(rank: number): string {
+  if (rank === 1) return 'var(--podium-gold)';
+  if (rank === 2) return 'var(--podium-silver)';
+  if (rank === 3) return 'var(--podium-bronze)';
+  return 'transparent';
 }

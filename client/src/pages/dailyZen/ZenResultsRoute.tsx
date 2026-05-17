@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { GameState } from 'models';
 import { useGame } from '../../GameContext';
 import {
   fetchDailyZenLeaderboard,
@@ -17,7 +16,15 @@ import { useShareText } from '../results/hooks/useShareText';
 import { generateShareText } from '../results/utils/shareResults';
 import { formatDateLabel } from '../../shared/utils/formatDate';
 import { ZenModeBadge } from './components/ZenModeBadge';
-import { DailyCompactPreviewPage } from '../results/DailyCompactPreviewPage';
+import { ResultsView } from '../../shared/results/ResultsView';
+import type {
+  LoadOpponentResult,
+  ResultsRosterEntry,
+} from '../../shared/results/types';
+import { HeroScore } from '../results/components/HeroScore';
+import { IconAction } from '../../shared/components/IconAction';
+import { DateChip } from '../../shared/components/DateChip';
+import { DateTimelinePicker } from '../../shared/components/DateTimelinePicker';
 
 function getTodayPST(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
@@ -44,14 +51,14 @@ export function ZenResultsRoute() {
   const { cachedDailyZen, dailyZenLoaded, authReady, session } = useGame();
   const urlDate = searchParams.get('date');
   const fromSource = searchParams.get('from');
-  const initialCompareUserId = searchParams.get('compare');
+  const initialOpponentId = searchParams.get('compare');
   const targetDate = urlDate ?? cachedDailyZen?.date ?? null;
 
   const [result, setResult] = useState<DailyZenResultResponse | null>(null);
   const [leaderboard, setLeaderboard] = useState<DailyZenLeaderboardResponse | null>(null);
   const [loaded, setLoaded] = useState(false);
-
   const [stats, setStats] = useState<DailyZenStatsResponse | null>(null);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   useEffect(() => {
     if (!authReady || !dailyZenLoaded || !targetDate) return;
@@ -107,94 +114,227 @@ export function ZenResultsRoute() {
 
   const { copied, share } = useShareText(() =>
     result
-      ? generateShareText(result.found_words, {
-          daily: { number: puzzleNumber, mode: 'zen' },
-        })
+      ? generateShareText(result.found_words, { daily: { number: puzzleNumber, mode: 'zen' } })
       : '',
   );
 
-  const leaderboardRows = useMemo(() => {
-    const rankings = leaderboard?.rankings.points ?? [];
-    const currentUserId = session?.user?.id;
-    const top = rankings.slice(0, 3).map((entry) => ({
-      rank: entry.rank,
-      userId: entry.userId,
-      name: entry.displayName,
-      score: entry.points,
-      isCurrentUser: entry.userId === currentUserId,
+  const totalPoints = useMemo(
+    () => (result ? result.found_words.reduce((sum, w) => sum + w.score, 0) : 0),
+    [result],
+  );
+
+  const currentUserId = session?.user?.id;
+  const roster: ResultsRosterEntry[] = useMemo(() => {
+    if (!leaderboard) return [];
+    return leaderboard.rankings.points.map((e) => ({
+      id: e.userId,
+      rank: e.rank,
+      displayName: e.displayName,
+      points: e.points,
+      isYou: e.userId === currentUserId,
     }));
+  }, [leaderboard, currentUserId]);
 
-    const currentPlayer = leaderboard?.currentPlayer;
-    const userInTop = currentPlayer?.rank != null && currentPlayer.rank <= 3;
-    const you = currentPlayer && !userInTop
-      ? {
-          rank: currentPlayer.rank ?? Math.max(leaderboard?.totalPlayers ?? 0, top.length + 1),
-          name: 'you',
-          score: currentPlayer.points,
-          isCurrentUser: true,
-        }
-      : null;
-
-    return { top, you };
-  }, [leaderboard, session?.user?.id]);
+  const loadOpponent = useMemo(
+    () =>
+      async (userId: string): Promise<LoadOpponentResult> => {
+        if (!targetDate) return { ok: false, error: 'unknown' };
+        const r = await fetchDailyZenCompare(targetDate, userId);
+        if (!r.ok) return { ok: false, error: r.error };
+        return {
+          ok: true,
+          opponent: {
+            id: userId,
+            displayName: r.data.them.displayName,
+            points: r.data.them.points,
+            wordCount: r.data.them.wordCount,
+            foundWords: r.data.them.foundWords,
+          },
+        };
+      },
+    [targetDate],
+  );
 
   if (!loaded || !targetDate) {
     return <div className="fixed inset-0 bg-[var(--surface-panel)]" />;
   }
 
-  // No finalized result for the target date — bounce back to the landing card.
   if (!result) {
     navigate('/', { replace: true });
     return null;
   }
 
+  const dateLabel = `Zen Daily · ${formatDateLabel(targetDate)}`;
+  const onClose = () => {
+    if (fromSource === 'leaderboard' && targetDate) {
+      navigate(`/daily/zen/leaderboard?date=${targetDate}`);
+    } else {
+      navigate('/');
+    }
+  };
+
   return (
-    <DailyCompactPreviewPage
-      mode="zen"
-      dateLabel={`Zen Daily · ${formatDateLabel(targetDate)}`}
-      results={{
-        board: result.board,
-        foundWords: result.found_words,
-        missedWords: result.missed_words,
-      }}
-      game={{
-        board: result.board,
-        startedAt: 0,
-        status: GameState.Finished,
-        config: {
-          durationSeconds: 0,
+    <>
+      <ResultsView
+        me={{
+          displayName: 'You',
+          points: totalPoints,
+          wordCount: result.found_words.length,
+          foundWords: result.found_words,
+          missedWords: result.missed_words,
+        }}
+        board={result.board}
+        config={{
           boardSize: result.board.length,
           minWordLength: cachedDailyZen?.config.minWordLength ?? 4,
-        },
-      }}
-      leaderboardTop={leaderboardRows.top}
-      leaderboardYou={leaderboardRows.you}
-      pointsRankings={leaderboard?.rankings.points.map((e) => ({
-        userId: e.userId,
-        rank: e.rank,
-        isCurrentUser: e.userId === session?.user?.id,
-      }))}
-      totalPlayers={leaderboard?.totalPlayers}
-      findPercents={result.find_percents}
-      popularityStyle={result.find_percents ? 'inline' : undefined}
-      onClose={() => {
-        if (fromSource === 'leaderboard' && targetDate) {
-          navigate(`/daily/zen/leaderboard?date=${targetDate}`);
-        } else {
-          navigate('/');
+          timeLimit: 0,
+        }}
+        roster={roster}
+        loadOpponent={loadOpponent}
+        initialOpponentId={initialOpponentId}
+        standingsHeader="Leaderboard"
+        compareSourceLabel="leaderboard"
+        findPercents={result.find_percents}
+        popularityStyle={result.find_percents ? 'inline' : undefined}
+        soloHero={
+          <div className="shrink-0 pt-2 pb-1 h-[82px] box-border flex items-center justify-center">
+            <HeroScore
+              points={totalPoints}
+              words={result.found_words.length}
+              primary="points"
+              accessory={<ZenModeBadge isCompetitive={result.is_competitive} />}
+            />
+          </div>
         }
-      }}
-      onHome={() => navigate('/')}
-      onShare={share}
-      shareCopied={copied}
-      onOpenLeaderboard={() => navigate(`/daily/zen/leaderboard?date=${targetDate}`)}
-      onLoadComparePlayer={(userId) => fetchDailyZenCompare(targetDate, userId)}
-      initialCompareUserId={initialCompareUserId}
-      pickerEntries={pickerEntries}
-      onPickerSelect={handleChangeDate}
-      todayDate={getTodayPST()}
-      selectedDate={targetDate}
-      heroAccessory={<ZenModeBadge isCompetitive={result.is_competitive} />}
-    />
+        topbar={
+          <ZenTopbar
+            label={dateLabel}
+            onClose={onClose}
+            onShare={share}
+            shareCopied={copied}
+            onLabelClick={() => setDatePickerOpen(true)}
+          />
+        }
+        bottomActions={
+          <ZenBottomActions
+            onHome={() => navigate('/')}
+            onLeaderboard={() => navigate(`/daily/zen/leaderboard?date=${targetDate}`)}
+          />
+        }
+      />
+      <DateTimelinePicker
+        open={datePickerOpen}
+        onClose={() => setDatePickerOpen(false)}
+        onSelect={(iso) => {
+          setDatePickerOpen(false);
+          handleChangeDate(iso);
+        }}
+        entries={pickerEntries}
+        selectedDate={targetDate}
+        todayDate={getTodayPST()}
+        disableMissed
+        onShare={share}
+      />
+    </>
+  );
+}
+
+function ZenTopbar({
+  label,
+  onClose,
+  onShare,
+  shareCopied,
+  onLabelClick,
+}: {
+  label: string;
+  onClose: () => void;
+  onShare: () => void;
+  shareCopied: boolean;
+  onLabelClick?: () => void;
+}) {
+  return (
+    <header
+      className="grid items-center gap-2 shrink-0"
+      style={{ gridTemplateColumns: '32px 1fr 32px' }}
+    >
+      <IconAction onClick={onClose} label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 6L6 18M6 6l12 12" />
+        </svg>
+      </IconAction>
+      <div className="flex justify-center min-w-0">
+        <DateChip label={label} onClick={onLabelClick} />
+      </div>
+      <IconAction onClick={onShare} label={shareCopied ? 'Copied to clipboard' : 'Share'}>
+        {shareCopied ? (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+            <polyline points="16 6 12 2 8 6" />
+            <line x1="12" y1="2" x2="12" y2="15" />
+          </svg>
+        )}
+      </IconAction>
+    </header>
+  );
+}
+
+function ZenBottomActions({
+  onHome,
+  onLeaderboard,
+}: {
+  onHome: () => void;
+  onLeaderboard: () => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <BarButton onClick={onHome} label="Home" icon="home" />
+      <BarButton onClick={onLeaderboard} label="Leaderboard" icon="leaderboard" primary />
+    </div>
+  );
+}
+
+function BarButton({
+  onClick,
+  label,
+  icon,
+  primary = false,
+}: {
+  onClick: () => void;
+  label: string;
+  icon: 'home' | 'leaderboard';
+  primary?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        'h-12 rounded-xl border-none flex items-center justify-center gap-2 cursor-pointer select-none transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98] font-[family-name:var(--font-ui)]',
+        primary
+          ? 'bg-[var(--ink)] text-[color:var(--ink-inverse)] shadow-[var(--shadow-btn-primary)] hover:-translate-y-px hover:shadow-[var(--shadow-btn-primary-hover)]'
+          : 'bg-[var(--ink-whisper)] text-[color:var(--ink-muted)] hover:bg-[var(--ink-trace)] hover:text-[color:var(--ink)]',
+      ].join(' ')}
+      style={{ fontWeight: 700, WebkitTapHighlightColor: 'transparent' }}
+    >
+      {icon === 'home' ? (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 11l9-8 9 8" />
+          <path d="M5 10v10h14V10" />
+          <path d="M9 20v-6h6v6" />
+        </svg>
+      ) : (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 20V10" />
+          <path d="M10 20V4" />
+          <path d="M16 20v-7" />
+          <path d="M22 20H2" />
+        </svg>
+      )}
+      <span>{label}</span>
+    </button>
   );
 }

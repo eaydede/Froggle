@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-interface ChallengePlaceholdersProps {
+interface PlaceholdersProps {
   /** When a word is highlighted, the bottom placeholder slot is replaced
    *  by the supplied node — typically a WordDefinitionPanel. The top
    *  prompt above it stays in view so the user can still pivot to a
@@ -20,13 +20,13 @@ interface ChallengePlaceholdersProps {
 // Stacked top-prompt + definition placeholders for the right column. Top
 // prompt is ~2/3 of the height; the definitions slot occupies the
 // remaining ~1/3.
-export function ChallengePlaceholders({
+export function Placeholders({
   definitionSlot,
   variant = 'compare',
   onShare,
   compact = false,
   compareSourceLabel = 'standings',
-}: ChallengePlaceholdersProps = {}) {
+}: PlaceholdersProps = {}) {
   if (compact && variant === 'share') {
     return (
       <div className="flex flex-col gap-2 h-full min-h-0">
