@@ -93,6 +93,39 @@
   /* Moss green — the "completion" stamp color on date cards. */
   --completion: #6B8E5A;
 
+  /* Accent (sage) used on attention-getting affordances — the unread
+     pulse on the landing history button uses the soft variant for its
+     background tint + pulse ring. */
+  --accent-soft:          rgba(107, 155, 125, 0.08);
+  --accent-glow:          rgba(107, 155, 125, 0.50);
+
+  /* Challenge / versus palette — used on the free-play challenge results
+     page. "You" reads blue; opponents read in a warm tan that matches
+     the mockup spec and keeps the word-list rows legible against the
+     paper-cream surface tint. */
+  --you-accent:           #2B7DB8;
+  --you-accent-soft:      rgba(43, 125, 184, 0.12);
+  /* Mid-alpha variants for outlines around panels — solid hue felt
+     harsh framing a word list, soft variants are too pale to register. */
+  --you-accent-border:    rgba(43, 125, 184, 0.35);
+  --opp-accent:           #C89A5A;
+  --opp-accent-strong:    #B58748;
+  --opp-accent-soft:      rgba(200, 154, 90, 0.10);
+  --opp-accent-border:    rgba(200, 154, 90, 0.40);
+  --opp-accent-row-hover: rgba(200, 154, 90, 0.14);
+  --opp-accent-row-active:rgba(200, 154, 90, 0.18);
+  --surface-opp:          #F7F2E9;
+  --surface-opp-header:   #EFE7D5;
+  /* Two winner tints — keyed to which side is winning. Using a single
+     warm tint for both made it ambiguous when the viewer won, because
+     the warm shade reads as opp-accent. Now the viewer-side winner card
+     borrows the blue you-accent so the contrast against opp's tan is
+     unmistakable. */
+  --winner-you-bg:        rgba(43, 125, 184, 0.10);
+  --winner-you-border:    rgba(43, 125, 184, 0.45);
+  --winner-opp-bg:        rgba(209, 122, 40, 0.10);
+  --winner-opp-border:    rgba(209, 122, 40, 0.45);
+
   /* Layered floating-card shadows — three-stop stack creates depth
      without any single dark halo. */
   --shadow-card:
@@ -108,6 +141,31 @@
   --shadow-btn-primary-hover: 0 2px 0 rgba(0, 0, 0, 0.08), 0 6px 16px rgba(34, 32, 28, 0.25);
   --shadow-toggle: 0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-toggle-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Tailwind's preflight reset isn't imported in this project, so element
+   box-sizing defaults to `content-box`. Without this, every Tailwind
+   sizing utility (h-[Npx], min-h-[N], max-w-[N], etc.) silently adds the
+   element's padding/border to its declared size — fits visually break on
+   nested flex layouts. One project-wide reset puts us back on the
+   border-box baseline pages were designed against. */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* Slow breathing animation for unread-activity badges. Pulses scale +
+   ring opacity so the dot reads as "alive" without flashing distractingly.
+   Used on the landing-page History button when a shared challenge has
+   new completions. */
+@keyframes unread-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 var(--accent-glow);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 6px transparent;
+  }
 }
 
 /* Dark theme */
@@ -158,6 +216,25 @@
   --you-highlight-bg-hi: rgba(125, 174, 207, 0.12);
 
   --completion: #8BB074;
+
+  --accent-soft:          rgba(139, 176, 116, 0.10);
+  --accent-glow:          rgba(139, 176, 116, 0.50);
+
+  --you-accent:           #6FA3C8;
+  --you-accent-soft:      rgba(111, 163, 200, 0.14);
+  --you-accent-border:    rgba(111, 163, 200, 0.40);
+  --opp-accent:           #d7ac72e3;
+  --opp-accent-strong:    #C99465;
+  --opp-accent-soft:      rgba(215, 172, 114, 0.14);
+  --opp-accent-border:    rgba(215, 172, 114, 0.45);
+  --opp-accent-row-hover: rgba(215, 172, 114, 0.18);
+  --opp-accent-row-active:rgba(215, 172, 114, 0.22);
+  --surface-opp:          #2A2620;
+  --surface-opp-header:   #322C24;
+  --winner-you-bg:        rgba(111, 163, 200, 0.14);
+  --winner-you-border:    rgba(111, 163, 200, 0.50);
+  --winner-opp-bg:        rgba(224, 154, 92, 0.14);
+  --winner-opp-border:    rgba(224, 154, 92, 0.50);
 
   --shadow-card:
     0 1px 2px rgba(0, 0, 0, 0.25),

@@ -79,13 +79,20 @@ interface GameContextValue {
   lastConfig: GameConfig | null;
   setLastConfig: (config: GameConfig | null) => void;
 
+  // The challenge the current in-flight free-play game belongs to.
+  // Set when starting via a shared link so the post-game flow can
+  // redirect into the challenge results view; cleared by cancelGame
+  // and after a successful redirect.
+  activeChallengeId: string | null;
+  setActiveChallengeId: (id: string | null) => void;
+
   // Audio
   muted: boolean;
   toggleMute: () => void;
 
   // Actions
   createGame: () => Promise<void>;
-  startGame: (timeLimit: number, boardSize: number, minWordLength: number, board?: string[][], seed?: number) => Promise<any>;
+  startGame: (timeLimit: number, boardSize: number, minWordLength: number, board?: string[][], seed?: number, challengeId?: string, isDaily?: boolean) => Promise<any>;
   cancelGame: () => Promise<void>;
   endGame: () => Promise<void>;
   submitWord: (path: Position[]) => Promise<any>;
@@ -127,6 +134,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [boardCode, setBoardCode] = useState('');
   const [sharedSeed, setSharedSeed] = useState<{ boardSize: number; seed: number } | null>(null);
   const [lastConfig, setLastConfig] = useState<GameConfig | null>(null);
+  const [activeChallengeId, setActiveChallengeId] = useState<string | null>(null);
   const [showHomeConfirm, setShowHomeConfirm] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     try {
@@ -489,6 +497,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       lastZenModeChoice, setLastZenModeChoice,
       boardCode, setBoardCode, sharedSeed, handleCodeChange,
       lastConfig, setLastConfig,
+      activeChallengeId, setActiveChallengeId,
       muted, toggleMute,
       createGame, startGame, cancelGame, endGame, submitWord, handleSubmitWord, handleSubmitZenWord,
       showHomeConfirm, setShowHomeConfirm,

@@ -100,6 +100,11 @@ export function DailyConfirmRoute() {
       cachedDaily.config.minWordLength,
       undefined,
       cachedDaily.seed,
+      undefined,
+      // Marks the session as a daily so the server skips the
+      // free_play_sessions insert at /end — dailies live in
+      // daily_results and shouldn't appear in the free-play history.
+      true,
     );
     navigate('/game');
   };

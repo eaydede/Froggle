@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { GameState } from 'models';
 import { useGame } from '../../GameContext';
 import {
+  fetchDailyCompare,
   fetchDailyResult,
   fetchDailyStats,
   fetchLeaderboard,
@@ -13,8 +14,10 @@ import {
 } from '../../shared/api/gameApi';
 import { scoreWord } from '../../shared/utils/score';
 import { formatDateLabel } from '../../shared/utils/formatDate';
-import { ResultsPage, type DailyResultsExtras } from './ResultsPage';
+import { DailyCompactPreviewPage } from './DailyCompactPreviewPage';
 import type { LeaderboardTeaserEntry } from './components/LeaderboardTeaser';
+import { useShareText } from './hooks/useShareText';
+import { generateShareText } from './utils/shareResults';
 import type { DailyEntry } from '../daily/types';
 
 function getTodayPST(): string {
@@ -24,7 +27,7 @@ function getTodayPST(): string {
 function toTeaserEntry(
   e: LeaderboardResponse['rankings']['points'][number],
 ): LeaderboardTeaserEntry {
-  return { rank: e.rank, name: e.displayName, score: e.value };
+  return { rank: e.rank, name: e.displayName, score: e.value, userId: e.userId };
 }
 
 export function DailyResultsRoute() {
@@ -32,6 +35,7 @@ export function DailyResultsRoute() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const fromSource = searchParams.get('from');
+  const initialCompareUserId = searchParams.get('compare');
 
   // Date resolution: URL ?date takes precedence (enables the date
   // picker to drive historical navigation). Falls back to dailyInfo
@@ -129,12 +133,6 @@ export function DailyResultsRoute() {
     }));
   }, [stats]);
 
-  const handlePlayAgain = async () => {
-    setDailyInfo(null);
-    if (game) await cancelGame();
-    navigate('/');
-  };
-
   const handleClose = async () => {
     const backToLeaderboard = fromSource === 'leaderboard' && targetDate;
     const backTarget = backToLeaderboard
@@ -143,6 +141,12 @@ export function DailyResultsRoute() {
     setDailyInfo(null);
     if (game) await cancelGame();
     navigate(backTarget);
+  };
+
+  const handleHome = async () => {
+    setDailyInfo(null);
+    if (game) await cancelGame();
+    navigate('/');
   };
 
   const handleOpenLeaderboard = () => {
@@ -158,7 +162,7 @@ export function DailyResultsRoute() {
     setSearchParams(next, { replace: true });
   };
 
-  const daily: DailyResultsExtras | null = useMemo(() => {
+  const daily = useMemo(() => {
     if (!targetDate) return null;
     const pointsRanking = leaderboard?.rankings.points ?? [];
 
@@ -197,8 +201,6 @@ export function DailyResultsRoute() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetDate, leaderboard, pickerEntries]);
 
-  if (loading || !targetDate || !daily) return null;
-
   const displayed = liveDailyResults ?? (serverResult
     ? {
         board: serverResult.board,
@@ -215,10 +217,20 @@ export function DailyResultsRoute() {
       }
     : null);
 
+  const { share, copied } = useShareText(() =>
+    displayed
+      ? generateShareText(displayed.foundWords, { daily: { number: 0 } })
+      : '',
+  );
+
+  if (loading || !targetDate || !daily) return null;
+
   if (!displayed) return null;
 
   return (
-    <ResultsPage
+    <DailyCompactPreviewPage
+      mode="timed"
+      dateLabel={daily.dateLabel}
       results={displayed}
       game={{
         board: displayed.board,
@@ -230,10 +242,25 @@ export function DailyResultsRoute() {
           minWordLength: serverResult?.config?.minWordLength ?? dailyInfo?.config.minWordLength ?? 3,
         },
       }}
-      gameSeed={dailyInfo?.seed}
       onClose={handleClose}
-      onPlayAgain={handlePlayAgain}
-      daily={daily}
+      onHome={handleHome}
+      onShare={share}
+      shareCopied={copied}
+      onOpenLeaderboard={daily.onOpenLeaderboard}
+      onLoadComparePlayer={(userId) => fetchDailyCompare(targetDate, userId)}
+      initialCompareUserId={initialCompareUserId}
+      leaderboardTop={daily.leaderboardTop}
+      leaderboardYou={daily.leaderboardYou}
+      pointsRankings={leaderboard?.rankings.points.map((e) => ({
+        userId: e.userId,
+        rank: e.rank,
+        isCurrentUser: e.isCurrentUser,
+      }))}
+      totalPlayers={leaderboard?.totalPlayers}
+      pickerEntries={daily.pickerEntries}
+      onPickerSelect={daily.onPickerSelect}
+      todayDate={daily.todayDate}
+      selectedDate={daily.selectedDate}
       findPercents={serverResult?.find_percents}
       popularityStyle={serverResult?.find_percents ? 'inline' : undefined}
     />

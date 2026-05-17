@@ -1,29 +1,32 @@
+import type { FreePlayChallengeError } from '../../shared/api/gameApi';
 import { InkButton } from '../../shared/components/InkButton';
 
-interface DailyCompareUnavailableProps {
-  title: string;
-  body: string;
-  primaryLabel: string;
-  onPrimary: () => void;
+interface ChallengeUnavailableProps {
+  variant: FreePlayChallengeError;
   onBack: () => void;
 }
 
-/** Neutral empty/error state used when compare can't render — e.g. the
- *  current user hasn't played yet, or the opponent's result is missing. */
-export function DailyCompareUnavailable({
-  title,
-  body,
-  primaryLabel,
-  onPrimary,
-  onBack,
-}: DailyCompareUnavailableProps) {
+const COPY: Record<FreePlayChallengeError, { title: string; body: string }> = {
+  'not-found': {
+    title: 'Challenge not found',
+    body: 'This challenge link may have expired or been mistyped. Try opening the link again.',
+  },
+  forbidden: {
+    title: 'Play it first',
+    body: 'You need to play this challenge before you can see how everyone scored. Tap the share link to start.',
+  },
+  unknown: {
+    title: 'Something went wrong',
+    body: 'We couldn\'t load this challenge. Try again in a moment.',
+  },
+};
+
+export function ChallengeUnavailable({ variant, onBack }: ChallengeUnavailableProps) {
+  const { title, body } = COPY[variant];
   return (
     <div className="fixed inset-0 flex justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] overflow-hidden">
       <div className="w-full max-w-[360px] flex flex-col px-[22px] pt-[14px] pb-5">
-        <div
-          className="grid items-center gap-2.5 pt-3.5"
-          style={{ gridTemplateColumns: '32px 1fr 32px' }}
-        >
+        <div className="grid items-center gap-2.5 pt-3.5" style={{ gridTemplateColumns: '32px 1fr 32px' }}>
           <button
             type="button"
             onClick={onBack}
@@ -39,7 +42,7 @@ export function DailyCompareUnavailable({
             className="text-center text-[11px] uppercase tracking-[0.1em] text-[color:var(--ink-soft)] font-[family-name:var(--font-structure)]"
             style={{ fontWeight: 700 }}
           >
-            Comparison
+            Challenge
           </div>
           <span aria-hidden />
         </div>
@@ -51,13 +54,11 @@ export function DailyCompareUnavailable({
           >
             {title}
           </div>
-          <p className="text-small text-[color:var(--ink-muted)] leading-[1.55] max-w-[280px]">
-            {body}
-          </p>
+          <p className="text-small text-[color:var(--ink-muted)] leading-[1.55] max-w-[280px]">{body}</p>
         </div>
 
         <div className="flex flex-col gap-1">
-          <InkButton onClick={onPrimary}>{primaryLabel}</InkButton>
+          <InkButton onClick={onBack}>Back to home</InkButton>
         </div>
       </div>
     </div>

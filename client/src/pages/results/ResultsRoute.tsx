@@ -1,70 +1,70 @@
-import { useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useEffect, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useGame } from '../../GameContext';
-import { ResultsPage } from './ResultsPage';
-import { getResultsFixture } from './__fixtures__';
+import { ChallengePage } from '../challenge/ChallengePage';
+import { synthesizeSoloChallenge } from '../../shared/utils/synthesizeChallenge';
+import { createFreePlayChallenge } from '../../shared/api/gameApi';
 
 export function ResultsRoute() {
-  const { game, results, gameSeed, dailyInfo, setDailyInfo, createGame, cancelGame } = useGame();
+  const { game, results, gameSeed, createGame, cancelGame, activeChallengeId, setActiveChallengeId } = useGame();
   const navigate = useNavigate();
   const navigatingRef = useRef(false);
-  const [searchParams] = useSearchParams();
 
-  // Dev-only fixture injection — `?mock=default` bypasses the GameContext
-  // requirement so visual-regression work can render the page without
-  // playing a game. Stripped from production bundles.
-  const mockFixture = import.meta.env.DEV
-    ? getResultsFixture(searchParams.get('mock'))
-    : null;
-
-  const effectiveResults = mockFixture?.results ?? results;
-  const effectiveGame = mockFixture?.game ?? game;
+  // Recipients of a shared challenge skip the solo results page entirely
+  // — once they've finished the originator's already there to compare
+  // against, so jumping straight to the compare view is the right
+  // first-time UX.
+  useEffect(() => {
+    if (!activeChallengeId) return;
+    if (!results || !game) return;
+    navigatingRef.current = true;
+    const target = activeChallengeId;
+    setActiveChallengeId(null);
+    navigate(`/freeplay/challenge/${target}?compare=owner`, { replace: true });
+  }, [activeChallengeId, results, game, navigate, setActiveChallengeId]);
 
   useEffect(() => {
-    if (mockFixture) return;
+    if (activeChallengeId) return;
     if ((!results || !game) && !navigatingRef.current) navigate('/');
-  }, [results, game, navigate, mockFixture]);
+  }, [results, game, navigate, activeChallengeId]);
 
-  if (!effectiveResults || !effectiveGame) return null;
+  const challengeData = useMemo(() => {
+    if (!results || !game) return null;
+    return synthesizeSoloChallenge({
+      results,
+      game,
+      seed: gameSeed,
+      sessionId: results.freePlaySessionId ?? null,
+    });
+  }, [results, game, gameSeed]);
+
+  if (!results || !game) return null;
 
   const handlePlayAgain = async () => {
     navigatingRef.current = true;
-    if (dailyInfo) {
-      setDailyInfo(null);
-      if (game) await cancelGame();
-      navigate('/');
-    } else {
-      navigate('/play');
-      await createGame();
-    }
+    navigate('/play');
+    await createGame();
   };
 
-  // Close bails out of the results flow entirely. Free play goes to the
-  // landing page (Play again already covers returning to /play), and
-  // daily returns to the daily confirm so the user can see the
-  // already-played state.
   const handleClose = async () => {
     navigatingRef.current = true;
-    if (dailyInfo) {
-      setDailyInfo(null);
-      if (game) await cancelGame();
-      navigate('/daily');
-    } else {
-      if (game) await cancelGame();
-      navigate('/');
-    }
+    if (game) await cancelGame();
+    navigate('/');
   };
 
+  if (!challengeData) return null;
+
   return (
-    <ResultsPage
-      results={effectiveResults}
-      game={effectiveGame}
-      gameSeed={gameSeed}
-      onClose={handleClose}
+    <ChallengePage
+      data={challengeData}
+      onBack={handleClose}
       onPlayAgain={handlePlayAgain}
-      daily={mockFixture?.daily}
-      findPercents={mockFixture?.findPercents}
-      popularityStyle={mockFixture?.popularityStyle}
+      onShareMint={async () => {
+        const sessionId = results.freePlaySessionId;
+        if (!sessionId) return null;
+        const minted = await createFreePlayChallenge(sessionId);
+        return minted?.challengeId ?? null;
+      }}
     />
   );
 }

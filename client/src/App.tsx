@@ -7,8 +7,9 @@ import { GameRoute } from './pages/game';
 import { ResultsRoute, DailyResultsRoute } from './pages/results';
 import { LeaderboardRoute } from './pages/leaderboard';
 import { DailyConfirmRoute } from './pages/daily';
-import { DailyCompareRoute, DailyZenCompareRoute } from './pages/compare';
 import { ZenGameRoute, ZenResultsRoute, ZenLeaderboardRoute } from './pages/dailyZen';
+import { HistoryRoute, HistoricResultsRoute } from './pages/history';
+import { ChallengeRoute } from './pages/challenge';
 import './tailwind.css';
 
 function App() {
@@ -76,11 +77,12 @@ function App() {
         <Route path="/game" element={<GameRoute />} />
         <Route path="/results" element={<ResultsRoute />} />
         <Route path="/leaderboard" element={<LeaderboardRoute />} />
-        <Route path="/daily/compare" element={<DailyCompareRoute />} />
         <Route path="/daily/zen/play" element={<ZenGameRoute />} />
         <Route path="/daily/zen/results" element={<ZenResultsRoute />} />
         <Route path="/daily/zen/leaderboard" element={<ZenLeaderboardRoute />} />
-        <Route path="/daily/zen/compare" element={<DailyZenCompareRoute />} />
+        <Route path="/history" element={<HistoryRoute />} />
+        <Route path="/freeplay/results/:id" element={<HistoricResultsRoute />} />
+        <Route path="/freeplay/challenge/:id" element={<ChallengeRoute />} />
       </Routes>
     </div>
   );

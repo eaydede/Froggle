@@ -46,6 +46,9 @@ export interface FreePlaySessionsTable {
   time_limit: number;
   board_size: number;
   min_word_length: number;
+  challenge_id: string | null;
+  seed: number | null;
+  last_viewed_at: Date | null;
 }
 
 export interface Database {

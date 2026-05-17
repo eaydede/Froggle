@@ -119,7 +119,7 @@ export function LeaderboardRoute() {
       onShare={share}
       onCompare={
         leaderboard?.currentPlayer
-          ? (userId) => navigate(`/daily/compare?date=${selectedDate}&user=${userId}`)
+          ? (userId) => navigate(`/daily/results?date=${selectedDate}&from=leaderboard&compare=${userId}`)
           : undefined
       }
       onSelfClick={

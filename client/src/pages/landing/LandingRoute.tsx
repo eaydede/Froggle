@@ -7,6 +7,7 @@ import {
   fetchDailyStats,
   fetchLeaderboard,
   fetchDailyZenLeaderboard,
+  fetchFreePlayUnread,
   type DailyStatsResponse,
 } from '../../shared/api/gameApi';
 import { scoreWord } from '../../shared/utils/score';
@@ -42,6 +43,7 @@ export function LandingRoute() {
   const [stats, setStats] = useState<DailyStatsResponse | null>(null);
   const [dailyRank, setDailyRank] = useState<number | null>(null);
   const [zenRank, setZenRank] = useState<number | null>(null);
+  const [freePlayUnread, setFreePlayUnread] = useState(0);
 
   // Dev-only fixture injection — `?mock=unplayed|completed|partial` renders
   // the page with canned data so visual-regression work can reach either
@@ -50,6 +52,21 @@ export function LandingRoute() {
   const mockFixture = import.meta.env.DEV
     ? getLandingFixture(searchParams.get('mock'))
     : null;
+
+  useEffect(() => {
+    if (!authReady) return;
+    let cancelled = false;
+    fetchFreePlayUnread()
+      .then(({ count }) => {
+        if (!cancelled) setFreePlayUnread(count);
+      })
+      .catch(() => {
+        // Non-fatal: the dot just doesn't render.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady]);
 
   useEffect(() => {
     if (!authReady) return;
@@ -222,6 +239,8 @@ export function LandingRoute() {
       onZenSeeResult={handleZenSeeResult}
       onZenLeaderboard={handleZenLeaderboard}
       onFreePlayClick={handleFreePlay}
+      onFreePlayHistory={() => navigate('/history')}
+      freePlayUnread={freePlayUnread}
       theme={theme}
       onToggleTheme={toggleTheme}
     />

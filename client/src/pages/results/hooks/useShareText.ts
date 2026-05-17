@@ -12,12 +12,16 @@ interface UseShareText {
  * Uses the native Web Share sheet when available, otherwise writes the text
  * to the clipboard and flips `copied` true for two seconds so the trigger
  * can show a confirmation without owning the state itself.
+ *
+ * `getText` may be async — the share action awaits it before dispatching
+ * to the native sheet / clipboard. This lets callers mint a challenge id
+ * server-side on click without forcing it eagerly on every results render.
  */
-export function useShareText(getText: () => string): UseShareText {
+export function useShareText(getText: () => string | Promise<string>): UseShareText {
   const [copied, setCopied] = useState(false);
 
-  const share = () => {
-    const text = getText();
+  const share = async () => {
+    const text = await getText();
     if (navigator.share) {
       navigator.share({ text }).catch(() => {});
       return;

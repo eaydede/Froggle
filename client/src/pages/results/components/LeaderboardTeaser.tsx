@@ -2,6 +2,7 @@ export interface LeaderboardTeaserEntry {
   rank: number;
   name: string;
   score: number;
+  userId?: string;
   isCurrentUser?: boolean;
 }
 

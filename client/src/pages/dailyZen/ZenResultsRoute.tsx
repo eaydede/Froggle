@@ -1,31 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import type { Position } from 'models';
+import { GameState } from 'models';
 import { useGame } from '../../GameContext';
 import {
+  fetchDailyZenLeaderboard,
+  fetchDailyZenCompare,
   fetchDailyZenResult,
   fetchDailyZenStats,
   type DailyStatsDay,
+  type DailyZenLeaderboardResponse,
   type DailyZenResultResponse,
   type DailyZenStatsResponse,
 } from '../../shared/api/gameApi';
-import { InkButton } from '../../shared/components/InkButton';
-import { IconAction } from '../../shared/components/IconAction';
-import { DateChip } from '../../shared/components/DateChip';
-import { DateTimelinePicker } from '../../shared/components/DateTimelinePicker';
 import type { DailyEntry } from '../daily/types';
-import { WordsCard } from '../results/components/WordsCard';
-import { MiniBoard } from '../results/components/MiniBoard';
-import { ConfigChips } from '../results/components/ConfigChips';
-import { HeroScore } from '../results/components/HeroScore';
-import { WordDefinitionPanel } from '../results/components/WordDefinitionPanel';
 import { useShareText } from '../results/hooks/useShareText';
 import { generateShareText } from '../results/utils/shareResults';
 import { formatDateLabel } from '../../shared/utils/formatDate';
 import { ZenModeBadge } from './components/ZenModeBadge';
-import { RankCrown } from './components/RankCrown';
-import { RankLadderSheet } from './components/RankLadderSheet';
-import { getZenRank } from 'models/zenRanks';
+import { DailyCompactPreviewPage } from '../results/DailyCompactPreviewPage';
 
 function getTodayPST(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
@@ -49,19 +41,17 @@ function adaptDay(day: DailyStatsDay): DailyEntry {
 export function ZenResultsRoute() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { cachedDailyZen, dailyZenLoaded, authReady } = useGame();
+  const { cachedDailyZen, dailyZenLoaded, authReady, session } = useGame();
   const urlDate = searchParams.get('date');
   const fromSource = searchParams.get('from');
+  const initialCompareUserId = searchParams.get('compare');
   const targetDate = urlDate ?? cachedDailyZen?.date ?? null;
 
   const [result, setResult] = useState<DailyZenResultResponse | null>(null);
+  const [leaderboard, setLeaderboard] = useState<DailyZenLeaderboardResponse | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const [highlightedWord, setHighlightedWord] = useState<string | null>(null);
-  const [highlightPath, setHighlightPath] = useState<Position[] | null>(null);
 
   const [stats, setStats] = useState<DailyZenStatsResponse | null>(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [ladderOpen, setLadderOpen] = useState(false);
 
   useEffect(() => {
     if (!authReady || !dailyZenLoaded || !targetDate) return;
@@ -92,6 +82,13 @@ export function ZenResultsRoute() {
       });
   }, [authReady]);
 
+  useEffect(() => {
+    if (!authReady || !targetDate) return;
+    fetchDailyZenLeaderboard(targetDate)
+      .then(setLeaderboard)
+      .catch(() => setLeaderboard(null));
+  }, [authReady, targetDate]);
+
   const pickerEntries: DailyEntry[] = useMemo(() => {
     return stats?.days.map(adaptDay) ?? [];
   }, [stats]);
@@ -108,24 +105,6 @@ export function ZenResultsRoute() {
     return day?.puzzleNumber ?? cachedDailyZen?.number ?? 0;
   }, [targetDate, stats, cachedDailyZen]);
 
-  const totals = useMemo(() => {
-    if (!result) return { points: 0, words: 0 };
-    return {
-      points: result.found_words.reduce((sum, w) => sum + w.score, 0),
-      words: result.found_words.length,
-    };
-  }, [result]);
-
-  const rank = useMemo(() => {
-    if (!result?.theoretical_max_score) return null;
-    return getZenRank(totals.points, result.theoretical_max_score);
-  }, [result?.theoretical_max_score, totals.points]);
-
-  const handleHighlight = (word: string | null, path: Position[] | null) => {
-    setHighlightedWord(word);
-    setHighlightPath(path);
-  };
-
   const { copied, share } = useShareText(() =>
     result
       ? generateShareText(result.found_words, {
@@ -133,6 +112,31 @@ export function ZenResultsRoute() {
         })
       : '',
   );
+
+  const leaderboardRows = useMemo(() => {
+    const rankings = leaderboard?.rankings.points ?? [];
+    const currentUserId = session?.user?.id;
+    const top = rankings.slice(0, 3).map((entry) => ({
+      rank: entry.rank,
+      userId: entry.userId,
+      name: entry.displayName,
+      score: entry.points,
+      isCurrentUser: entry.userId === currentUserId,
+    }));
+
+    const currentPlayer = leaderboard?.currentPlayer;
+    const userInTop = currentPlayer?.rank != null && currentPlayer.rank <= 3;
+    const you = currentPlayer && !userInTop
+      ? {
+          rank: currentPlayer.rank ?? Math.max(leaderboard?.totalPlayers ?? 0, top.length + 1),
+          name: 'you',
+          score: currentPlayer.points,
+          isCurrentUser: true,
+        }
+      : null;
+
+    return { top, you };
+  }, [leaderboard, session?.user?.id]);
 
   if (!loaded || !targetDate) {
     return <div className="fixed inset-0 bg-[var(--surface-panel)]" />;
@@ -145,122 +149,52 @@ export function ZenResultsRoute() {
   }
 
   return (
-    <div className="fixed inset-0 flex justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] overflow-hidden">
-      <div className="w-full max-w-[360px] min-h-0 flex flex-col px-[22px] pt-[14px] pb-5">
-        <div
-          className="grid items-center gap-2.5 pt-3.5 shrink-0"
-          style={{ gridTemplateColumns: '32px 1fr 32px' }}
-        >
-          <IconAction
-            onClick={() => {
-              if (fromSource === 'leaderboard' && targetDate) {
-                navigate(`/daily/zen/leaderboard?date=${targetDate}`);
-              } else {
-                navigate('/');
-              }
-            }}
-            label="Close"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </IconAction>
-          <div className="flex justify-center">
-            <DateChip
-              label={`Zen Daily · ${formatDateLabel(targetDate)}`}
-              onClick={() => setPickerOpen(true)}
-            />
-          </div>
-          <IconAction onClick={share} label={copied ? 'Copied to clipboard' : 'Share'}>
-            {copied ? (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            ) : (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                <polyline points="16 6 12 2 8 6" />
-                <line x1="12" y1="2" x2="12" y2="15" />
-              </svg>
-            )}
-          </IconAction>
-        </div>
-
-        <HeroScore
-          points={totals.points}
-          words={totals.words}
-          primary="points"
-          accessory={<ZenModeBadge isCompetitive={result.is_competitive} />}
-          crown={
-            rank && result.theoretical_max_score ? (
-              <RankCrown rank={rank} onClick={() => setLadderOpen(true)} />
-            ) : undefined
-          }
-        />
-
-        <div
-          className="grid gap-2.5 flex-1 min-h-0 px-0.5"
-          style={{ gridTemplateColumns: '5fr 6fr', gridTemplateRows: '1fr' }}
-        >
-          <div className="flex flex-col gap-2 min-w-0 min-h-0">
-            <MiniBoard board={result.board} highlightPath={highlightPath} />
-            <ConfigChips
-              boardSize={result.board.length}
-              timeLimit={0}
-              minWordLength={cachedDailyZen?.config.minWordLength ?? 4}
-            />
-            {highlightedWord ? (
-              <WordDefinitionPanel word={highlightedWord} />
-            ) : (
-              <div
-                className="text-[10px] italic text-center text-[color:var(--ink-soft)] font-[family-name:var(--font-display)] leading-[1.3] mt-0.5"
-              >
-                Tap a word to trace it
-              </div>
-            )}
-          </div>
-
-          <WordsCard
-            foundWords={result.found_words}
-            missedWords={result.missed_words}
-            showMissedTab={result.missed_words.length > 0}
-            highlightedWord={highlightedWord}
-            onHighlightWord={handleHighlight}
-            findPercents={result.find_percents}
-            popularityStyle={result.find_percents ? 'inline' : undefined}
-          />
-        </div>
-
-        <div className="flex flex-col gap-2 mt-3.5 shrink-0">
-          <InkButton
-            onClick={() => navigate(`/daily/zen/leaderboard?date=${targetDate}`)}
-          >
-            See leaderboard
-          </InkButton>
-        </div>
-      </div>
-
-      <DateTimelinePicker
-        open={pickerOpen}
-        onClose={() => setPickerOpen(false)}
-        onSelect={(iso) => {
-          setPickerOpen(false);
-          handleChangeDate(iso);
-        }}
-        entries={pickerEntries}
-        selectedDate={targetDate}
-        todayDate={getTodayPST()}
-        disableMissed
-      />
-
-      {result.theoretical_max_score && (
-        <RankLadderSheet
-          open={ladderOpen}
-          onClose={() => setLadderOpen(false)}
-          points={totals.points}
-          maxScore={result.theoretical_max_score}
-        />
-      )}
-    </div>
+    <DailyCompactPreviewPage
+      mode="zen"
+      dateLabel={`Zen Daily · ${formatDateLabel(targetDate)}`}
+      results={{
+        board: result.board,
+        foundWords: result.found_words,
+        missedWords: result.missed_words,
+      }}
+      game={{
+        board: result.board,
+        startedAt: 0,
+        status: GameState.Finished,
+        config: {
+          durationSeconds: 0,
+          boardSize: result.board.length,
+          minWordLength: cachedDailyZen?.config.minWordLength ?? 4,
+        },
+      }}
+      leaderboardTop={leaderboardRows.top}
+      leaderboardYou={leaderboardRows.you}
+      pointsRankings={leaderboard?.rankings.points.map((e) => ({
+        userId: e.userId,
+        rank: e.rank,
+        isCurrentUser: e.userId === session?.user?.id,
+      }))}
+      totalPlayers={leaderboard?.totalPlayers}
+      findPercents={result.find_percents}
+      popularityStyle={result.find_percents ? 'inline' : undefined}
+      onClose={() => {
+        if (fromSource === 'leaderboard' && targetDate) {
+          navigate(`/daily/zen/leaderboard?date=${targetDate}`);
+        } else {
+          navigate('/');
+        }
+      }}
+      onHome={() => navigate('/')}
+      onShare={share}
+      shareCopied={copied}
+      onOpenLeaderboard={() => navigate(`/daily/zen/leaderboard?date=${targetDate}`)}
+      onLoadComparePlayer={(userId) => fetchDailyZenCompare(targetDate, userId)}
+      initialCompareUserId={initialCompareUserId}
+      pickerEntries={pickerEntries}
+      onPickerSelect={handleChangeDate}
+      todayDate={getTodayPST()}
+      selectedDate={targetDate}
+      heroAccessory={<ZenModeBadge isCompetitive={result.is_competitive} />}
+    />
   );
 }
