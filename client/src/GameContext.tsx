@@ -274,6 +274,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (!authReady || !cachedDaily) return;
     let cancelled = false;
     setDailyResultLoaded(false);
+    setCachedDailyResult(null);
 
     (async () => {
       const [result, session] = await Promise.all([
@@ -329,6 +330,62 @@ export function GameProvider({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, [authReady, cachedDailyZen]);
+
+  // Mobile browsers freeze backgrounded tabs (bfcache) and resume them with
+  // their old in-memory state — yesterday's daily, an outdated JS bundle, etc.
+  // On tab focus or pageshow, refetch the public puzzles so the board matches
+  // today, and compare the server's build ID against the one we booted with so
+  // a stale bundle reloads instead of silently lingering.
+  const baselineBuildIdRef = useRef<string | null>(null);
+  const gameStatusRef = useRef<GameState | null>(null);
+  useEffect(() => {
+    gameStatusRef.current = game?.status ?? null;
+  }, [game]);
+
+  useEffect(() => {
+    fetch('/api/version')
+      .then((r) => r.json())
+      .then((d) => {
+        if (typeof d?.buildId === 'string') baselineBuildIdRef.current = d.buildId;
+      })
+      .catch(() => {});
+
+    const checkFreshness = () => {
+      if (document.hidden) return;
+
+      fetchDaily()
+        .then((info) => setCachedDaily(info))
+        .catch(() => {});
+      fetchDailyZenMeta()
+        .then((info) => setCachedDailyZen(info))
+        .catch(() => {});
+
+      if (gameStatusRef.current === GameState.InProgress) return;
+      fetch('/api/version')
+        .then((r) => r.json())
+        .then((d) => {
+          const next = typeof d?.buildId === 'string' ? d.buildId : null;
+          const baseline = baselineBuildIdRef.current;
+          if (baseline && next && next !== baseline) {
+            window.location.reload();
+          }
+        })
+        .catch(() => {});
+    };
+
+    const onVisibility = () => {
+      if (!document.hidden) checkFreshness();
+    };
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) checkFreshness();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pageshow', onPageShow);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pageshow', onPageShow);
+    };
+  }, []);
 
   // Once the timed daily session is finalized (player called /end or the
   // server auto-finalized on timeout), prime cachedDailyResult so the

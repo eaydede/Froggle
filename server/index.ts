@@ -9,6 +9,7 @@ import { userRouter } from './routes/user.js';
 import { dailyRouter } from './routes/daily.js';
 import { dailyZenRouter } from './routes/dailyZen.js';
 import { leaderboardRouter } from './routes/leaderboard.js';
+import { versionRouter } from './routes/version.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,16 +25,32 @@ app.use('/api', authMiddleware);
 app.use('/api', sessionMiddleware);
 
 const clientDistPath = path.join(__dirname, '../client/dist');
-app.use(express.static(clientDistPath));
+const assetsSegment = `${path.sep}assets${path.sep}`;
+app.use(
+  express.static(clientDistPath, {
+    setHeaders: (res, filepath) => {
+      // Vite emits content-hashed filenames under /assets/, so they're safe to
+      // cache forever. Everything else (index.html, favicon, etc.) must
+      // revalidate or stale clients keep loading old bundle references.
+      if (filepath.includes(assetsSegment)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      } else {
+        res.setHeader('Cache-Control', 'no-cache');
+      }
+    },
+  }),
+);
 
 app.use('/api/game', gameRouter);
 app.use('/api/user', userRouter);
 app.use('/api/daily/leaderboard', leaderboardRouter);
 app.use('/api/daily/zen', dailyZenRouter);
 app.use('/api/daily', dailyRouter);
+app.use('/api/version', versionRouter);
 
 // SPA fallback for non-API routes
 app.get('*', (_req, res) => {
+  res.set('Cache-Control', 'no-cache');
   res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
