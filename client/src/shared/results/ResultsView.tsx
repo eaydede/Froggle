@@ -236,7 +236,7 @@ export function ResultsView({
               onSelect={handleSelectOpponent}
               header={standingsHeader}
               compact
-              maxHeight="190px"
+              maxHeight="160px"
             />
           )}
           <div className={isMulti ? '' : 'flex-1 flex justify-center'}>
