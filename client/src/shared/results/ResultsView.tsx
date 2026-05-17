@@ -53,6 +53,11 @@ interface ResultsViewProps {
   topbarOnLabelClick?: () => void;
   /** Bottom CTA row (Home/Leaderboard, or Play again). */
   bottomActions: ReactNode;
+  /** Right-column placeholder when the viewer is the only player in the
+   *  roster. Free-play defaults to a Share nudge; daily/zen pass 'wait'
+   *  since there's nothing to share — comparisons surface as other
+   *  players finish today's puzzle. */
+  soloPlaceholderVariant?: 'share' | 'wait';
   /** Optional solo-state hero override (e.g. daily/zen want HeroScore
    *  with a mode badge / rank crown). Defaults to the unified
    *  ResultsHero in solo mode. */
@@ -78,6 +83,7 @@ export function ResultsView({
   topbarOnLabelClick,
   bottomActions,
   soloHero,
+  soloPlaceholderVariant = 'share',
 }: ResultsViewProps) {
   const [highlightedWord, setHighlightedWord] = useState<string | null>(null);
   const [highlightPath, setHighlightPath] = useState<Position[] | null>(null);
@@ -299,8 +305,8 @@ export function ResultsView({
               />
             ) : (
               <Placeholders
-                variant={isMulti ? 'compare' : 'share'}
-                onShare={!isMulti ? topbarOnShare : undefined}
+                variant={isMulti ? 'compare' : soloPlaceholderVariant}
+                onShare={!isMulti && soloPlaceholderVariant === 'share' ? topbarOnShare : undefined}
                 compact
                 compareSourceLabel={compareSourceLabel}
                 definitionSlot={
@@ -451,18 +457,26 @@ function alignedRows(
 function useScrollSync(active: boolean) {
   const leftRef = useRef<HTMLDivElement | null>(null);
   const rightRef = useRef<HTMLDivElement | null>(null);
-  const syncingRef = useRef(false);
+  // Per-side "ignore the next scroll event" flags. When we programmatically
+  // set scrollTop on the other side, that write queues a scroll event we
+  // must drop so it doesn't echo back. A single shared flag would also
+  // swallow legitimate follow-up scrolls from the active side that fire
+  // before rAF clears it — which is what made momentum scrolling stutter.
+  const ignoreNextRef = useRef({ left: false, right: false });
 
   const sync = (source: 'left' | 'right') => {
-    if (!active || syncingRef.current) return;
+    if (!active) return;
+    if (ignoreNextRef.current[source]) {
+      ignoreNextRef.current[source] = false;
+      return;
+    }
     const from = source === 'left' ? leftRef.current : rightRef.current;
     const to = source === 'left' ? rightRef.current : leftRef.current;
     if (!from || !to) return;
-    syncingRef.current = true;
-    to.scrollTop = from.scrollTop;
-    requestAnimationFrame(() => {
-      syncingRef.current = false;
-    });
+    if (to.scrollTop !== from.scrollTop) {
+      ignoreNextRef.current[source === 'left' ? 'right' : 'left'] = true;
+      to.scrollTop = from.scrollTop;
+    }
   };
 
   return {

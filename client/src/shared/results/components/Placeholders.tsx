@@ -8,9 +8,12 @@ interface PlaceholdersProps {
    *  the definition first. */
   definitionSlot?: ReactNode;
   /** "compare" — used when there are other players to compare against.
-   *  "share" — used in solo mode to nudge the player to share the board
-   *  so someone else can play it. */
-  variant?: 'compare' | 'share';
+   *  "share" — used in free-play solo to nudge the player to share the
+   *  board so someone else can play it.
+   *  "wait" — used in daily/zen solo (first to finish today's puzzle);
+   *  there's nothing to share, just a heads-up that comparisons appear
+   *  as others play. */
+  variant?: 'compare' | 'share' | 'wait';
   /** Fired when the user taps the share-prompt's Share button. */
   onShare?: () => void;
   compact?: boolean;
@@ -45,6 +48,8 @@ export function Placeholders({
     <div className="flex flex-col gap-2 h-full min-h-0">
       {variant === 'share' ? (
         <SharePrompt onShare={onShare} compact={compact} />
+      ) : variant === 'wait' ? (
+        <WaitPrompt compact={compact} />
       ) : (
         <ComparePrompt compact={compact} sourceLabel={compareSourceLabel} />
       )}
@@ -90,6 +95,36 @@ function ComparePrompt({
       </div>
       <div className={`${compact ? 'mt-1 px-0 text-[11px] leading-[1.25]' : 'mt-1.5 px-1 text-xs leading-[1.35]'} italic font-[family-name:var(--font-display)] text-[color:var(--ink-muted)]`}>
         Tap any name in the {sourceLabel} to see their words side-by-side with yours
+      </div>
+    </div>
+  );
+}
+
+function WaitPrompt({ compact = false }: { compact?: boolean }) {
+  return (
+    <div
+      className={`w-full flex flex-col items-center justify-center text-center rounded-xl text-[color:var(--ink-muted)] min-h-0 ${compact ? 'px-2 py-2' : 'px-3 py-3'}`}
+      style={{
+        flex: '2 1 0',
+        border: '1.5px dashed var(--opp-accent)',
+        background: 'var(--opp-accent-soft)',
+      }}
+    >
+      <div className="flex items-center gap-1 mb-1.5" aria-hidden>
+        <PlaceholderInitial char="Y" accent="var(--you-accent)" />
+        <span className="italic font-[family-name:var(--font-display)] text-label-xs text-[color:var(--ink-soft)]">
+          vs
+        </span>
+        <PlaceholderInitial char="?" accent="var(--opp-accent)" />
+      </div>
+      <div
+        className="uppercase font-[family-name:var(--font-structure)] text-label-xs tracking-[0.1em] text-[color:var(--ink)] leading-[1.2]"
+        style={{ fontWeight: 700 }}
+      >
+        First to finish
+      </div>
+      <div className={`${compact ? 'mt-1 px-0 text-[11px] leading-[1.25]' : 'mt-1.5 px-1 text-xs leading-[1.35]'} italic font-[family-name:var(--font-display)] text-[color:var(--ink-muted)]`}>
+        Check back as others play to compare your words side-by-side
       </div>
     </div>
   );

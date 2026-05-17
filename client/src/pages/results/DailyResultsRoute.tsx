@@ -232,6 +232,7 @@ export function DailyResultsRoute() {
         compareSourceLabel="leaderboard"
         findPercents={serverResult?.find_percents}
         popularityStyle={serverResult?.find_percents ? 'inline' : undefined}
+        soloPlaceholderVariant="wait"
         topbar={
           <DailyTopbar
             label={dateLabel}
