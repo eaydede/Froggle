@@ -183,39 +183,44 @@ export function ResultsView({
           />
         )}
 
-        {opponent && meRow && opponentRosterRow ? (
-          <ResultsHero
-            me={{
-              displayName: 'You',
-              points: me.points,
-              wordCount: me.wordCount,
-            }}
-            myRank={meRow.rank}
-            totalPlayers={roster.length}
-            opponent={{
-              displayName: opponent.displayName,
-              points: opponent.points,
-              wordCount: opponent.wordCount,
-            }}
-            oppRank={opponentRosterRow.rank}
-            compact
-          />
-        ) : (
-          soloHero ?? (
+        <div
+          key={opponent ? 'hero-versus' : 'hero-solo'}
+          className="shrink-0 results-region-fade-in"
+        >
+          {opponent && meRow && opponentRosterRow ? (
             <ResultsHero
               me={{
-                displayName: me.displayName,
+                displayName: 'You',
                 points: me.points,
                 wordCount: me.wordCount,
               }}
-              myRank={meRow?.rank ?? 1}
+              myRank={meRow.rank}
               totalPlayers={roster.length}
-              opponent={null}
-              oppRank={null}
+              opponent={{
+                displayName: opponent.displayName,
+                points: opponent.points,
+                wordCount: opponent.wordCount,
+              }}
+              oppRank={opponentRosterRow.rank}
               compact
             />
-          )
-        )}
+          ) : (
+            soloHero ?? (
+              <ResultsHero
+                me={{
+                  displayName: me.displayName,
+                  points: me.points,
+                  wordCount: me.wordCount,
+                }}
+                myRank={meRow?.rank ?? 1}
+                totalPlayers={roster.length}
+                opponent={null}
+                oppRank={null}
+                compact
+              />
+            )
+          )}
+        </div>
 
         <section className="flex items-stretch gap-2 shrink-0 box-border">
           {isMulti && (
@@ -239,7 +244,10 @@ export function ResultsView({
         </section>
 
         <section className="flex justify-between items-stretch gap-2 flex-1 min-h-0 box-border">
-          <div className="w-1/2 flex flex-col min-h-0">
+          <div
+            key={opponent ? 'left-compare' : 'left-solo'}
+            className="w-1/2 flex flex-col min-h-0 results-region-fade-in"
+          >
             {opponent && youCompareRows ? (
               <WordList
                 side="you"
@@ -268,7 +276,10 @@ export function ResultsView({
               />
             )}
           </div>
-          <div className="w-1/2 flex flex-col min-h-0">
+          <div
+            key={opponent ? 'right-compare' : 'right-solo'}
+            className="w-1/2 flex flex-col min-h-0 results-region-fade-in"
+          >
             {opponent && oppCompareRows ? (
               <WordList
                 side="opp"
