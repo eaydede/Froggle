@@ -55,6 +55,8 @@ function InContextWrapper({ completed }: { completed: boolean }) {
         dailyRank={null}
         zenSession={null}
         zenRank={null}
+        gauntletEntry={null}
+        onGauntletPlay={() => {}}
         displayName={name}
         nameProfile={null}
         onDisplayNameChange={async (n) => {

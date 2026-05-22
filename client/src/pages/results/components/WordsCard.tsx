@@ -114,6 +114,7 @@ export function WordsCard({
             key={`${w.word}-${w.found ? 'f' : 'm'}-${i}`}
             word={w.word}
             score={w.score}
+            bonus={w.bonus ?? null}
             first={i === 0}
             found={w.found}
             highlighted={highlightedWord === w.word}
@@ -167,6 +168,7 @@ function SectionHeader({
 function WordRow({
   word,
   score,
+  bonus,
   first,
   found,
   highlighted,
@@ -176,6 +178,7 @@ function WordRow({
 }: {
   word: string;
   score: number;
+  bonus: string | null;
   first: boolean;
   found: boolean;
   highlighted: boolean;
@@ -203,6 +206,20 @@ function WordRow({
       />
       <span className="tabular-nums">{word}</span>
       <span className="flex items-baseline gap-1.5">
+        {bonus && found && (
+          <span
+            className="inline-flex items-center gap-0.5 px-1.5 py-px rounded-full text-[10px] tabular-nums font-[family-name:var(--font-structure)]"
+            style={{
+              backgroundColor: 'var(--hot-letter-bg)',
+              color: 'var(--hot-letter-fg)',
+              fontWeight: 800,
+              boxShadow: '0 1px 3px var(--hot-letter-glow)',
+            }}
+          >
+            <span aria-hidden>✦</span>
+            {bonus}
+          </span>
+        )}
         {showInline && (
           <span
             className="text-[10px] tabular-nums text-[color:var(--ink-faint)] font-[family-name:var(--font-structure)]"

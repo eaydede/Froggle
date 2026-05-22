@@ -4,6 +4,11 @@ export interface ScoredWord {
   word: string;
   path: Position[];
   score: number;
+  /** Optional "this word scored extra" label rendered next to the score
+   *  in the post-round word list. Used by the gauntlet hot-letter round
+   *  to flag words that picked up the multiplier; left blank for modes
+   *  that don't have a per-word bonus. */
+  bonus?: string | null;
 }
 
 export interface GameResults {

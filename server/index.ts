@@ -8,6 +8,7 @@ import { gameRouter } from './routes/game.js';
 import { userRouter } from './routes/user.js';
 import { dailyRouter } from './routes/daily.js';
 import { dailyZenRouter } from './routes/dailyZen.js';
+import { dailyGauntletRouter } from './routes/dailyGauntlet.js';
 import { leaderboardRouter } from './routes/leaderboard.js';
 import { freeplayRouter } from './routes/freeplay.js';
 import { feedbackRouter } from './routes/feedback.js';
@@ -49,6 +50,7 @@ app.use('/api/freeplay', freeplayRouter);
 app.use('/api/feedback', feedbackRouter);
 app.use('/api/daily/leaderboard', leaderboardRouter);
 app.use('/api/daily/zen', dailyZenRouter);
+app.use('/api/daily/gauntlet', dailyGauntletRouter);
 app.use('/api/daily', dailyRouter);
 app.use('/api/version', versionRouter);
 

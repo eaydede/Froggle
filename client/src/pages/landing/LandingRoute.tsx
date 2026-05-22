@@ -10,6 +10,8 @@ import {
   fetchFreePlayUnread,
   type DailyStatsResponse,
 } from '../../shared/api/gameApi';
+import { fetchGauntletStatus } from '../../shared/api/gauntletApi';
+import type { GauntletEntry } from 'models/gauntlet';
 import { scoreWord } from '../../shared/utils/score';
 import { getLandingFixture } from './__fixtures__';
 import type { DailyResults } from './types';
@@ -44,6 +46,7 @@ export function LandingRoute() {
   const [dailyRank, setDailyRank] = useState<number | null>(null);
   const [zenRank, setZenRank] = useState<number | null>(null);
   const [freePlayUnread, setFreePlayUnread] = useState(0);
+  const [gauntletEntry, setGauntletEntry] = useState<GauntletEntry | null>(null);
 
   // Dev-only fixture injection — `?mock=unplayed|completed|partial` renders
   // the page with canned data so visual-regression work can reach either
@@ -62,6 +65,21 @@ export function LandingRoute() {
       })
       .catch(() => {
         // Non-fatal: the dot just doesn't render.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady]);
+
+  useEffect(() => {
+    if (!authReady) return;
+    let cancelled = false;
+    fetchGauntletStatus()
+      .then((s) => {
+        if (!cancelled) setGauntletEntry(s.entry);
+      })
+      .catch(() => {
+        // Non-fatal: gauntlet card falls back to the "unplayed" hint.
       });
     return () => {
       cancelled = true;
@@ -147,6 +165,8 @@ export function LandingRoute() {
     }
   };
 
+  const handleGauntletPlay = () => navigate('/daily/gauntlet');
+
   const handleZenPlay = () => navigate('/daily/zen/play');
   const handleZenResume = () => navigate('/daily/zen/play');
   const handleZenSeeResult = () => navigate('/daily/zen/results');
@@ -168,6 +188,8 @@ export function LandingRoute() {
         dailyRank={null}
         zenSession={mockFixture.zenSession ?? null}
         zenRank={null}
+        gauntletEntry={null}
+        onGauntletPlay={() => {}}
         displayName={mockFixture.displayName}
         nameProfile={null}
         onDisplayNameChange={async () => ({ ok: true as const, profile: {
@@ -228,6 +250,8 @@ export function LandingRoute() {
       dailyRank={dailyRank}
       zenSession={cachedDailyZenSession}
       zenRank={zenRank}
+      gauntletEntry={gauntletEntry}
+      onGauntletPlay={handleGauntletPlay}
       displayName={displayName}
       nameProfile={nameProfile}
       onDisplayNameChange={updateDisplayName}

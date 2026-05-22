@@ -2,6 +2,7 @@ export { AppHeader } from "./AppHeader";
 export { ChangelogControl } from "./ChangelogControl";
 export { DailyCard } from "./DailyCard";
 export { ZenDailyCard } from "./ZenDailyCard";
+export { GauntletDailyCard } from "./GauntletDailyCard";
 export { FeedbackButton } from "./FeedbackButton";
 export { FreePlayCard } from "./FreePlayCard";
 export { NextDailyHeader } from "./NextDailyHeader";

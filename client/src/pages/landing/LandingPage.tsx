@@ -3,12 +3,14 @@ import {
   DailyCard,
   FeedbackButton,
   FreePlayCard,
+  GauntletDailyCard,
   NextDailyHeader,
   ThemeTogglePill,
   ZenDailyCard,
 } from "./components";
 import type { DailyResults } from "./types";
 import type { DailyZenSession, ProfileResponse, UpdateProfileResult } from "../../shared/api/gameApi";
+import type { GauntletEntry } from "models/gauntlet";
 
 interface LandingPageProps {
   dateLabel: string;
@@ -18,6 +20,8 @@ interface LandingPageProps {
   dailyRank: number | null;
   zenSession: DailyZenSession | null;
   zenRank: number | null;
+  gauntletEntry: GauntletEntry | null;
+  onGauntletPlay: () => void;
   displayName: string;
   nameProfile: ProfileResponse | null;
   onDisplayNameChange: (name: string) => Promise<UpdateProfileResult>;
@@ -43,6 +47,8 @@ export function LandingPage({
   dailyRank,
   zenSession,
   zenRank,
+  gauntletEntry,
+  onGauntletPlay,
   displayName,
   nameProfile,
   onDisplayNameChange,
@@ -90,6 +96,7 @@ export function LandingPage({
             onSeeResult={onZenSeeResult}
             onSeeLeaderboard={onZenLeaderboard}
           />
+          <GauntletDailyCard entry={gauntletEntry} onPlay={onGauntletPlay} />
           <FreePlayCard
             onClick={onFreePlayClick}
             onHistory={onFreePlayHistory}

@@ -8,6 +8,13 @@ import { ResultsRoute, DailyResultsRoute } from './pages/results';
 import { LeaderboardRoute } from './pages/leaderboard';
 import { DailyConfirmRoute } from './pages/daily';
 import { ZenGameRoute, ZenResultsRoute, ZenLeaderboardRoute } from './pages/dailyZen';
+import {
+  GauntletHubRoute,
+  GauntletConfirmRoute,
+  GauntletPlayRoute,
+  GauntletRoundResultsRoute,
+  GauntletResultsRoute,
+} from './pages/dailyGauntlet';
 import { HistoryRoute, HistoricResultsRoute } from './pages/history';
 import { ChallengeRoute } from './pages/challenge';
 import './tailwind.css';
@@ -80,6 +87,11 @@ function App() {
         <Route path="/daily/zen/play" element={<ZenGameRoute />} />
         <Route path="/daily/zen/results" element={<ZenResultsRoute />} />
         <Route path="/daily/zen/leaderboard" element={<ZenLeaderboardRoute />} />
+        <Route path="/daily/gauntlet" element={<GauntletHubRoute />} />
+        <Route path="/daily/gauntlet/results" element={<GauntletResultsRoute />} />
+        <Route path="/daily/gauntlet/round/:round" element={<GauntletConfirmRoute />} />
+        <Route path="/daily/gauntlet/round/:round/play" element={<GauntletPlayRoute />} />
+        <Route path="/daily/gauntlet/round/:round/results" element={<GauntletRoundResultsRoute />} />
         <Route path="/history" element={<HistoryRoute />} />
         <Route path="/freeplay/results/:id" element={<HistoricResultsRoute />} />
         <Route path="/freeplay/challenge/:id" element={<ChallengeRoute />} />

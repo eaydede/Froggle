@@ -60,9 +60,30 @@ export interface FeedbackTable {
   created_at: Generated<Date>;
 }
 
+export interface DailyGauntletResultsTable {
+  id: Generated<string>;
+  user_id: string;
+  date: string;
+  round_index: number;
+  round_kind: string;
+  board: string; // JSON string
+  modifier: string; // JSON string
+  found_words: Generated<string>; // JSON string
+  points: Generated<number>;
+  word_count: Generated<number>;
+  longest_word: Generated<string>;
+  board_size: number;
+  min_word_length: number;
+  time_limit: number;
+  started_at: Generated<Date>;
+  ended_at: Date | null;
+  completed_at: Date | null;
+}
+
 export interface Database {
   daily_results: DailyResultsTable;
   daily_zen_results: DailyZenResultsTable;
+  daily_gauntlet_results: DailyGauntletResultsTable;
   free_play_sessions: FreePlaySessionsTable;
   feedback: FeedbackTable;
 }
