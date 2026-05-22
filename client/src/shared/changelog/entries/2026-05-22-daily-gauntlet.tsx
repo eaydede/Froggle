@@ -9,7 +9,7 @@ const entry: ChangelogEntry = {
     <>
       <p>
         A new daily mode chains three rounds back to back, each with its
-        own scoring twist:
+        own scoring twist!
       </p>
       <ul>
         <li>
@@ -24,8 +24,7 @@ const entry: ChangelogEntry = {
       </ul>
       <p>
         Your gauntlet standing is the sum of your three round ranks —
-        lowest wins. Crushing one round and stumbling in another can still
-        come out ahead.
+        lowest wins!
       </p>
     </>
   ),
