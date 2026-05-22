@@ -7,7 +7,12 @@ interface TimerBarProps {
 
 export const TimerBar = ({ game }: TimerBarProps) => {
   const [remainingPercentage, setRemainingPercentage] = useState(100);
-  const localStartRef = useRef<number>(performance.now());
+  // Anchor the local start time against the server-issued game.startedAt
+  // so a refresh mid-play picks up where the bar was, instead of snapping
+  // back to 100%. The one-time wall-clock read mirrors useTimer's
+  // approach — subsequent ticks stay on performance.now() (monotonic) to
+  // avoid jumps from NTP sync on Android.
+  const localStartRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (game.config.durationSeconds <= 0) {
@@ -15,6 +20,10 @@ export const TimerBar = ({ game }: TimerBarProps) => {
       return;
     }
 
+    if (localStartRef.current === null) {
+      const serverElapsedMs = Math.max(0, Date.now() - game.startedAt);
+      localStartRef.current = performance.now() - serverElapsedMs;
+    }
     const localStart = localStartRef.current;
 
     const updateTimerBar = () => {
@@ -27,7 +36,7 @@ export const TimerBar = ({ game }: TimerBarProps) => {
     updateTimerBar();
     const interval = setInterval(updateTimerBar, 100);
     return () => clearInterval(interval);
-  }, [game.config.durationSeconds]);
+  }, [game.config.durationSeconds, game.startedAt]);
 
   const isUnlimited = game.config.durationSeconds <= 0;
 

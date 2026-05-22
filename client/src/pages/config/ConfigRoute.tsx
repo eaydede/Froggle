@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { GameState } from 'models';
 import { useGame } from '../../GameContext';
 import { GameConfigPage } from './GameConfigPage';
 import type { GameConfig } from './types';
@@ -37,6 +38,17 @@ export function ConfigRoute() {
   const sharedGame = useMemo(() => decodeGameParams(searchParams), [searchParams]);
   const isSharedGame = sharedGame !== null;
   const challengeId = sharedGame?.challengeId;
+
+  // GameProvider hydrates an in-progress free-play row at mount; if one
+  // resumed, send the player back into /game instead of dropping them on
+  // the config screen for a game that's already underway. The Finished
+  // case is intentionally left to fall through — the player needs a
+  // start affordance to begin a fresh game once their old one's done.
+  useEffect(() => {
+    if (game?.status === GameState.InProgress) {
+      navigate('/game', { replace: true });
+    }
+  }, [game?.status, navigate]);
 
   useEffect(() => {
     if (initRef.current) return;

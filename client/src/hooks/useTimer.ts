@@ -16,12 +16,15 @@ export const useTimer = (game: Game | null, onTimeExpired: () => void) => {
         return;
       }
 
-      // Record a client-local start time the first time we see this game in progress.
-      // Use performance.now() (monotonic clock) instead of Date.now() to avoid jumps
-      // caused by NTP clock synchronization on Android, which would make elapsed time
-      // spike and the timer display less time remaining than it should.
+      // Anchor a client-local start time the first time we see this game in progress.
+      // Seed from the server's startedAt so a page refresh resumes the existing
+      // countdown instead of restarting it. After this one-time read of the wall
+      // clock, all subsequent ticks use performance.now() (monotonic) to avoid jumps
+      // from NTP clock synchronization on Android, which would otherwise make the
+      // timer display less time remaining than it should.
       if (localStartRef.current === null) {
-        localStartRef.current = performance.now();
+        const serverElapsedMs = Math.max(0, Date.now() - game.startedAt);
+        localStartRef.current = performance.now() - serverElapsedMs;
       }
       const localStart = localStartRef.current;
 

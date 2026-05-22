@@ -45,8 +45,8 @@ export function getDailyConfig(dateStr: string): DailyConfig {
   return dailyConfigFromSeed(getDailySeed(dateStr));
 }
 
-export function getDailyDatePST(): string {
-  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+export function getDailyDatePST(now: Date = new Date()): string {
+  return now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
 }
 
 export function getDailyNumber(dateStr: string): number {

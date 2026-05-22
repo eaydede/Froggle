@@ -1,132 +1,184 @@
-import crypto from 'crypto';
 import { Router } from 'express';
-import { GameState } from 'models';
-import { createSession, destroySession, getSession, getRequestSessionId, type Session } from '../session.js';
+import { GameState, type Game } from 'models';
+import { requireAuth } from '../middleware/auth.js';
 import { getDb } from '../db/index.js';
-import { recordFreePlayCompletion } from '../services/FreePlayService.js';
+import {
+  buildFreePlayResults,
+  cancelFreePlaySession,
+  endFreePlaySession,
+  getActiveFreePlaySession,
+  getFreePlaySessionForState,
+  solveFreePlayBoard,
+  startFreePlaySession,
+  submitFreePlayWord,
+  type FreePlaySession,
+} from '../services/FreePlayService.js';
 
 export const gameRouter = Router();
 
-// Writes one history row per completed free-play game. Idempotent across
-// /end and /results — whichever the client hits first records the row;
-// subsequent calls early-return on the freePlayRecorded flag. The actual
-// DB insert is fire-and-forget so a transient failure can't break the
-// response the client is waiting on. The row id is generated synchronously
-// up front so callers can expose it to the client immediately.
-function recordIfFinishedOnce(session: Session, userId: string | null): void {
-  if (session.freePlayRecorded) return;
-  // Daily games are recorded via /api/daily/results into daily_results.
-  // Skip the free_play_sessions insert so dailies don't appear in the
-  // free-play history list.
-  if (session.isDaily) return;
-  const { game, words } = session.controller.getGameState();
-  if (!game || game.status !== GameState.Finished) return;
-  session.freePlayRecorded = true;
-  const id = crypto.randomUUID();
-  session.freePlayDbId = id;
-  recordFreePlayCompletion(getDb(), {
-    id,
-    userId,
-    board: game.board,
-    foundWords: words.map((w) => w.word),
-    timeLimit: game.config.durationSeconds,
-    boardSize: game.config.boardSize,
-    minWordLength: game.config.minWordLength,
-    challengeId: session.challengeId,
-    seed: session.gameSeed,
-  }).catch((err) => {
-    console.warn('Failed to record free-play completion:', (err as Error).message);
-  });
+// Default config used by /create to seed the client's "Config" gate. The
+// real config is supplied by the player on /start; these defaults exist
+// only so the ConfigRoute has a Game-shaped object to gate on.
+const DEFAULT_CONFIG = {
+  durationSeconds: 180,
+  boardSize: 4,
+  minWordLength: 3,
+} as const;
+
+function toGame(session: FreePlaySession): Game {
+  return {
+    board: session.board,
+    startedAt: session.started_at.getTime(),
+    status: session.completed_at ? GameState.Finished : GameState.InProgress,
+    config: {
+      durationSeconds: session.time_limit,
+      boardSize: session.board_size,
+      minWordLength: session.min_word_length,
+    },
+  };
 }
 
+// Returns a placeholder Config-state Game so ConfigRoute can render its
+// setup screen. No server-side state is mutated — the actual session row
+// is created on /start. The legacy sessionId field is preserved in the
+// response shape for client backward compatibility but is no longer
+// consulted on subsequent calls.
 gameRouter.post('/create', (_req, res) => {
-  const { sessionId, controller } = createSession();
-  const game = controller.createGame();
-  res.json({ game, sessionId });
+  const game: Game = {
+    board: [],
+    startedAt: 0,
+    status: GameState.Config,
+    config: { ...DEFAULT_CONFIG },
+  };
+  res.json({ game, sessionId: 'noop' });
 });
 
-gameRouter.post('/start', (req, res) => {
-  const session = getSession(getRequestSessionId(req));
-  if (!session) return res.status(401).json({ error: 'Invalid session' });
-
-  const { durationSeconds, boardSize, minWordLength, board, seed, challengeId, isDaily } = req.body;
+gameRouter.post('/start', requireAuth, async (req, res) => {
+  const { durationSeconds, boardSize, minWordLength, board, seed, challengeId } = req.body;
   try {
-    const result = session.controller.startGame(
-      durationSeconds || 180,
-      boardSize || 4,
-      minWordLength || 3,
-      board,
+    const { session, salt, wordHashes } = await startFreePlaySession(getDb(), {
+      userId: req.userId!,
+      durationSeconds: durationSeconds || 180,
+      boardSize: boardSize || 4,
+      minWordLength: minWordLength || 3,
+      predefinedBoard: board,
       seed,
-    );
-    // Stamp the challenge id onto the session so the completion row
-    // written at /end or /results gets grouped with the other players
-    // who accepted the same share link.
-    session.challengeId = typeof challengeId === 'string' && challengeId ? challengeId : null;
-    // Capture the actual seed the controller used (it may have generated
-    // its own when none was supplied) so the completion row records it.
-    session.gameSeed = result.seed;
-    // Suppresses the free_play_sessions insert at /end and /results so
-    // the daily doesn't appear in the free-play history list.
-    session.isDaily = isDaily === true;
+      challengeId: typeof challengeId === 'string' && challengeId ? challengeId : null,
+    });
+    res.json({
+      game: toGame(session),
+      wordHashes,
+      salt,
+      seed: session.seed,
+    });
+  } catch (err) {
+    console.error('Failed to start free-play session:', err);
+    res.status(500).json({ error: 'Failed to start game' });
+  }
+});
+
+gameRouter.post('/cancel', requireAuth, async (req, res) => {
+  try {
+    await cancelFreePlaySession(getDb(), req.userId!);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Failed to cancel free-play session:', err);
+    res.status(500).json({ error: 'Failed to cancel game' });
+  }
+});
+
+gameRouter.post('/end', requireAuth, async (req, res) => {
+  try {
+    const session = await endFreePlaySession(getDb(), req.userId!);
+    if (!session) {
+      return res.status(400).json({ error: 'No active game to end' });
+    }
+    res.json({ game: toGame(session), freePlaySessionId: session.id });
+  } catch (err) {
+    console.error('Failed to end free-play session:', err);
+    res.status(500).json({ error: 'Failed to end game' });
+  }
+});
+
+gameRouter.post('/submit', requireAuth, async (req, res) => {
+  try {
+    const result = await submitFreePlayWord(getDb(), req.userId!, req.body.path);
     res.json(result);
-  } catch (error) {
-    res.status(400).json({ error: (error as Error).message });
+  } catch (err) {
+    console.error('Failed to submit free-play word:', err);
+    res.status(500).json({ error: 'Failed to submit word' });
   }
 });
 
-gameRouter.post('/cancel', (req, res) => {
-  const sessionId = getRequestSessionId(req);
-  const session = getSession(sessionId);
-  if (!session) return res.status(401).json({ error: 'Invalid session' });
-
-  session.controller.cancelGame();
-  destroySession(sessionId);
-  res.json({ success: true });
-});
-
-gameRouter.post('/end', (req, res) => {
-  const session = getSession(getRequestSessionId(req));
-  if (!session) return res.status(401).json({ error: 'Invalid session' });
-
-  const game = session.controller.endGame();
-  if (game) {
-    recordIfFinishedOnce(session, req.userId ?? null);
-    res.json({ game, freePlaySessionId: session.freePlayDbId });
-    return;
-  }
-  const state = session.controller.getGameState();
-  if (state.game) {
-    recordIfFinishedOnce(session, req.userId ?? null);
-    res.json({ game: state.game, freePlaySessionId: session.freePlayDbId });
-  } else {
-    res.status(400).json({ error: 'No active game to end' });
+// Returns the caller's active in-progress session, or null if none. The
+// salt + wordHashes are included so a refresh-resumed client can re-arm
+// its local validator without an extra round trip.
+gameRouter.get('/active', requireAuth, async (req, res) => {
+  try {
+    const session = await getActiveFreePlaySession(getDb(), req.userId!);
+    if (!session) return res.json({ session: null });
+    const { salt, wordHashes } = solveFreePlayBoard(session.board, session.min_word_length);
+    res.json({
+      session: {
+        id: session.id,
+        game: toGame(session),
+        found_words: session.found_words,
+        challenge_id: session.challenge_id,
+        seed: session.seed,
+        salt,
+        wordHashes,
+      },
+    });
+  } catch (err) {
+    console.error('Failed to fetch active free-play session:', err);
+    res.status(500).json({ error: 'Failed to fetch active session' });
   }
 });
 
-gameRouter.post('/submit', (req, res) => {
-  const session = getSession(getRequestSessionId(req));
-  if (!session) return res.status(401).json({ error: 'Invalid session' });
-
-  const result = session.controller.submitWord(req.body.path);
-  res.json(result);
+// Returns the same shape /active returns. Retained so the existing
+// useGameApi.fetchGameState path keeps working without changes — the
+// game object reflects the current DB state (status flips to Finished
+// after expiry), and words are the persisted found_words list. Unlike
+// /active, this endpoint also surfaces a session that this read just
+// auto-finalized, so the client sees `Finished` and can fetch results.
+gameRouter.get('/state', requireAuth, async (req, res) => {
+  try {
+    const session = await getFreePlaySessionForState(getDb(), req.userId!);
+    if (!session) return res.json({ game: null, words: [] });
+    res.json({
+      game: toGame(session),
+      words: session.found_words.map((word) => ({
+        word,
+        path: [],
+        submittedAt: 0,
+      })),
+    });
+  } catch (err) {
+    console.error('Failed to fetch free-play state:', err);
+    res.status(500).json({ error: 'Failed to fetch state' });
+  }
 });
 
-gameRouter.get('/state', (req, res) => {
-  const session = getSession(getRequestSessionId(req));
-  if (!session) return res.json({ game: null, words: [] });
-
-  res.json(session.controller.getGameState());
-});
-
-gameRouter.get('/results', (req, res) => {
-  const session = getSession(getRequestSessionId(req));
-  if (!session) return res.status(401).json({ error: 'Invalid session' });
-
-  const results = session.controller.getResults();
-  if (results) {
-    recordIfFinishedOnce(session, req.userId ?? null);
-    res.json({ ...results, freePlaySessionId: session.freePlayDbId });
-  } else {
-    res.status(400).json({ error: 'No finished game' });
+gameRouter.get('/results', requireAuth, async (req, res) => {
+  try {
+    const db = getDb();
+    // Force finalization on read so a player whose timer ran out without
+    // /end firing still gets their results page. endFreePlaySession is a
+    // no-op when the row already finalized.
+    let session = await getActiveFreePlaySession(db, req.userId!);
+    if (session) {
+      session = await endFreePlaySession(db, req.userId!);
+    } else {
+      // Fall back to the player's most recently finished session.
+      session = await endFreePlaySession(db, req.userId!);
+    }
+    if (!session) {
+      return res.status(400).json({ error: 'No finished game' });
+    }
+    const results = buildFreePlayResults(session);
+    res.json({ ...results, freePlaySessionId: session.id });
+  } catch (err) {
+    console.error('Failed to fetch free-play results:', err);
+    res.status(500).json({ error: 'Failed to fetch results' });
   }
 });
