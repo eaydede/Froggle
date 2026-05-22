@@ -11,6 +11,8 @@
     "./dictionary.js": "./dictionary.ts",
     "./scoring": "./scoring.ts",
     "./scoring.js": "./scoring.ts",
+    "./gauntletScoring": "./gauntletScoring.ts",
+    "./gauntletScoring.js": "./gauntletScoring.ts",
     "./solver": "./solver.ts",
     "./solver.js": "./solver.ts"
   },

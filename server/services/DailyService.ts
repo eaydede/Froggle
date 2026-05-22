@@ -220,6 +220,48 @@ function stampTierFor(rank: number, totalPlayers: number): StampTier {
   return null;
 }
 
+// Set of dates in the window where the user engaged with any daily mode.
+// Used by the unified streak — a played-day signal that doesn't require
+// the user to have submitted to a specific mode.
+async function getUserPlayedDatesAcrossModes(
+  db: Kysely<Database>,
+  userId: string,
+  windowStart: string,
+  windowEnd: string,
+): Promise<Set<string>> {
+  const dates = new Set<string>();
+
+  const [timed, zen, gauntlet] = await Promise.all([
+    db
+      .selectFrom('daily_results')
+      .select('date')
+      .where('user_id', '=', userId)
+      .where('date', '>=', windowStart)
+      .where('date', '<=', windowEnd)
+      .where('ended_at', 'is not', null)
+      .execute(),
+    db
+      .selectFrom('daily_zen_results')
+      .select('date')
+      .where('user_id', '=', userId)
+      .where('date', '>=', windowStart)
+      .where('date', '<=', windowEnd)
+      .execute(),
+    db
+      .selectFrom('daily_gauntlet_results')
+      .select('date')
+      .where('user_id', '=', userId)
+      .where('date', '>=', windowStart)
+      .where('date', '<=', windowEnd)
+      .execute(),
+  ]);
+
+  for (const row of timed) dates.add(row.date);
+  for (const row of zen) dates.add(row.date);
+  for (const row of gauntlet) dates.add(row.date);
+  return dates;
+}
+
 export async function getDailyStats(
   db: Kysely<Database>,
   userId: string,
@@ -331,12 +373,26 @@ export async function getDailyStats(
     });
   }
 
-  // Streak: walk backwards from today; today missing is not a break yet.
+  // Streak is unified across all daily modes: playing the timed daily,
+  // the zen daily, or the gauntlet on a given date all count as a played
+  // day. The per-day stats below stay timed-specific (points/longest/etc.
+  // only make sense for the timed mode), but the streak signal reflects
+  // every form of daily engagement so users aren't punished for choosing
+  // a mode that doesn't have streak semantics of its own.
+  const playedDates = await getUserPlayedDatesAcrossModes(
+    db,
+    userId,
+    windowStart,
+    windowEnd,
+  );
+
+  // Walk backwards from today; today missing is not a break yet.
   let currentStreak = 0;
   for (let i = days.length - 1; i >= 0; i--) {
     const day = days[i];
-    if (i === days.length - 1 && day.state === 'unplayed') continue;
-    if (day.state !== 'completed') break;
+    const played = playedDates.has(day.date);
+    if (i === days.length - 1 && !played) continue;
+    if (!played) break;
     currentStreak++;
   }
 
@@ -347,7 +403,7 @@ export async function getDailyStats(
   const tail = days.slice(-7);
   const streakDays: boolean[] = [
     ...Array(Math.max(0, 7 - tail.length)).fill(false),
-    ...tail.map((d) => d.state === 'completed'),
+    ...tail.map((d) => playedDates.has(d.date)),
   ];
 
   // 7-day avg: last 7 PLAYED days anywhere in window. Includes today if

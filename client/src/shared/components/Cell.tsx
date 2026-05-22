@@ -1,9 +1,10 @@
-import type { HTMLAttributes } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 
 export type CellState = 'default' | 'selected' | 'valid' | 'invalid' | 'duplicate';
 export type CellSize = 'xxs' | 'xs' | 'sm' | 'md' | 'lg' | 'responsive';
 export type CellMode = 'light' | 'dark';
 export type CellVariant = 'simple' | 'dice';
+export type CellAccent = 'hot' | null;
 
 interface CellProps extends HTMLAttributes<HTMLDivElement> {
   letter: string;
@@ -12,6 +13,12 @@ interface CellProps extends HTMLAttributes<HTMLDivElement> {
   mode?: CellMode;
   variant?: CellVariant;
   styleOverride?: React.CSSProperties;
+  /** Adornment rendered in the bottom-right corner. Used by the gauntlet
+   *  rare-letters round to show per-letter point values, Scrabble-style. */
+  badge?: ReactNode;
+  /** Visual emphasis on the cell itself. 'hot' draws an accent ring
+   *  (used to flag the hot letter during a gauntlet hot-letter round). */
+  accent?: CellAccent;
 }
 
 const SIZE_MAP: Record<string, string> = {
@@ -169,7 +176,7 @@ export function getCellStateStyle(state: CellState, variant: CellVariant = 'simp
 
 export function Cell({
   letter, state = 'default', size = 'md', mode = 'light', variant = 'simple',
-  styleOverride, className = '', ...props
+  styleOverride, className = '', badge, accent = null, ...props
 }: CellProps) {
   const isResponsive = size === 'responsive';
   const dimension = isResponsive ? undefined : SIZE_MAP[size];
@@ -179,9 +186,30 @@ export function Cell({
 
   const stateStyle = STYLE_MAP[`${variant}-${mode}`][state];
 
+  // Hot-letter accent applies only when the cell isn't already mid-feedback,
+  // so the in-progress selection color stays the dominant signal. Recolors
+  // the cell background and (for the dice variant) the edge stack so the
+  // hot cells read as clearly different from the default beige without
+  // borrowing any of the four feedback hues (blue / green / red / yellow).
+  const accentStyle: React.CSSProperties =
+    accent === 'hot' && state === 'default'
+      ? variant === 'dice'
+        ? {
+            backgroundColor: 'var(--hot-letter-bg)',
+            color: 'var(--hot-letter-fg)',
+            boxShadow:
+              '0 3px 0 0 var(--hot-letter-edge), 0 4px 0 0 var(--hot-letter-edge-deep), 0 6px 10px var(--hot-letter-glow)',
+          }
+        : {
+            backgroundColor: 'var(--hot-letter-bg)',
+            color: 'var(--hot-letter-fg)',
+            boxShadow: '0 2px 8px var(--hot-letter-glow), 0 1px 2px rgba(0,0,0,0.04)',
+          }
+      : {};
+
   return (
     <div
-      className={`flex items-center justify-center select-none transition-all duration-[50ms] ${isResponsive ? 'flex-1' : ''} ${className}`}
+      className={`relative flex items-center justify-center select-none transition-all duration-[50ms] ${isResponsive ? 'flex-1' : ''} ${className}`}
       style={{
         width: dimension,
         height: dimension,
@@ -190,11 +218,26 @@ export function Cell({
         fontWeight: 'var(--font-cell-weight)' as any,
         fontSize,
         ...stateStyle,
+        ...accentStyle,
         ...styleOverride,
       }}
       {...props}
     >
       {letter}
+      {badge !== undefined && badge !== null && (
+        <span
+          className="absolute bottom-[6%] right-[8%] leading-none tabular-nums pointer-events-none"
+          style={{
+            fontSize: isResponsive
+              ? `calc(18cqi / var(--board-size, 4))`
+              : `calc(${fontSize} * 0.36)`,
+            opacity: 0.6,
+            fontWeight: 700,
+          }}
+        >
+          {badge}
+        </span>
+      )}
     </div>
   );
 }

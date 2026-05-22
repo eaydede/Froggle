@@ -53,6 +53,18 @@ button, input, select, textarea {
   --color-invalid: hsl(4, 60%, 63%);
   --color-duplicate: hsl(45, 65%, 60%);
 
+  /* Gauntlet hot-letter palette. Picked in violet so the indicator
+   * doesn't clash with the four feedback colors above (blue / green /
+   * red / yellow). Cell uses the lavender backdrop in its default state;
+   * the deeper shades drive the dice variant's edge stack and the
+   * highlight pill that flags hot-letter words in the post-round word
+   * list and on the in-progress word feedback string. */
+  --hot-letter-bg: #EDE2F7;
+  --hot-letter-edge: #D5C3EB;
+  --hot-letter-edge-deep: #BFA9DE;
+  --hot-letter-fg: #5B2F8C;
+  --hot-letter-glow: rgba(168, 85, 247, 0.35);
+
   /* Score palette — shared by results page (squares) and word list (dots).
    * Tiers 3, 5, 11 are rendered as gradients in the squares view and as solid
    * fills in the dots view, so each tier defines both a `from`/`to` gradient

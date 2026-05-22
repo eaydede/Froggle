@@ -24,6 +24,10 @@ interface ResultsViewProps {
   /** The viewer's own results — board + found/missed words + display info. */
   me: ResultsViewer;
   board: string[][];
+  /** Optional bottom-right adornment per cell on the board preview.
+   *  Forwarded to the preview Board so modes like the gauntlet's
+   *  rare-letters round can surface per-letter point values. */
+  boardCellBadge?: (row: number, col: number, letter: string) => ReactNode;
   config: ResultsBoardConfig;
   /** Standings roster. Must include the viewer (entry with isYou=true).
    *  length === 1 collapses to the solo state (no standings panel; right
@@ -68,6 +72,7 @@ interface ResultsViewProps {
 export function ResultsView({
   me,
   board,
+  boardCellBadge,
   config,
   roster,
   loadOpponent,
@@ -260,6 +265,7 @@ export function ResultsView({
               highlightColor={highlightColor}
               config={config}
               compact
+              cellBadge={boardCellBadge}
             />
           </div>
         </section>

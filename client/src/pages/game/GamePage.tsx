@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Game, Position, Word } from 'models';
-import { Board, FeedbackType, computeFeedbackColors } from './components/Board';
+import { Board, FeedbackType, computeFeedbackColors, type CellDecoration } from './components/Board';
 import { TimerBar } from './components/TimerBar';
 
 // Hardcoded board style defaults
@@ -27,13 +27,22 @@ interface GamePageProps {
   game: Game;
   words: Word[];
   timeRemaining: number;
-  feedback: { type: FeedbackType; path: Position[] } | null;
+  feedback: { type: FeedbackType; path: Position[]; bonus?: string | null } | null;
   onSubmitWord: (path: Position[]) => void;
   onCancelGame: () => void;
   onEndGame: () => void;
   muted: boolean;
   onToggleMute: () => void;
   dailyNumber?: number;
+  /** Override for the bottom-left mode label. When set, takes precedence
+   *  over the dailyNumber-derived default. Used by gauntlet rounds to
+   *  carry both the round number and the modifier badge in a single line
+   *  ("Gauntlet R2 · Hot: A · 2×"). */
+  modeLabel?: string;
+  /** Per-cell decorations (score badge / accent ring). Passes through to
+   *  Board; used by gauntlet rounds to render Scrabble-style point values
+   *  and flag the hot letter. */
+  cellDecorations?: (row: number, col: number, letter: string) => CellDecoration | null;
 }
 
 function formatTimer(seconds: number): string {
@@ -43,11 +52,12 @@ function formatTimer(seconds: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGame, muted, onToggleMute, dailyNumber }: GamePageProps) => {
+export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGame, muted, onToggleMute, dailyNumber, modeLabel: modeLabelOverride, cellDecorations }: GamePageProps) => {
   const boardSize = game.board.length;
   const [displayWord, setDisplayWord] = useState('');
   const [wordFeedback, setWordFeedback] = useState<FeedbackType>(null);
   const [isFading, setIsFading] = useState(false);
+  const [wordBonus, setWordBonus] = useState<string | null>(null);
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -55,6 +65,7 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
     if (word) {
       setDisplayWord(word);
       setWordFeedback(null);
+      setWordBonus(null);
       setIsFading(false);
       if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
       if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
@@ -66,6 +77,7 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
       const word = feedback.path.map(p => game.board[p.row]?.[p.col] || '').join('');
       setDisplayWord(word);
       setWordFeedback(feedback.type);
+      setWordBonus(feedback.bonus ?? null);
       setIsFading(false);
 
       if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
@@ -76,6 +88,7 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
         clearTimerRef.current = setTimeout(() => {
           setDisplayWord('');
           setWordFeedback(null);
+          setWordBonus(null);
           setIsFading(false);
         }, 300);
       }, 800);
@@ -102,7 +115,7 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
   }
 
   const isDaily = dailyNumber !== undefined;
-  const modeLabel = isDaily ? `Daily #${dailyNumber}` : 'Free Play';
+  const modeLabel = modeLabelOverride ?? (isDaily ? `Daily #${dailyNumber}` : 'Free Play');
 
   return (
     <div className="w-full max-w-[500px] mx-auto flex flex-col items-center" style={{ '--board-size': boardSize } as React.CSSProperties}>
@@ -143,6 +156,21 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
             ))
           : displayWord.toUpperCase()
         }
+        {wordFeedback === 'valid' && wordBonus && (
+          <span
+            className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs tabular-nums"
+            style={{
+              backgroundColor: 'var(--hot-letter-bg)',
+              color: 'var(--hot-letter-fg)',
+              boxShadow: '0 1px 4px var(--hot-letter-glow)',
+              fontWeight: 800,
+              animation: 'word-pulse 0.4s ease',
+            }}
+          >
+            <span aria-hidden>✦</span>
+            {wordBonus}
+          </span>
+        )}
       </div>
 
       {/* Board */}
@@ -160,6 +188,7 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
           preactRadius={BOARD_STYLE.preactRadius}
           preactIntensity={BOARD_STYLE.preactIntensity}
           onCurrentWordChange={handleCurrentWordChange}
+          cellDecorations={cellDecorations}
         />
       </div>
 

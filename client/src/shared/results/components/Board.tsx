@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import type { Position } from 'models';
 import type { ResultsBoardConfig } from '../types';
 
@@ -11,6 +12,10 @@ interface BoardProps {
   highlightColor?: string | null;
   config: ResultsBoardConfig;
   compact?: boolean;
+  /** Optional bottom-right adornment per cell. Used by the gauntlet
+   *  rare-letters round to surface point values on the preview board so
+   *  the player can see why words add up to their scores. */
+  cellBadge?: (row: number, col: number, letter: string) => ReactNode;
 }
 
 const STEP_MS = 70;
@@ -21,6 +26,7 @@ export function Board({
   highlightColor = null,
   config,
   compact = false,
+  cellBadge,
 }: BoardProps) {
   const size = board.length;
   const [animatedCells, setAnimatedCells] = useState<Set<string>>(new Set());
@@ -55,10 +61,11 @@ export function Board({
               ? `color-mix(in srgb, ${highlightColor} 28%, transparent)`
               : 'var(--ink-trace)';
             const litBorder = highlightColor ?? 'var(--ink-mid)';
+            const badge = cellBadge?.(r, c, letter);
             return (
               <div
                 key={`${r}-${c}`}
-                className={`${compact ? 'rounded-[4px] text-[13px]' : 'rounded-[4px] text-sm'} flex items-center justify-center tabular-nums font-[family-name:var(--font-structure)] transition-[background,border-color,color] duration-150`}
+                className={`relative ${compact ? 'rounded-[4px] text-[13px]' : 'rounded-[4px] text-sm'} flex items-center justify-center tabular-nums font-[family-name:var(--font-structure)] transition-[background,border-color,color] duration-150`}
                 style={{
                   fontWeight: 700,
                   background: lit ? litBackground : 'var(--surface-card)',
@@ -69,6 +76,14 @@ export function Board({
                 }}
               >
                 {letter}
+                {badge !== undefined && badge !== null && (
+                  <span
+                    className="absolute bottom-[1px] right-[2px] leading-none tabular-nums pointer-events-none text-[8px] opacity-60"
+                    style={{ fontWeight: 700 }}
+                  >
+                    {badge}
+                  </span>
+                )}
               </div>
             );
           }),

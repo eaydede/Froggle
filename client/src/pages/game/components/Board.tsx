@@ -3,7 +3,13 @@ import { Board as BoardType, Position } from 'models';
 import { useBoardInteraction } from '../hooks/useBoardInteraction';
 import { useThockSound } from '../hooks/useThockSound';
 import { Cell } from '../../../shared/components/Cell';
-import type { CellState } from '../../../shared/components/Cell';
+import type { CellAccent, CellState } from '../../../shared/components/Cell';
+import type { ReactNode } from 'react';
+
+export interface CellDecoration {
+  badge?: ReactNode;
+  accent?: CellAccent;
+}
 
 export type FeedbackType = 'valid' | 'invalid' | 'duplicate' | null;
 
@@ -108,6 +114,11 @@ interface BoardProps {
   preactRadius?: number;
   preactIntensity?: number;
   onCurrentWordChange?: (word: string) => void;
+  /** Per-cell decorations (score badge, accent ring). Used by gauntlet
+   *  modifiers to render Scrabble-style point values and to flag the hot
+   *  letter on the board itself, without coupling Board to gauntlet
+   *  concepts — the caller decides what each cell carries. */
+  cellDecorations?: (row: number, col: number, letter: string) => CellDecoration | null;
 }
 
 export const Board = ({
@@ -116,6 +127,7 @@ export const Board = ({
   soundIndex = 0, colorWash = 35,
   preactStyleIndex = 0, preactRadius = 130, preactIntensity = 100,
   onCurrentWordChange,
+  cellDecorations,
 }: BoardProps) => {
   const playThock = useThockSound(soundIndex);
   const {
@@ -181,22 +193,27 @@ export const Board = ({
     >
       {board.map((row, rowIndex) => (
         <div key={rowIndex} className="flex flex-1" style={{ gap: layout.rowGap }}>
-          {row.map((letter, colIndex) => (
-            <Cell
-              key={`${rowIndex}-${colIndex}`}
-              letter={letter}
-              state={getCellState(rowIndex, colIndex)}
-              size="responsive"
-              variant="dice"
-              styleOverride={getDynamicOverride(rowIndex, colIndex)}
-              className="cursor-pointer"
-              data-row={rowIndex}
-              data-col={colIndex}
-              onPointerDown={(e) => handleCellPointerDown(rowIndex, colIndex, e)}
-              onPointerEnter={() => setHoveredCell(`${rowIndex},${colIndex}`)}
-              onPointerLeave={() => setHoveredCell(null)}
-            />
-          ))}
+          {row.map((letter, colIndex) => {
+            const decoration = cellDecorations?.(rowIndex, colIndex, letter) ?? null;
+            return (
+              <Cell
+                key={`${rowIndex}-${colIndex}`}
+                letter={letter}
+                state={getCellState(rowIndex, colIndex)}
+                size="responsive"
+                variant="dice"
+                styleOverride={getDynamicOverride(rowIndex, colIndex)}
+                className="cursor-pointer"
+                data-row={rowIndex}
+                data-col={colIndex}
+                onPointerDown={(e) => handleCellPointerDown(rowIndex, colIndex, e)}
+                onPointerEnter={() => setHoveredCell(`${rowIndex},${colIndex}`)}
+                onPointerLeave={() => setHoveredCell(null)}
+                badge={decoration?.badge}
+                accent={decoration?.accent ?? null}
+              />
+            );
+          })}
         </div>
       ))}
     </div>
