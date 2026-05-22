@@ -1,3 +1,5 @@
+import { sql } from 'kysely';
+import { getDb } from '../db/index.js';
 import { getSupabaseAdmin } from '../supabaseAdmin.js';
 import { renderPublicName } from './nameModeration.js';
 
@@ -70,12 +72,81 @@ export async function getDisplayName(userId: string): Promise<string> {
   );
 }
 
+// Single SQL round-trip against auth.users for any IDs not already cached.
+// The previous implementation fanned out one Supabase Auth admin HTTP call
+// per user, which dominated latency on multi-user views (gauntlet/daily
+// leaderboards) and scaled linearly with player count.
+interface AuthUserRow {
+  id: string;
+  raw_user_meta_data: Record<string, unknown> | null;
+  raw_app_meta_data: Record<string, unknown> | null;
+}
+
+async function fetchUserStatesBatch(userIds: string[]): Promise<Map<string, UserState>> {
+  const out = new Map<string, UserState>();
+  if (userIds.length === 0) return out;
+  try {
+    const result = await sql<AuthUserRow>`
+      select id::text as id, raw_user_meta_data, raw_app_meta_data
+      from auth.users
+      where id = any(${userIds}::uuid[])
+    `.execute(getDb());
+    for (const row of result.rows) {
+      out.set(row.id, {
+        displayName: normalizeDisplayName(row.raw_user_meta_data?.display_name),
+        lockedUntilMs: parseLockedUntil(
+          (row.raw_app_meta_data as { nameLockedUntil?: unknown } | null)?.nameLockedUntil,
+        ),
+      });
+    }
+  } catch {
+    // Leave `out` empty; caller treats missing IDs as Anonymous below.
+  }
+  return out;
+}
+
 export async function getDisplayNames(userIds: string[]): Promise<Map<string, string>> {
   const uniqueIds = Array.from(new Set(userIds));
-  const entries = await Promise.all(
-    uniqueIds.map(async (userId) => [userId, await getDisplayName(userId)] as const),
-  );
-  return new Map(entries);
+  const now = Date.now();
+  const result = new Map<string, string>();
+  const toFetch: string[] = [];
+
+  for (const id of uniqueIds) {
+    const cached = cache.get(id);
+    if (cached && cached.expiresAt > now) {
+      result.set(
+        id,
+        renderPublicName(
+          id,
+          cached.displayName,
+          { strikes: 0, lockedUntilMs: cached.lockedUntilMs },
+          now,
+        ),
+      );
+    } else {
+      if (cached) cache.delete(id);
+      toFetch.push(id);
+    }
+  }
+
+  if (toFetch.length > 0) {
+    const fetched = await fetchUserStatesBatch(toFetch);
+    for (const id of toFetch) {
+      const state = fetched.get(id) ?? { displayName: ANONYMOUS, lockedUntilMs: null };
+      cache.set(id, { ...state, expiresAt: now + USER_TTL_MS });
+      result.set(
+        id,
+        renderPublicName(
+          id,
+          state.displayName,
+          { strikes: 0, lockedUntilMs: state.lockedUntilMs },
+          now,
+        ),
+      );
+    }
+  }
+
+  return result;
 }
 
 export function invalidateDisplayName(userId: string): void {
