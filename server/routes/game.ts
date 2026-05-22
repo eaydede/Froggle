@@ -7,6 +7,7 @@ import {
   cancelFreePlaySession,
   endFreePlaySession,
   getActiveFreePlaySession,
+  getFreePlaySessionForState,
   solveFreePlayBoard,
   startFreePlaySession,
   submitFreePlayWord,
@@ -137,10 +138,12 @@ gameRouter.get('/active', requireAuth, async (req, res) => {
 // Returns the same shape /active returns. Retained so the existing
 // useGameApi.fetchGameState path keeps working without changes — the
 // game object reflects the current DB state (status flips to Finished
-// after expiry), and words are the persisted found_words list.
+// after expiry), and words are the persisted found_words list. Unlike
+// /active, this endpoint also surfaces a session that this read just
+// auto-finalized, so the client sees `Finished` and can fetch results.
 gameRouter.get('/state', requireAuth, async (req, res) => {
   try {
-    const session = await getActiveFreePlaySession(getDb(), req.userId!);
+    const session = await getFreePlaySessionForState(getDb(), req.userId!);
     if (!session) return res.json({ game: null, words: [] });
     res.json({
       game: toGame(session),

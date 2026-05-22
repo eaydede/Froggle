@@ -15,6 +15,12 @@ export interface DailySummary {
 // time. Counts vs. distinct-user counts: daily_results and
 // daily_zen_results have a unique (user_id, date) constraint, so count(*)
 // is already a per-player count for those.
+//
+// freePlayGames counts *completed* sessions only. The table now inserts
+// at /start with completed_at null, so without the filter we'd over-count
+// abandoned games. The session's `date` is rewritten on finalization to
+// the completion-PST date, so cross-midnight games still land on the day
+// they finished (matching the pre-migration semantics).
 export async function getDailySummary(
   db: Kysely<Database>,
   date: string,
@@ -37,6 +43,7 @@ export async function getDailySummary(
       .selectFrom('free_play_sessions')
       .select((eb) => eb.fn.countAll<number>().as('games'))
       .where('date', '=', date)
+      .where('completed_at', 'is not', null)
       .executeTakeFirstOrThrow(),
   ]);
 

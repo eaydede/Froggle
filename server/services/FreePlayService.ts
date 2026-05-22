@@ -140,6 +140,22 @@ function expiryInstant(session: { started_at: Date; time_limit: number }): Date 
   return new Date(session.started_at.getTime() + session.time_limit * 1000);
 }
 
+const SESSION_COLUMNS = [
+  'id',
+  'board',
+  'found_words',
+  'started_at',
+  'completed_at',
+  'points',
+  'word_count',
+  'longest_word',
+  'time_limit',
+  'board_size',
+  'min_word_length',
+  'challenge_id',
+  'seed',
+] as const;
+
 async function autoFinalizeIfExpired(
   db: Kysely<Database>,
   session: FreePlaySession,
@@ -148,7 +164,7 @@ async function autoFinalizeIfExpired(
   const completedAt = expiryInstant(session);
   await db
     .updateTable('free_play_sessions')
-    .set({ completed_at: completedAt })
+    .set({ completed_at: completedAt, date: getDailyDatePST(completedAt) })
     .where('id', '=', session.id)
     .where('completed_at', 'is', null)
     .execute();
@@ -159,34 +175,38 @@ export async function getActiveFreePlaySession(
   db: Kysely<Database>,
   userId: string,
 ): Promise<FreePlaySession | null> {
+  const session = await readAndAutoFinalize(db, userId);
+  // A row that auto-finalized between the select and the update is no
+  // longer "active" — surface as null so callers don't treat it as
+  // resumable.
+  return session && !session.completed_at ? session : null;
+}
+
+// Like getActiveFreePlaySession, but preserves the session row after this
+// read auto-finalizes it so callers (e.g. /api/game/state) can observe the
+// Finished state and route the client to results. Returns null only when
+// there is no open session at all.
+export async function getFreePlaySessionForState(
+  db: Kysely<Database>,
+  userId: string,
+): Promise<FreePlaySession | null> {
+  return readAndAutoFinalize(db, userId);
+}
+
+async function readAndAutoFinalize(
+  db: Kysely<Database>,
+  userId: string,
+): Promise<FreePlaySession | null> {
   const row = await db
     .selectFrom('free_play_sessions')
-    .select([
-      'id',
-      'board',
-      'found_words',
-      'started_at',
-      'completed_at',
-      'points',
-      'word_count',
-      'longest_word',
-      'time_limit',
-      'board_size',
-      'min_word_length',
-      'challenge_id',
-      'seed',
-    ])
+    .select(SESSION_COLUMNS)
     .where('user_id', '=', userId)
     .where('completed_at', 'is', null)
     .orderBy('started_at', 'desc')
     .limit(1)
     .executeTakeFirst();
   if (!row) return null;
-  const session = await autoFinalizeIfExpired(db, parseFreePlaySession(row));
-  // A row that auto-finalized between the select and the update is no
-  // longer "active" — surface as null so callers don't treat it as
-  // resumable.
-  return session.completed_at ? null : session;
+  return autoFinalizeIfExpired(db, parseFreePlaySession(row));
 }
 
 export interface StartFreePlayOpts {
@@ -256,49 +276,85 @@ export async function startFreePlaySession(
 // derived from the stored board (so the client can't smuggle in
 // off-board letters), dictionary-checked, deduped, and atomically
 // appended. Auto-finalizes if the time window elapsed.
+//
+// Wraps the read/validate/write cycle in a transaction with SELECT FOR
+// UPDATE on the session row. Concurrent submissions serialize on the
+// row lock, so two valid words can no longer clobber each other and a
+// duplicate of an in-flight word deterministically lands as `repeat`.
 export async function submitFreePlayWord(
   db: Kysely<Database>,
   userId: string,
   path: Position[],
 ): Promise<FreePlaySubmitOutcome> {
-  const session = await getActiveFreePlaySession(db, userId);
-  if (!session) return { valid: false, reason: 'ended' };
+  return db.transaction().execute(async (trx) => {
+    const row = await trx
+      .selectFrom('free_play_sessions')
+      .select(SESSION_COLUMNS)
+      .where('user_id', '=', userId)
+      .where('completed_at', 'is', null)
+      .orderBy('started_at', 'desc')
+      .limit(1)
+      .forUpdate()
+      .executeTakeFirst();
+    if (!row) return { valid: false, reason: 'ended' };
 
-  if (!isValidPath(path, session.board_size)) {
-    return { valid: false, reason: 'invalid' };
-  }
+    const session = parseFreePlaySession(row);
 
-  const word = path
-    .map((pos) => session.board[pos.row][pos.col])
-    .join('')
-    .toUpperCase();
+    if (isExpired(session, new Date())) {
+      const completedAt = expiryInstant(session);
+      await trx
+        .updateTable('free_play_sessions')
+        .set({ completed_at: completedAt, date: getDailyDatePST(completedAt) })
+        .where('id', '=', session.id)
+        .where('completed_at', 'is', null)
+        .execute();
+      return { valid: false, reason: 'expired' };
+    }
 
-  if (word.length < session.min_word_length) {
-    return { valid: false, reason: 'invalid' };
-  }
-  if (!isValidWord(dictionary, word.toLowerCase())) {
-    return { valid: false, reason: 'invalid' };
-  }
-  if (session.found_words.some((w) => w.toUpperCase() === word)) {
-    return { valid: false, reason: 'repeat' };
-  }
+    if (!isValidPath(path, session.board_size)) {
+      return { valid: false, reason: 'invalid' };
+    }
 
-  const nextWords = [...session.found_words, word];
-  const { points, wordCount, longestWord } = scoreResult(nextWords);
+    const word = path
+      .map((pos) => session.board[pos.row][pos.col])
+      .join('')
+      .toUpperCase();
 
-  await db
-    .updateTable('free_play_sessions')
-    .set({
-      found_words: JSON.stringify(nextWords),
-      points,
-      word_count: wordCount,
-      longest_word: longestWord,
-    })
-    .where('id', '=', session.id)
-    .where('completed_at', 'is', null)
-    .execute();
+    if (word.length < session.min_word_length) {
+      return { valid: false, reason: 'invalid' };
+    }
+    if (!isValidWord(dictionary, word.toLowerCase())) {
+      return { valid: false, reason: 'invalid' };
+    }
+    if (session.found_words.some((w) => w.toUpperCase() === word)) {
+      return { valid: false, reason: 'repeat' };
+    }
 
-  return { valid: true, word, score: scoreWord(word) };
+    const nextWords = [...session.found_words, word];
+    const { points, wordCount, longestWord } = scoreResult(nextWords);
+
+    const result = await trx
+      .updateTable('free_play_sessions')
+      .set({
+        found_words: JSON.stringify(nextWords),
+        points,
+        word_count: wordCount,
+        longest_word: longestWord,
+      })
+      .where('id', '=', session.id)
+      .where('completed_at', 'is', null)
+      .executeTakeFirst();
+
+    // Defensive: if the row finalized between the locked select and the
+    // update landing (e.g. /end ran in another connection that beat the
+    // lock), the update affects zero rows. Don't claim the word was
+    // accepted in that case.
+    if (Number(result.numUpdatedRows ?? 0) === 0) {
+      return { valid: false, reason: 'ended' };
+    }
+
+    return { valid: true, word, score: scoreWord(word) };
+  });
 }
 
 // Player-triggered finalize. Caps completed_at at started_at + time_limit
@@ -321,7 +377,7 @@ export async function endFreePlaySession(
     : now;
   await db
     .updateTable('free_play_sessions')
-    .set({ completed_at: completedAt })
+    .set({ completed_at: completedAt, date: getDailyDatePST(completedAt) })
     .where('id', '=', session.id)
     .where('completed_at', 'is', null)
     .execute();
@@ -348,21 +404,7 @@ async function getMostRecentFreePlaySession(
 ): Promise<FreePlaySession | null> {
   const row = await db
     .selectFrom('free_play_sessions')
-    .select([
-      'id',
-      'board',
-      'found_words',
-      'started_at',
-      'completed_at',
-      'points',
-      'word_count',
-      'longest_word',
-      'time_limit',
-      'board_size',
-      'min_word_length',
-      'challenge_id',
-      'seed',
-    ])
+    .select(SESSION_COLUMNS)
     .where('user_id', '=', userId)
     .where('completed_at', 'is not', null)
     .orderBy('completed_at', 'desc')
