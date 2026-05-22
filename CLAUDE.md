@@ -63,6 +63,10 @@ change affects the client, the blast radius should stop at `shared/`.
 - Each component owns its own classes. No standalone CSS files except `client/src/tailwind.css`.
 - No raw color, spacing, or timing values. Use theme tokens; if a needed value doesn't exist, extend the theme.
 
+## Database
+
+- Every new table created in `supabase/migrations/` must have Row Level Security enabled (`ALTER TABLE <name> ENABLE ROW LEVEL SECURITY;`) in the same migration that creates it. Define policies explicitly — a table with RLS enabled and no policies denies all access through the anon/auth keys, which is the safe default.
+
 ## Git
 
 - Branch off `main` for every feature. If scope shifts mid-task, stop and branch again.
