@@ -63,8 +63,8 @@ export function GauntletResultsRoute() {
 
   return (
     <div className="fixed inset-0 flex items-start justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] overflow-y-auto">
-      <div className="w-full max-w-[420px] min-h-full flex flex-col px-[22px] pt-[12px] pb-[16px] gap-3">
-        <div className="flex items-center pt-[6px]">
+      <div className="w-full max-w-[360px] min-h-full flex flex-col px-[22px] pt-[24px] pb-[22px] gap-3">
+        <div className="flex items-center">
           <button
             type="button"
             onClick={() => navigate('/')}

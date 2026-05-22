@@ -38,7 +38,7 @@ export function GauntletConfirmPage({
 }: GauntletConfirmPageProps) {
   return (
     <div className="fixed inset-0 flex items-start justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] overflow-y-auto">
-      <div className="w-full max-w-[380px] min-h-full flex flex-col px-[22px] pt-[24px] pb-[22px]">
+      <div className="w-full max-w-[360px] min-h-full flex flex-col px-[22px] pt-[24px] pb-[22px]">
         <div className="flex items-center pt-[18px]">
           <BackButton onClick={onBack} />
         </div>
