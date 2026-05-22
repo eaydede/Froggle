@@ -20,6 +20,7 @@ import type {
 } from './shared/api/gameApi';
 import {
   endDailyTimedSession,
+  fetchActiveFreePlaySession,
   fetchDaily,
   fetchDailyResult,
   fetchDailyTimedSession,
@@ -131,6 +132,12 @@ interface GameContextValue {
   session: Session | null;
   authReady: boolean;
 
+  // True once the server-resume probe for an in-progress free-play row
+  // has settled. Routes that would otherwise bounce a null-game user
+  // away from /game should wait for this before redirecting so a
+  // mid-game refresh doesn't strand the player on the landing screen.
+  freePlayHydrated: boolean;
+
   // Profile
   displayName: string;
   nameProfile: ProfileResponse | null;
@@ -146,7 +153,7 @@ export function useGame() {
 }
 
 export function GameProvider({ children }: { children: ReactNode }) {
-  const { game, words, results, gameSeed, createGame, startGame, cancelGame, endGame, fetchGameState, submitWord } = useGameApi();
+  const { game, words, results, gameSeed, createGame, startGame, cancelGame, endGame, fetchGameState, submitWord, hydrate } = useGameApi();
   const [feedback, setFeedback] = useState<{ type: FeedbackType; path: Position[] } | null>(null);
   const [muted, setMuted] = useState(loadMuted);
   const [dailyInfo, setDailyInfo] = useState<DailyInfo | null>(null);
@@ -226,6 +233,56 @@ export function GameProvider({ children }: { children: ReactNode }) {
     fetchProfile()
       .then((profile) => applyProfile(profile))
       .catch(() => {}); // Fall back to default 'Anonymous'
+  }, [authReady]);
+
+  // Resume an in-progress free-play game from server state when the user
+  // refreshes mid-play. Mirrors the daily-timed session-fetch pattern:
+  // GameProvider mounts → anonymous auth completes → we ask the server
+  // whether the caller has an unfinished row and rehydrate React state
+  // from it, so the existing /game route + timer pick up where they left
+  // off.
+  //
+  // The fetch runs exactly once per mount, gated on authReady. Stashing
+  // hydrate + game into refs lets the .then closure read the latest
+  // values without putting them in the effect dep array — which would
+  // otherwise cause the effect to re-run on every render and have its
+  // cleanup cancel the in-flight resume.
+  //
+  // freePlayHydrated stays false until this fetch settles, so route
+  // components that would otherwise bounce a null-game user away from
+  // /game can hold the redirect until we know whether there's a session
+  // to resume.
+  const [freePlayHydrated, setFreePlayHydrated] = useState(false);
+  const hydrateAttemptedRef = useRef(false);
+  const hydrateRef = useRef(hydrate);
+  const gameRef = useRef(game);
+  useEffect(() => {
+    hydrateRef.current = hydrate;
+    gameRef.current = game;
+  });
+  useEffect(() => {
+    if (!authReady || hydrateAttemptedRef.current) return;
+    hydrateAttemptedRef.current = true;
+    fetchActiveFreePlaySession()
+      .then((session) => {
+        if (session && !gameRef.current) {
+          hydrateRef.current({
+            game: session.game,
+            foundWords: session.found_words,
+            salt: session.salt,
+            wordHashes: session.wordHashes,
+            seed: session.seed,
+          });
+          if (session.challenge_id) setActiveChallengeId(session.challenge_id);
+        }
+      })
+      .catch(() => {
+        // Network blip or 401 — the user just won't get a resume. Better
+        // than crashing the app at boot.
+      })
+      .finally(() => {
+        setFreePlayHydrated(true);
+      });
   }, [authReady]);
 
   const timeRemaining = useTimer(game, fetchGameState);
@@ -654,6 +711,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       showHomeConfirm, setShowHomeConfirm,
       theme, toggleTheme,
       session, authReady,
+      freePlayHydrated,
       displayName, nameProfile, updateDisplayName,
     }}>
       <div data-theme={theme} className="contents">

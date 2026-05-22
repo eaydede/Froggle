@@ -51,6 +51,29 @@ export const useGameApi = () => {
     submittedWordsRef.current = new Set();
   };
 
+  // Rehydrates state from a server-resumed session so a page refresh
+  // during free play picks up the in-progress game instead of dropping
+  // it. Path arrays aren't stored server-side (only word strings are),
+  // so resumed words render without a board-replay path until the game
+  // ends and /results recomputes them — the practical impact is none
+  // because the in-game word list shows the word text alone.
+  const hydrate = (params: {
+    game: Game;
+    foundWords: string[];
+    salt: string;
+    wordHashes: string[];
+    seed: number | null;
+  }) => {
+    setGame(params.game);
+    setWords(params.foundWords.map((word) => ({ word, path: [], submittedAt: 0 })));
+    setGameSeed(params.seed);
+    setResults(null);
+    fetchingResults.current = false;
+    wordHashesRef.current = new Set(params.wordHashes);
+    saltRef.current = params.salt;
+    submittedWordsRef.current = new Set(params.foundWords.map((w) => w.toUpperCase()));
+  };
+
   const endGame = async () => {
     const data = await gameApi.endGame();
     setGame(data.game);
@@ -122,5 +145,6 @@ export const useGameApi = () => {
     endGame,
     fetchGameState,
     submitWord,
+    hydrate,
   };
 };

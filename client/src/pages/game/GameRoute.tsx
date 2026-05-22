@@ -22,12 +22,14 @@ export function GameRoute() {
     dailyTimeRemaining,
     handleSubmitDailyWord,
     endDailyGame,
+    freePlayHydrated,
   } = useGame();
   const navigate = useNavigate();
   const navigatingRef = useRef(false);
 
   // Daily mode dispatches to its own session-backed game state; free play
-  // continues to use the in-memory GameController session.
+  // is also DB-backed now via /api/game/active, with GameProvider
+  // hydrating React state at mount.
   const isDaily = !!dailyInfo;
   const activeGame = isDaily ? dailyGame : game;
   const activeTime = isDaily ? dailyTimeRemaining : timeRemaining;
@@ -37,8 +39,11 @@ export function GameRoute() {
     : !!results;
 
   useEffect(() => {
+    // Free-play null-game might just mean hydration hasn't settled yet
+    // after a mid-game refresh. Hold the redirect until the probe is
+    // done so the player isn't bounced to landing on every reload.
     if (!activeGame) {
-      navigate('/');
+      if (isDaily || freePlayHydrated) navigate('/');
     } else if (
       activeGame.status === GameState.Finished &&
       activeFinished &&
@@ -47,7 +52,7 @@ export function GameRoute() {
       navigatingRef.current = true;
       navigate(isDaily ? '/daily/results' : '/results');
     }
-  }, [activeGame, activeGame?.status, activeFinished, navigate, isDaily]);
+  }, [activeGame, activeGame?.status, activeFinished, navigate, isDaily, freePlayHydrated]);
 
   if (!activeGame || activeGame.status !== GameState.InProgress) return null;
 
