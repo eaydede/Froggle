@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { GameState, type Game, type Position } from 'models';
+import { HOT_LETTER_MULTIPLIER } from 'models/gauntlet';
 import { useGame } from '../../GameContext';
 import { GamePage } from '../game/GamePage';
 import { useFeedbackSounds, type FeedbackType } from '../game';
@@ -99,7 +100,7 @@ export function GauntletPlayRoute() {
       if (!modifier || modifier.kind !== 'hotLetter') return null;
       const upper = word.toUpperCase();
       if (!upper.includes(modifier.letter.toUpperCase())) return null;
-      return `${modifier.multiplier}×`;
+      return `${HOT_LETTER_MULTIPLIER}×`;
     },
     [],
   );

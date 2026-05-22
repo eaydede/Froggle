@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { GAUNTLET_ROUND_COUNT } from 'models/gauntlet';
+import { GAUNTLET_ROUND_COUNT, HOT_LETTER_MULTIPLIER } from 'models/gauntlet';
 import { useGame } from '../../GameContext';
 import {
   fetchGauntletCompare,
@@ -16,10 +16,8 @@ import type {
 import { scoreGauntletWord } from '../../shared/utils/gauntletScore';
 import { findWordPath } from '../../shared/utils/findWordPath';
 import { ResultsView } from '../../shared/results/ResultsView';
-import { IconAction } from '../../shared/components/IconAction';
-import { DateChip } from '../../shared/components/DateChip';
-import { ActionButton } from '../../shared/results/components/ActionButton';
 import { roundTitle, modifierDescription } from './modifierDisplay';
+import { GauntletBottomActions, GauntletTopbar } from './components';
 
 // Per-round results, presented through the same shared ResultsView the
 // timed daily and free play use. Round-specific tweaks are confined to
@@ -80,7 +78,7 @@ export function GauntletRoundResultsRoute() {
     modifier.kind === 'hotLetter' ? modifier.letter.toUpperCase() : null;
   const bonusFor = (word: string): string | null => {
     if (!hotLetter || modifier.kind !== 'hotLetter') return null;
-    return word.toUpperCase().includes(hotLetter) ? `${modifier.multiplier}×` : null;
+    return word.toUpperCase().includes(hotLetter) ? `${HOT_LETTER_MULTIPLIER}×` : null;
   };
   // Resolve a path for every found word so tap-to-replay actually
   // animates on the preview board. The server returns word strings
@@ -216,95 +214,6 @@ export function GauntletRoundResultsRoute() {
         />
       }
     />
-  );
-}
-
-function GauntletTopbar({
-  label,
-  onClose,
-  rulePopover,
-}: {
-  label: string;
-  onClose: () => void;
-  rulePopover: string;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <header
-      className="grid items-center gap-2 shrink-0 relative"
-      style={{ gridTemplateColumns: '32px 1fr 32px' }}
-    >
-      <IconAction onClick={onClose} label="Close">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M18 6L6 18M6 6l12 12" />
-        </svg>
-      </IconAction>
-      <div className="flex justify-center min-w-0">
-        <DateChip label={label} />
-      </div>
-      <IconAction onClick={() => setOpen((v) => !v)} label="Scoring rule">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="16" x2="12" y2="12" />
-          <line x1="12" y1="8" x2="12.01" y2="8" />
-        </svg>
-      </IconAction>
-      {open && (
-        <div className="absolute top-full right-0 mt-2 z-20 max-w-[280px] rounded-xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] px-3 py-3">
-          <div
-            className="text-caption uppercase tracking-[0.06em] text-[color:var(--ink-muted)] mb-1 font-[family-name:var(--font-structure)]"
-            style={{ fontWeight: 700 }}
-          >
-            Scoring rule
-          </div>
-          <p className="text-small text-[color:var(--ink)] leading-[1.5] m-0">{rulePopover}</p>
-        </div>
-      )}
-    </header>
-  );
-}
-
-function GauntletBottomActions({
-  isLastRound,
-  fromStandings,
-  onBack,
-  onAdvance,
-}: {
-  isLastRound: boolean;
-  fromStandings: boolean;
-  onBack: () => void;
-  onAdvance: () => void;
-}) {
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      <ActionButton
-        onClick={onBack}
-        label={fromStandings ? 'Back' : 'Home'}
-        icon={
-          fromStandings ? (
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-          ) : (
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 11l9-8 9 8" />
-              <path d="M5 10v10h14V10" />
-              <path d="M9 20v-6h6v6" />
-            </svg>
-          )
-        }
-      />
-      <ActionButton
-        onClick={onAdvance}
-        label={isLastRound ? (fromStandings ? 'See standings' : 'See standings') : 'Next round'}
-        primary
-        icon={
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M5 12h14M13 5l7 7-7 7" />
-          </svg>
-        }
-      />
-    </div>
   );
 }
 

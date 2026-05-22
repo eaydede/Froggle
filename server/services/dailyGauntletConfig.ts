@@ -73,7 +73,7 @@ function buildModifier(
     case 'regular':
       return { kind: 'regular' };
     case 'hotLetter':
-      return { kind: 'hotLetter', letter: pickHotLetter(board, prng), multiplier: 2 };
+      return { kind: 'hotLetter', letter: pickHotLetter(board, prng) };
     case 'rareLetters':
       return { kind: 'rareLetters', values: { ...DEFAULT_RARE_LETTER_VALUES } };
   }

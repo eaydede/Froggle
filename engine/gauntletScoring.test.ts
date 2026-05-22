@@ -6,7 +6,7 @@ import {
 import { scoreGauntletWord } from './gauntletScoring';
 
 const regular: GauntletModifier = { kind: 'regular' };
-const hotE: GauntletModifier = { kind: 'hotLetter', letter: 'E', multiplier: 2 };
+const hotE: GauntletModifier = { kind: 'hotLetter', letter: 'E' };
 const rare: GauntletModifier = {
   kind: 'rareLetters',
   values: { ...DEFAULT_RARE_LETTER_VALUES },

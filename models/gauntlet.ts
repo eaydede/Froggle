@@ -6,6 +6,11 @@ export type GauntletRoundKind = 'regular' | 'hotLetter' | 'rareLetters';
 
 export const GAUNTLET_ROUND_COUNT = 3;
 
+// Single source of truth for the hot-letter bonus. Lives in models so the
+// engine scorer, server config, and client display strings all import the
+// same value. Bump here to change the bonus everywhere.
+export const HOT_LETTER_MULTIPLIER = 2;
+
 export const GAUNTLET_ROUND_KINDS: readonly GauntletRoundKind[] = [
   'regular',
   'hotLetter',
@@ -29,7 +34,7 @@ export const DEFAULT_RARE_LETTER_VALUES: Readonly<Record<string, number>> = {
 
 export type GauntletModifier =
   | { kind: 'regular' }
-  | { kind: 'hotLetter'; letter: string; multiplier: number }
+  | { kind: 'hotLetter'; letter: string }
   | { kind: 'rareLetters'; values: Record<string, number> };
 
 export interface GauntletRoundConfig {

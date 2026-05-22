@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { findAllWords } from 'engine/solver.js';
-import { scoreGauntletWord } from 'engine/gauntletScoring.js';
 import { generateSalt, hashWord } from 'models';
 import {
   GAUNTLET_ROUND_COUNT,
@@ -22,6 +21,7 @@ import {
   getGauntletRoundRanks,
   getGauntletRoundSession,
   getGauntletStatus,
+  scoreFoundWords,
   startGauntletRound,
   submitGauntletWord,
 } from '../services/DailyGauntletService.js';
@@ -232,13 +232,14 @@ dailyGauntletRouter.get('/:date/round/:round/results', requireAuth, async (req, 
     }
 
     const foundSet = new Set(session.foundWords.map((w) => w.toUpperCase()));
-    const missedWords = findAllWords(session.board, dictionary, session.config.minWordLength)
-      .filter((w) => !foundSet.has(w.word))
-      .map((w) => ({
-        word: w.word,
-        path: w.path,
-        score: scoreGauntletWord(w.word, session.modifier as GauntletModifier),
-      }))
+    const missed = findAllWords(session.board, dictionary, session.config.minWordLength)
+      .filter((w) => !foundSet.has(w.word));
+    const scoredMissed = scoreFoundWords(
+      missed.map((w) => w.word),
+      session.modifier as GauntletModifier,
+    );
+    const missedWords = missed
+      .map((w, i) => ({ word: w.word, path: w.path, score: scoredMissed[i].score }))
       .sort((a, b) => b.score - a.score || b.word.length - a.word.length);
 
     cachePrivate(res, 60);
@@ -364,11 +365,6 @@ dailyGauntletRouter.get(
         ? JSON.parse(mine.board)
         : mine.board) as string[][];
 
-      const scored = (word: string) => ({
-        word,
-        score: scoreGauntletWord(word, modifier),
-      });
-
       cachePrivate(res, 30);
       res.json({
         date,
@@ -387,14 +383,14 @@ dailyGauntletRouter.get(
           displayName: names.get(meUserId) ?? 'Anonymous',
           points: mine.points,
           wordCount: mine.word_count,
-          foundWords: myWords.map(scored),
+          foundWords: scoreFoundWords(myWords, modifier),
         },
         them: {
           userId: otherUserId,
           displayName: names.get(otherUserId) ?? 'Anonymous',
           points: theirs.points,
           wordCount: theirs.word_count,
-          foundWords: theirWords.map(scored),
+          foundWords: scoreFoundWords(theirWords, modifier),
         },
       });
     } catch (err) {

@@ -68,6 +68,17 @@ export function scoreGauntletResult(
   return { points, wordCount: words.length, longestWord };
 }
 
+// Pairs each word with its per-word score under the round's modifier.
+// Route handlers use this for results / compare payloads so the modifier
+// is applied through the service rather than reimplemented inline at the
+// edge — keeps a single seam if the scoring rules ever change.
+export function scoreFoundWords(
+  words: string[],
+  modifier: GauntletModifier,
+): Array<{ word: string; score: number }> {
+  return words.map((word) => ({ word, score: scoreGauntletWord(word, modifier) }));
+}
+
 function parseSessionRow(row: {
   date: string;
   round_index: number;
@@ -357,7 +368,7 @@ export async function endGauntletRound(
 
 // ─── Ranking ──────────────────────────────────────────────────────────────
 
-interface RankedRow {
+export interface RankedRow {
   user_id: string;
   date: string;
   round_index: number;
@@ -413,18 +424,14 @@ export interface AggregateEntry {
   aggregateRank: number;          // global rank by rankSum
 }
 
-// Aggregate ranks across all 3 rounds. Only includes players who have
-// finalized all three rounds. Tiebreak order:
-//   primary:    rankSum asc (lower = better — the gauntlet "score")
-//   secondary:  best single-round rank (rewards specialists when tied)
-//   tertiary:   last-round completed_at asc (earliest finisher wins)
-export async function getGauntletAggregate(
-  db: Kysely<Database>,
-  date: string,
-): Promise<AggregateEntry[]> {
-  const ranked = await getGauntletRoundRanks(db, date);
-
-  // Bucket per user. A player needs exactly GAUNTLET_ROUND_COUNT entries.
+// Pure aggregation step. Splits out from getGauntletAggregate so the
+// rank-sum / tiebreak / dense-rank logic can be unit-tested without a
+// database. Only includes players with exactly `roundCount` rows. The
+// caller is expected to pass GAUNTLET_ROUND_COUNT in production.
+export function aggregateFromRoundRanks(
+  ranked: RankedRow[],
+  roundCount: number,
+): AggregateEntry[] {
   const byUser = new Map<string, RankedRow[]>();
   for (const r of ranked) {
     const list = byUser.get(r.user_id) ?? [];
@@ -434,7 +441,7 @@ export async function getGauntletAggregate(
 
   const entries: AggregateEntry[] = [];
   for (const [userId, rows] of byUser) {
-    if (rows.length < GAUNTLET_ROUND_COUNT) continue;
+    if (rows.length < roundCount) continue;
     rows.sort((a, b) => a.round_index - b.round_index);
     const roundRanks = rows.map((r) => r.rank);
     const rankSum = roundRanks.reduce((s, r) => s + r, 0);
@@ -476,6 +483,19 @@ export async function getGauntletAggregate(
   }
 
   return entries;
+}
+
+// Aggregate ranks across all 3 rounds. Only includes players who have
+// finalized all three rounds. Tiebreak order:
+//   primary:    rankSum asc (lower = better — the gauntlet "score")
+//   secondary:  best single-round rank (rewards specialists when tied)
+//   tertiary:   last-round completed_at asc (earliest finisher wins)
+export async function getGauntletAggregate(
+  db: Kysely<Database>,
+  date: string,
+): Promise<AggregateEntry[]> {
+  const ranked = await getGauntletRoundRanks(db, date);
+  return aggregateFromRoundRanks(ranked, GAUNTLET_ROUND_COUNT);
 }
 
 // ─── Status helper used by the hub + results pages ───────────────────────

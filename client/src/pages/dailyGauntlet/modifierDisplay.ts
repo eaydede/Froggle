@@ -1,4 +1,4 @@
-import type { GauntletModifier, GauntletRoundKind } from 'models/gauntlet';
+import { HOT_LETTER_MULTIPLIER, type GauntletModifier, type GauntletRoundKind } from 'models/gauntlet';
 
 // Single source of truth for how a round's modifier is described to the
 // player. Used by the hub cards, confirm pages, the in-game overlay, and
@@ -22,7 +22,7 @@ export function roundTitle(kind: GauntletRoundKind): string {
 export function modifierBadge(modifier: GauntletModifier): string {
   switch (modifier.kind) {
     case 'regular': return 'Standard scoring';
-    case 'hotLetter': return `${modifier.letter} · ${modifier.multiplier}×`;
+    case 'hotLetter': return `${modifier.letter} · ${HOT_LETTER_MULTIPLIER}×`;
     case 'rareLetters': return 'Letter values';
   }
 }
