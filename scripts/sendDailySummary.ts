@@ -9,13 +9,16 @@
 //
 // Required env vars:
 //   DATABASE_URL                — Supabase Postgres connection string
+//   SUPABASE_URL                — Supabase project URL (for display-name lookup)
+//   SUPABASE_SECRET_KEY         — Supabase service role key (for display-name lookup)
 //   RESEND_API_KEY              — Resend API key
 //   DAILY_SUMMARY_FROM_EMAIL    — verified sender address
 //   DAILY_SUMMARY_RECIPIENT_EMAIL — where to deliver the summary
 //
 // Usage:
-//   DATABASE_URL=... RESEND_API_KEY=... DAILY_SUMMARY_FROM_EMAIL=... \
-//     DAILY_SUMMARY_RECIPIENT_EMAIL=... npx tsx scripts/sendDailySummary.ts
+//   DATABASE_URL=... SUPABASE_URL=... SUPABASE_SECRET_KEY=... RESEND_API_KEY=... \
+//     DAILY_SUMMARY_FROM_EMAIL=... DAILY_SUMMARY_RECIPIENT_EMAIL=... \
+//     npx tsx scripts/sendDailySummary.ts
 
 import { Kysely, PostgresDialect } from 'kysely';
 import { Pool } from 'pg';
@@ -25,12 +28,64 @@ import {
   getDailySummary,
   getYesterdayPST,
   type DailySummary,
+  type FeedbackEntry,
 } from '../server/services/DailySummaryService.js';
 
 function requireEnv(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error(`${name} environment variable is not set`);
   return value;
+}
+
+function formatFeedbackTime(createdAt: Date): string {
+  return createdAt.toLocaleTimeString('en-US', {
+    timeZone: 'America/Los_Angeles',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function describeAuthor(entry: FeedbackEntry): string {
+  if (!entry.userId) return 'anonymous';
+  return entry.displayName ?? 'Anonymous';
+}
+
+function renderFeedbackText(feedback: FeedbackEntry[]): string {
+  if (feedback.length === 0) return 'Feedback: (none)';
+  const lines = ['Feedback:'];
+  for (const entry of feedback) {
+    lines.push(`  [${formatFeedbackTime(entry.createdAt)} PST · ${describeAuthor(entry)}]`);
+    for (const line of entry.message.split('\n')) {
+      lines.push(`    ${line}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+function renderFeedbackHtml(feedback: FeedbackEntry[]): string {
+  if (feedback.length === 0) {
+    return `<p style="margin:0;color:#555">No feedback submitted yesterday.</p>`;
+  }
+  const items = feedback
+    .map((entry) => {
+      const who = escapeHtml(describeAuthor(entry));
+      const message = escapeHtml(entry.message).replace(/\n/g, '<br>');
+      return `<li style="margin:0 0 12px">
+        <div style="font-size:12px;color:#777">${formatFeedbackTime(entry.createdAt)} PST · ${who}</div>
+        <div style="white-space:pre-wrap">${message}</div>
+      </li>`;
+    })
+    .join('');
+  return `<ul style="margin:0;padding:0;list-style:none">${items}</ul>`;
 }
 
 function renderText(summary: DailySummary): string {
@@ -41,6 +96,8 @@ function renderText(summary: DailySummary): string {
     `Zen daily players:      ${summary.zenDailyPlayers}`,
     `Zen daily active time:  ${formatActiveDuration(summary.zenDailyActiveSeconds)}`,
     `Free play games:        ${summary.freePlayGames}`,
+    '',
+    renderFeedbackText(summary.feedback),
   ].join('\n');
 }
 
@@ -50,12 +107,14 @@ function renderHtml(summary: DailySummary): string {
   return `<div style="font-family:system-ui,-apple-system,sans-serif">
   <h2 style="margin:0 0 12px">Froggle daily summary</h2>
   <p style="margin:0 0 16px;color:#555">For ${summary.date} (PST)</p>
-  <table style="border-collapse:collapse">
+  <table style="border-collapse:collapse;margin-bottom:24px">
     ${row('Timed daily players', summary.timedDailyPlayers)}
     ${row('Zen daily players', summary.zenDailyPlayers)}
     ${row('Zen daily active time', formatActiveDuration(summary.zenDailyActiveSeconds))}
     ${row('Free play games', summary.freePlayGames)}
   </table>
+  <h3 style="margin:0 0 8px">Feedback</h3>
+  ${renderFeedbackHtml(summary.feedback)}
 </div>`;
 }
 

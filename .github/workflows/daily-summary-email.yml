@@ -5,6 +5,8 @@ name: Daily Summary Email
 #
 # Required repo secrets:
 #   SUPABASE_PROJECT_REF_PROD, SUPABASE_DB_PASSWORD_PROD — existing
+#   SUPABASE_URL_PROD             — Supabase project URL (for display-name lookup)
+#   SUPABASE_SECRET_KEY_PROD      — Supabase service role key (for display-name lookup)
 #   RESEND_API_KEY                — Resend API key
 #   DAILY_SUMMARY_FROM_EMAIL      — verified Resend sender address
 #   DAILY_SUMMARY_RECIPIENT_EMAIL — destination address
@@ -38,6 +40,8 @@ jobs:
         run: npm run email:daily-summary
         env:
           DATABASE_URL: postgres://postgres.${{ secrets.SUPABASE_PROJECT_REF_PROD }}:${{ secrets.SUPABASE_DB_PASSWORD_PROD }}@aws-1-us-east-1.pooler.supabase.com:6543/postgres
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL_PROD }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY_PROD }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           DAILY_SUMMARY_FROM_EMAIL: ${{ secrets.DAILY_SUMMARY_FROM_EMAIL }}
           DAILY_SUMMARY_RECIPIENT_EMAIL: ${{ secrets.DAILY_SUMMARY_RECIPIENT_EMAIL }}
