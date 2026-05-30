@@ -26,7 +26,7 @@ export function GauntletPlayRoute() {
   const { round } = useParams<{ round: string }>();
   const navigate = useNavigate();
   const roundIndex = Number(round);
-  const { authReady, muted, toggleMute } = useGame();
+  const { authReady, muted, toggleMute, registerActiveTimedRun } = useGame();
 
   const [session, setSession] = useState<GauntletRoundSession | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -39,6 +39,16 @@ export function GauntletPlayRoute() {
   useEffect(() => {
     sessionRef.current = session;
   }, [session]);
+
+  // While a round timer is live, keep GameContext's stale-tab freshness
+  // check from reloading the page out from under us on a deploy. Gated on a
+  // boolean (not `session`, which churns on every word) so the guard
+  // registers once per round and clears when it finalizes.
+  const roundLive = !!session && !session.endedAt;
+  useEffect(() => {
+    if (!roundLive) return;
+    return registerActiveTimedRun();
+  }, [roundLive, registerActiveTimedRun]);
 
   // Initial session load. The confirm route should have already called
   // startGauntletRound; if it didn't, the GET returns null and we bounce.
