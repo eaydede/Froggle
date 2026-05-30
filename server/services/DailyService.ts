@@ -212,6 +212,26 @@ function maxDate(a: string, b: string): string {
   return a >= b ? a : b;
 }
 
+// Consecutive played days ending at today, walking backward over real
+// calendar dates. Today being unplayed does not break the streak (the user
+// may not have played yet); the first prior gap ends it. Bounded only by
+// launchDate, never by the history window — so a 100-day streak reads as 100,
+// not as the window ceiling. This is the regression guard against the
+// "streak caps at the window size" bug; keep it independent of windowDays.
+export function computeStreak(
+  playedDates: Set<string>,
+  today: string,
+  launchDate: string,
+): number {
+  let streak = 0;
+  let cursor = playedDates.has(today) ? today : addDays(today, -1);
+  while (cursor >= launchDate && playedDates.has(cursor)) {
+    streak++;
+    cursor = addDays(cursor, -1);
+  }
+  return streak;
+}
+
 function stampTierFor(rank: number, totalPlayers: number): StampTier {
   if (rank === 1) return 'first';
   if (rank === 2) return 'second';
@@ -379,22 +399,18 @@ export async function getDailyStats(
   // only make sense for the timed mode), but the streak signal reflects
   // every form of daily engagement so users aren't punished for choosing
   // a mode that doesn't have streak semantics of its own.
+  //
+  // Played dates are queried from launchDate (not windowStart) so the streak
+  // can run longer than the 30-day history window. The history grid below
+  // stays windowed; only the streak walk needs the full play history.
   const playedDates = await getUserPlayedDatesAcrossModes(
     db,
     userId,
-    windowStart,
+    launchDate,
     windowEnd,
   );
 
-  // Walk backwards from today; today missing is not a break yet.
-  let currentStreak = 0;
-  for (let i = days.length - 1; i >= 0; i--) {
-    const day = days[i];
-    const played = playedDates.has(day.date);
-    if (i === days.length - 1 && !played) continue;
-    if (!played) break;
-    currentStreak++;
-  }
+  const currentStreak = computeStreak(playedDates, today, launchDate);
 
   // streakDays: last 7 PST days ending at today, oldest-to-newest.
   // Slicing the tail of `days` works because days is already in that order
