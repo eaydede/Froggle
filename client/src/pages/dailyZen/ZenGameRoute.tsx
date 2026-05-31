@@ -750,7 +750,7 @@ function FooterRow({
   return (
     <div className="flex items-center justify-between w-full mt-3 shrink-0">
       <div
-        className="flex items-center gap-2 text-[0.6rem] text-[var(--text-muted)] select-none"
+        className="flex items-center gap-2 text-[0.6rem] text-[color:var(--ink-soft)] select-none"
         style={{ fontFamily: 'var(--font-body)', fontWeight: 500 }}
       >
         <ZenModeBadge isCompetitive={isCompetitive} />

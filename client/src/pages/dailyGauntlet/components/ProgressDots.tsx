@@ -38,7 +38,7 @@ export function ProgressDots({
           <span
             key={`r${i}`}
             className={`block h-1.5 rounded-full transition-colors duration-200 ${
-              active ? 'w-8 bg-[var(--accent)]' : 'w-4 bg-[var(--track)]'
+              active ? 'w-8 bg-[var(--accent)]' : 'w-4 bg-[var(--ink-trace)]'
             }`}
             aria-hidden
           />

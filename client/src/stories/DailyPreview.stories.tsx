@@ -96,7 +96,7 @@ function DailyPreview({ initialSeed }: { initialSeed: string }) {
               { label: 'Time', value: `${data.config.timeLimit}s` },
             ].map(({ label, value }) => (
               <div key={label} className="px-3 py-2 border border-[var(--border)] rounded">
-                <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider">{label}</div>
+                <div className="text-xs text-[color:var(--ink-soft)] uppercase tracking-wider">{label}</div>
                 <div className="text-base font-semibold">{value}</div>
               </div>
             ))}
@@ -112,7 +112,7 @@ function DailyPreview({ initialSeed }: { initialSeed: string }) {
             />
           </div>
 
-          <div className="text-xs text-[var(--text-muted)]">
+          <div className="text-xs text-[color:var(--ink-soft)]">
             Resolved seed: <code>{data.seed}</code>
           </div>
         </>

@@ -34,11 +34,11 @@ export function ProfileDisplay({ displayName, onSave }: ProfileDisplayProps) {
         className="flex items-center gap-1 bg-transparent border-none cursor-pointer p-0"
         style={{ WebkitTapHighlightColor: 'transparent' }}
       >
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--text-muted)]">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[color:var(--ink-soft)]">
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
           <circle cx="12" cy="7" r="4" />
         </svg>
-        <span className="text-[0.7rem] text-[var(--text-muted)]" style={{ fontFamily: 'var(--font-body)', fontWeight: 500 }}>
+        <span className="text-[0.7rem] text-[color:var(--ink-soft)]" style={{ fontFamily: 'var(--font-body)', fontWeight: 500 }}>
           {displayName}
         </span>
       </button>
@@ -49,10 +49,10 @@ export function ProfileDisplay({ displayName, onSave }: ProfileDisplayProps) {
           onClick={handleCancel}
         >
           <div
-            className="w-full max-w-[340px] bg-[var(--card)] rounded-2xl p-6 flex flex-col gap-4 shadow-[0_4px_30px_rgba(0,0,0,0.15)]"
+            className="w-full max-w-[340px] bg-[var(--surface-card)] rounded-2xl p-6 flex flex-col gap-4 shadow-[0_4px_30px_rgba(0,0,0,0.15)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-[0.85rem] font-semibold text-center text-[var(--text)]" style={{ fontFamily: 'var(--font-body)' }}>
+            <div className="text-[0.85rem] font-semibold text-center text-[color:var(--ink)]" style={{ fontFamily: 'var(--font-body)' }}>
               Display Name
             </div>
             <input
@@ -64,7 +64,7 @@ export function ProfileDisplay({ displayName, onSave }: ProfileDisplayProps) {
                 if (e.key === 'Escape') handleCancel();
               }}
               maxLength={20}
-              className="border-none outline-none rounded-xl px-4 py-3.5 text-[1rem] w-full box-border text-center bg-[var(--track)] text-[var(--text)]"
+              className="border-none outline-none rounded-xl px-4 py-3.5 text-[1rem] w-full box-border text-center bg-[var(--ink-whisper)] text-[color:var(--ink)]"
               style={{ fontFamily: 'var(--font-body)', fontWeight: 600 }}
             />
             <div className="flex gap-3">
@@ -77,7 +77,7 @@ export function ProfileDisplay({ displayName, onSave }: ProfileDisplayProps) {
               </button>
               <button
                 onClick={handleCancel}
-                className="flex-1 border-none rounded-xl py-3.5 text-[0.85rem] cursor-pointer bg-[var(--track)] text-[var(--text)] active:scale-[0.975] active:duration-[60ms] transition-all duration-200"
+                className="flex-1 border-none rounded-xl py-3.5 text-[0.85rem] cursor-pointer bg-[var(--ink-whisper)] hover:bg-[var(--ink-trace)] text-[color:var(--ink)] active:scale-[0.975] active:duration-[60ms] transition-all duration-200"
                 style={{ fontFamily: 'var(--font-display)', fontWeight: 700 }}
               >
                 Cancel

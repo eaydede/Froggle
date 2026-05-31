@@ -1,25 +1,43 @@
 @import "tailwindcss/theme";
 @import "tailwindcss/utilities";
-@import "./tailwind-v2.css";
 
 /*
- * Typography scale — registered as Tailwind theme tokens so each size is a
- * first-class utility (e.g. `text-title`, `text-small`). Tailwind's defaults
- * (`text-xs`, `text-sm`, `text-base`, `text-lg`, `text-xl`, ...) stay
- * available; only add a token here when no default covers the need.
+ * Fonts (Fraunces / Inter / Outfit) are loaded via <link> tags in
+ * index.html rather than @import, because when Tailwind's generated CSS
+ * precedes this file in the bundle, the @import ends up after other
+ * statements and Vite rejects it per the CSS spec.
  */
+
 @theme {
+  /*
+   * Typography scale — registered as Tailwind theme tokens so each size is a
+   * first-class utility (e.g. `text-title`, `text-small`). Tailwind's defaults
+   * (`text-xs`, `text-sm`, `text-base`, `text-lg`, `text-xl`, ...) stay
+   * available; only add a token here when no default covers the need.
+   */
   --text-title: 1.35rem;
   --text-heading: 1.15rem;
   --text-body-lg: 0.95rem;
   --text-body: 0.85rem;
   --text-small: 0.8125rem;   /* 13px */
   --text-caption: 0.6875rem; /* 11px */
+
+  /* Font families used across the redesigned pages */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-structure: 'Outfit', system-ui, sans-serif;
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Typography sizes not covered by Tailwind defaults or the scale above */
+  --text-label-xs: 0.625rem;  /* 10px — streak window label */
+  --text-logo: 1.5625rem;     /* 25px — brand wordmark */
+  --text-display-sm: 2rem;     /* 32px — hero question */
+  --text-display-md: 2.125rem; /* 34px — streak numeral */
+  --text-display-lg: 2.875rem; /* 46px — score numeral on the landing card */
+  --text-display-xl: 3.625rem; /* 58px — results hero score */
 }
 
 body {
-  /* New-design tokens — matches the redesigned pages. Overscroll areas
-     on mobile and any non-fullscreen route show this bg. */
+  /* Overscroll areas on mobile and any non-fullscreen route show this bg. */
   background-color: var(--surface-panel);
   margin: 0;
 }
@@ -29,12 +47,19 @@ button, input, select, textarea {
   font-weight: inherit;
 }
 
+/* Tailwind's preflight reset isn't imported in this project, so element
+   box-sizing defaults to `content-box`. Without this, every Tailwind
+   sizing utility (h-[Npx], min-h-[N], max-w-[N], etc.) silently adds the
+   element's padding/border to its declared size — fits visually break on
+   nested flex layouts. One project-wide reset puts us back on the
+   border-box baseline pages were designed against. */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 /*
- * Design tokens used by Tailwind-based components.
- * These are referenced as var(--token) in landing, game-config, etc.
- */
-/*
- * Shared tokens (theme-independent)
+ * Shared design tokens (theme-independent), referenced as var(--token) in
+ * components.
  */
 :root {
   /* Accent */
@@ -110,37 +135,206 @@ button, input, select, textarea {
 }
 
 /*
- * Light theme (default)
+ * Light theme (default).
+ *
+ * Palette: warm paper / near-white panels with floating cards that sit
+ * a half-shade brighter than the panel. Ink is a warm near-black; dark
+ * mode inverts with cream text on warm near-black. Dark cards are
+ * slightly LIGHTER than the panel (same floating logic as light mode).
  */
 :root, [data-theme="light"] {
-  --page-bg: #FAFAF8;
-  --card: #ffffff;
-  --text: #1a1a1a;
-  --text-muted: #999999;
-  --text-mid: #666666;
-  --text-faint: #aaaaaa;
-  --track: #f2f2f2;
-  --dot: #d4d4d4;
-  --dot-hi: #333333;
-  --dot-hi2: #888888;
-  --label-color: #999999;
+  --surface-bg: #E5E3DD;       /* outer page wash */
+  --surface-panel: #FAFAF8;    /* page / panel background */
+  --surface-card: #FCFCFA;     /* card surface — half-shade brighter */
+
+  --ink: #22201C;
+  --ink-inverse: #FCFCFA;
+  --ink-muted: rgba(34, 32, 28, 0.72);
+  --ink-mid: rgba(34, 32, 28, 0.58);
+  --ink-soft: rgba(34, 32, 28, 0.55);
+  --ink-faint: rgba(34, 32, 28, 0.22);
+  --ink-trace: rgba(34, 32, 28, 0.12);
+  --ink-border: rgba(34, 32, 28, 0.22);
+  --ink-border-subtle: rgba(34, 32, 28, 0.06);
+  --ink-whisper: rgba(34, 32, 28, 0.05);
+
+  --streak-green: #6B8E4E;
+  --streak-green-filled: rgba(107, 142, 78, 0.55);
+  --streak-green-soft: rgba(107, 142, 78, 0.30);
+  --streak-green-glow: rgba(107, 142, 78, 0.22);
+  --logo-dot: #7A9B5E;
+
+  /* Word-rarity palette — used as 4px left stripes on word rows.
+     Tiers are score-driven: 1→common, 2→uncommon, 3→rare, 5→epic,
+     8→mythic, 13→legendary. Each color also has a matching emoji
+     square (⬜🟨🟩🟦🟪🟧) for the text-share results format. Orange
+     stays pinned to the top tier — it's the color returning players
+     associate with the best word — and yellow slots in low so the
+     established orange-is-peak mental model survives. */
+  --rarity-common:    #8F8A80;
+  --rarity-uncommon:  #EAD419;
+  --rarity-rare:      #4E9B3A;
+  --rarity-epic:      #2B7DB8;
+  --rarity-mythic:    #9B4AAC;
+  --rarity-legendary: #D17A28;
+
+  /* Compare page — neutral two-player palette. "You" leans blue,
+     opponent leans amber, shared words use a muted grey. */
+  --compare-you:     #4E7E9B;
+  --compare-you-bg:  rgba(78, 126, 155, 0.15);
+  --compare-them:    #9E6B3C;
+  --compare-them-bg: rgba(158, 107, 60, 0.15);
+  --compare-shared:  #707070;
+  --compare-shared-bg:    rgba(112, 112, 112, 0.04);
+  --compare-shared-bg-hi: rgba(112, 112, 112, 0.09);
+
+  /* Podium / medal palette for the leaderboard — gold/silver/bronze
+     with matching pillar tints (~14% alpha). */
+  --podium-gold:    #CA9E34;
+  --podium-gold-bg: rgba(202, 158, 52, 0.14);
+  --podium-silver:  #9B9B9B;
+  --podium-silver-bg: rgba(155, 155, 155, 0.16);
+  --podium-bronze:  #9E6B3C;
+  --podium-bronze-bg: rgba(158, 107, 60, 0.12);
+  --you-highlight-bg: rgba(78, 126, 155, 0.06);
+  --you-highlight-bg-hi: rgba(78, 126, 155, 0.10);
+
+  /* Moss green — the "completion" stamp color on date cards. */
+  --completion: #6B8E5A;
+
+  /* Accent (sage) used on attention-getting affordances — the unread
+     pulse on the landing history button uses the soft variant for its
+     background tint + pulse ring. */
+  --accent-soft:          rgba(107, 155, 125, 0.08);
+  --accent-glow:          rgba(107, 155, 125, 0.50);
+
+  /* Challenge / versus palette — used on the free-play challenge results
+     page. "You" reads blue; opponents read in a warm tan that matches
+     the mockup spec and keeps the word-list rows legible against the
+     paper-cream surface tint. */
+  --you-accent:           #2B7DB8;
+  --you-accent-soft:      rgba(43, 125, 184, 0.12);
+  /* Mid-alpha variants for outlines around panels — solid hue felt
+     harsh framing a word list, soft variants are too pale to register. */
+  --you-accent-border:    rgba(43, 125, 184, 0.35);
+  --opp-accent:           #C89A5A;
+  --opp-accent-strong:    #B58748;
+  --opp-accent-soft:      rgba(200, 154, 90, 0.10);
+  --opp-accent-border:    rgba(200, 154, 90, 0.40);
+  --opp-accent-row-hover: rgba(200, 154, 90, 0.14);
+  --opp-accent-row-active:rgba(200, 154, 90, 0.18);
+  --surface-opp:          #F7F2E9;
+  --surface-opp-header:   #EFE7D5;
+  /* Two winner tints — keyed to which side is winning. Using a single
+     warm tint for both made it ambiguous when the viewer won, because
+     the warm shade reads as opp-accent. Now the viewer-side winner card
+     borrows the blue you-accent so the contrast against opp's tan is
+     unmistakable. */
+  --winner-you-bg:        rgba(43, 125, 184, 0.10);
+  --winner-you-border:    rgba(43, 125, 184, 0.45);
+  --winner-opp-bg:        rgba(209, 122, 40, 0.10);
+  --winner-opp-border:    rgba(209, 122, 40, 0.45);
+
+  /* Layered floating-card shadows — three-stop stack creates depth
+     without any single dark halo. */
+  --shadow-card:
+    0 1px 2px rgba(34, 32, 28, 0.04),
+    0 8px 20px rgba(34, 32, 28, 0.08),
+    0 2px 6px rgba(34, 32, 28, 0.03);
+  --shadow-card-hover:
+    0 1px 2px rgba(34, 32, 28, 0.04),
+    0 10px 24px rgba(34, 32, 28, 0.10),
+    0 2px 8px rgba(34, 32, 28, 0.04);
+
+  --shadow-btn-primary: 0 1px 0 rgba(0, 0, 0, 0.08), 0 2px 8px rgba(34, 32, 28, 0.20);
+  --shadow-btn-primary-hover: 0 2px 0 rgba(0, 0, 0, 0.08), 0 6px 16px rgba(34, 32, 28, 0.25);
+  --shadow-toggle: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-toggle-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 /*
  * Dark theme
  */
 [data-theme="dark"] {
-  --page-bg: #2C2C2E;
-  --card: #3A3A3C;
-  --text: #E5E5E7;
-  --text-muted: rgba(255,255,255,0.45);
-  --text-mid: rgba(255,255,255,0.6);
-  --text-faint: rgba(255,255,255,0.35);
-  --track: #48484A;
-  --dot: #555558;
-  --dot-hi: #E5E5E7;
-  --dot-hi2: #8E8E93;
-  --label-color: rgba(255,255,255,0.45);
+  --surface-bg: #14120F;
+  --surface-panel: #1C1A15;
+  --surface-card: #221F1A;     /* LIGHTER than panel — same floating logic */
+
+  --ink: #EEE8DC;
+  --ink-inverse: #1C1A15;
+  --ink-muted: rgba(238, 232, 220, 0.68);
+  --ink-mid: rgba(238, 232, 220, 0.55);
+  --ink-soft: rgba(238, 232, 220, 0.50);
+  --ink-faint: rgba(238, 232, 220, 0.22);
+  --ink-trace: rgba(238, 232, 220, 0.12);
+  --ink-border: rgba(238, 232, 220, 0.22);
+  --ink-border-subtle: rgba(238, 232, 220, 0.07);
+  --ink-whisper: rgba(238, 232, 220, 0.05);
+
+  --streak-green: #8BB366;
+  --streak-green-filled: rgba(139, 179, 102, 0.58);
+  --streak-green-soft: rgba(139, 179, 102, 0.32);
+  --streak-green-glow: rgba(139, 179, 102, 0.22);
+  --logo-dot: #8FB06E;
+
+  --rarity-common:    #A39C8F;
+  --rarity-uncommon:  #FFE34D;
+  --rarity-rare:      #8BB366;
+  --rarity-epic:      #6FA3C8;
+  --rarity-mythic:    #B086C0;
+  --rarity-legendary: #E09A5C;
+
+  --compare-you:     #7DAECF;
+  --compare-you-bg:  rgba(125, 174, 207, 0.18);
+  --compare-them:    #C99465;
+  --compare-them-bg: rgba(201, 148, 101, 0.18);
+  --compare-shared:  #9B9B9B;
+  --compare-shared-bg:    rgba(155, 155, 155, 0.06);
+  --compare-shared-bg-hi: rgba(155, 155, 155, 0.10);
+
+  --podium-gold:    #DCB554;
+  --podium-gold-bg: rgba(220, 181, 84, 0.17);
+  --podium-silver:  #B5B5B5;
+  --podium-silver-bg: rgba(181, 181, 181, 0.14);
+  --podium-bronze:  #C99465;
+  --podium-bronze-bg: rgba(201, 148, 101, 0.14);
+  --you-highlight-bg: rgba(125, 174, 207, 0.08);
+  --you-highlight-bg-hi: rgba(125, 174, 207, 0.12);
+
+  --completion: #8BB074;
+
+  --accent-soft:          rgba(139, 176, 116, 0.10);
+  --accent-glow:          rgba(139, 176, 116, 0.50);
+
+  --you-accent:           #6FA3C8;
+  --you-accent-soft:      rgba(111, 163, 200, 0.14);
+  --you-accent-border:    rgba(111, 163, 200, 0.40);
+  --opp-accent:           #d7ac72e3;
+  --opp-accent-strong:    #C99465;
+  --opp-accent-soft:      rgba(215, 172, 114, 0.14);
+  --opp-accent-border:    rgba(215, 172, 114, 0.45);
+  --opp-accent-row-hover: rgba(215, 172, 114, 0.18);
+  --opp-accent-row-active:rgba(215, 172, 114, 0.22);
+  --surface-opp:          #2A2620;
+  --surface-opp-header:   #322C24;
+  --winner-you-bg:        rgba(111, 163, 200, 0.14);
+  --winner-you-border:    rgba(111, 163, 200, 0.50);
+  --winner-opp-bg:        rgba(224, 154, 92, 0.14);
+  --winner-opp-border:    rgba(224, 154, 92, 0.50);
+
+  --shadow-card:
+    0 1px 2px rgba(0, 0, 0, 0.25),
+    0 8px 20px rgba(0, 0, 0, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.20);
+  --shadow-card-hover:
+    0 1px 2px rgba(0, 0, 0, 0.25),
+    0 10px 24px rgba(0, 0, 0, 0.40),
+    0 2px 8px rgba(0, 0, 0, 0.25);
+
+  --shadow-btn-primary: 0 1px 0 rgba(0, 0, 0, 0.20), 0 2px 8px rgba(0, 0, 0, 0.30);
+  --shadow-btn-primary-hover: 0 2px 0 rgba(0, 0, 0, 0.20), 0 6px 16px rgba(0, 0, 0, 0.40);
+  --shadow-toggle: 0 1px 2px rgba(0, 0, 0, 0.30);
+  --shadow-toggle-hover: 0 4px 12px rgba(0, 0, 0, 0.40);
 }
 
 /* Config page: sliding pill transition */
@@ -217,6 +411,21 @@ button, input, select, textarea {
   }
 }
 
+/* Slow breathing animation for unread-activity badges. Pulses scale +
+   ring opacity so the dot reads as "alive" without flashing distractingly.
+   Used on the landing-page History button when a shared challenge has
+   new completions. */
+@keyframes unread-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 var(--accent-glow);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
 /* Daily Zen rank celebration — inline treatments on the rank strip in the
    play HUD. The strip itself stays in place; the dot pulses, a soft rank-
    colored wash flashes across the row, and a "RANK UP" tag animates in
@@ -260,4 +469,26 @@ button, input, select, textarea {
   50%  { box-shadow: -2px 0 3px rgba(232,189,80,0.45), 1px 0 2px rgba(196,144,10,0.1); }
   75%  { box-shadow: 0 -2px 3px rgba(232,189,80,0.45), 0 1px 2px rgba(196,144,10,0.1); }
   100% { box-shadow: 2px 0 3px rgba(232,189,80,0.45), -1px 0 2px rgba(196,144,10,0.1); }
+}
+
+/* Score fade-in used on the complete-state daily card. */
+@keyframes v2-fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Results page: smooth the transition between solo and compare modes by
+   fading newly-mounted regions in. The hero, left word list, and right
+   word list each remount when the user taps a leaderboard name (or hits
+   "Stop"); without this the layout context-switches in a single frame
+   and reads as jarring. Skipped under prefers-reduced-motion. */
+@keyframes results-region-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.results-region-fade-in {
+  animation: results-region-fade-in 450ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .results-region-fade-in { animation: none; }
 }

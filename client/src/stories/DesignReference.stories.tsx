@@ -12,14 +12,21 @@ type Story = StoryObj
 
 /* ── Data ────────────────────────────────────────── */
 
+// Light-theme values. Ink tokens are warm-black at varying alpha over the
+// surface beneath them; the rgba is the source-of-truth, the swatch shows it
+// over the page wash.
 const CORE_COLORS = [
-  { token: '--card', value: '#FFFFFF', label: 'Card / Surface' },
-  { token: '--text', value: '#1A1A1A', label: 'Primary Text' },
-  { token: '--text-mid', value: '#666666', label: 'Mid Text' },
-  { token: '--text-muted', value: '#999999', label: 'Muted Text' },
-  { token: '--label-color', value: '#999999', label: 'Config Labels' },
-  { token: '--track', value: '#F2F2F2', label: 'Track / Input BG' },
-  { token: 'body bg', value: '#FAFAF8', label: 'Page Background' },
+  { token: '--surface-bg', value: '#E5E3DD', label: 'Outer Page Wash' },
+  { token: '--surface-panel', value: '#FAFAF8', label: 'Page / Panel BG' },
+  { token: '--surface-card', value: '#FCFCFA', label: 'Card Surface' },
+  { token: '--ink', value: '#22201C', label: 'Primary Text' },
+  { token: '--ink-muted', value: 'rgba(34,32,28,0.72)', label: 'Muted Text' },
+  { token: '--ink-soft', value: 'rgba(34,32,28,0.55)', label: 'Soft / Secondary Text' },
+  { token: '--ink-faint', value: 'rgba(34,32,28,0.22)', label: 'Faint Text / Lines' },
+  { token: '--ink-trace', value: 'rgba(34,32,28,0.12)', label: 'Hover Fill' },
+  { token: '--ink-whisper', value: 'rgba(34,32,28,0.05)', label: 'Subtle Fill (input / chip)' },
+  { token: '--ink-border', value: 'rgba(34,32,28,0.22)', label: 'Border' },
+  { token: '--ink-border-subtle', value: 'rgba(34,32,28,0.06)', label: 'Subtle Border' },
 ]
 
 const ACCENT_COLORS = [
@@ -27,22 +34,23 @@ const ACCENT_COLORS = [
   { token: '--accent-hover', value: '#5A8A6C', label: 'Accent Hover' },
 ]
 
+// Dark-theme values for the same surface/ink tokens (warm near-black with
+// cream ink — same token names, resolved under [data-theme="dark"]).
 const DARK_MODE_COLORS = [
-  { token: 'dark-bg', value: '#2C2C2E', label: 'Dark Background (Slate)' },
-  { token: 'dark-surface', value: '#3A3A3C', label: 'Dark Surface / Card' },
-  { token: 'dark-text', value: '#E5E5E7', label: 'Dark Primary Text' },
-  { token: 'dark-text-muted', value: 'rgba(255,255,255,0.45)', label: 'Dark Muted Text' },
-  { token: 'dark-border', value: 'rgba(255,255,255,0.06)', label: 'Dark Border' },
-  { token: 'dark-btn-primary-bg', value: '#FAF8F5', label: 'Dark Primary Button BG' },
-  { token: 'dark-btn-primary-text', value: '#2C2C2E', label: 'Dark Primary Button Text' },
-  { token: 'dark-btn-secondary-bg', value: 'rgba(255,255,255,0.15)', label: 'Dark Secondary Button BG' },
-  { token: 'dark-btn-tertiary-border', value: 'rgba(255,255,255,0.25)', label: 'Dark Tertiary Border' },
+  { token: '--surface-bg', value: '#14120F', label: 'Outer Page Wash' },
+  { token: '--surface-panel', value: '#1C1A15', label: 'Page / Panel BG' },
+  { token: '--surface-card', value: '#221F1A', label: 'Card Surface' },
+  { token: '--ink', value: '#EEE8DC', label: 'Primary Text' },
+  { token: '--ink-muted', value: 'rgba(238,232,220,0.68)', label: 'Muted Text' },
+  { token: '--ink-soft', value: 'rgba(238,232,220,0.50)', label: 'Soft / Secondary Text' },
+  { token: '--ink-border', value: 'rgba(238,232,220,0.22)', label: 'Border' },
 ]
 
+// MiniGrid (board-size picker) dots — see pages/config/components/MiniGrid.tsx.
 const DOT_COLORS = [
-  { token: '--dot', value: '#D4D4D4', label: 'Grid Dot (default)' },
-  { token: '--dot-hi', value: '#333333', label: 'Grid Dot (selected)' },
-  { token: '--dot-hi2', value: '#888888', label: 'Grid Dot (secondary)' },
+  { token: '--ink-faint', value: 'rgba(34,32,28,0.22)', label: 'Dot (default)' },
+  { token: '--ink-mid', value: 'rgba(34,32,28,0.58)', label: 'Dot (selected diagonal)' },
+  { token: '--ink-soft', value: 'rgba(34,32,28,0.55)', label: 'Dot (selected secondary)' },
 ]
 
 const CELL_COLORS = [
@@ -111,17 +119,17 @@ const COMPONENT_PATTERNS = [
   {
     name: 'Card',
     description: 'Primary container surface',
-    specs: 'bg: var(--card), rounded-2xl, shadow: 0 0 0 1px rgba(0,0,0,0.04) + 0 4px 24px rgba(0,0,0,0.06)',
+    specs: 'bg: var(--surface-card), rounded-2xl, border var(--ink-border-subtle), shadow var(--shadow-card).',
   },
   {
     name: 'Segmented Control',
     description: 'Timer, Min Letters pickers',
-    specs: 'Track: var(--track) rounded-xl p-[3px]. Sliding pill: var(--card) with subtle shadow. 250ms transition.',
+    specs: 'Track: var(--ink-whisper) rounded-xl p-[3px]. Sliding pill: var(--surface-card) with subtle shadow. 250ms transition.',
   },
   {
     name: 'Board Size Card',
     description: 'Selectable card with MiniGrid',
-    specs: 'Selected: accent border-2, card bg, subtle shadow. Unselected: transparent border, track bg. hover lifts to card bg.',
+    specs: 'Selected: accent border-2, var(--surface-card) bg, subtle shadow. Unselected: transparent border, var(--ink-whisper) bg. hover lifts to var(--surface-card) bg.',
   },
   {
     name: 'Action Button',
@@ -136,12 +144,12 @@ const COMPONENT_PATTERNS = [
   {
     name: 'Daily Card (Completed)',
     description: 'Shows results summary',
-    specs: 'bg: var(--card), accent left border (3px), shadow with accent tint (0.18 alpha). Result boxes in var(--track).',
+    specs: 'bg: var(--surface-card), accent left border (3px), shadow with accent tint (0.18 alpha). Result boxes in var(--ink-whisper).',
   },
   {
     name: 'Back Arrow',
     description: 'Navigation back',
-    specs: 'Unicode ← at 0.85rem, text-muted, hover text. Positioned absolute left, inline with heading.',
+    specs: 'Unicode ← at 0.85rem, var(--ink-soft), hover var(--ink). Positioned absolute left, inline with heading.',
   },
   {
     name: 'Board Cell',
@@ -176,7 +184,9 @@ function Swatch({ color, size = 48, rounded = 8 }: { color: string; size?: numbe
         height: size,
         borderRadius: rounded,
         backgroundColor: color,
-        border: color === '#FFFFFF' || color === '#FAFAF8' || color === '#F2F2F2' ? '1px solid #e0e0e0' : 'none',
+        // Grey border reads on both light and dark backdrops, so pale surfaces
+        // and low-alpha ink tints still show an edge.
+        border: '1px solid rgba(128,128,128,0.35)',
       }}
     />
   )
@@ -277,13 +287,13 @@ export const ColorPalette: Story = {
 
       <div style={sectionStyle}>
         <div style={headingStyle}>Dark Mode</div>
-        <div style={subStyle}>Colors for dark surfaces (slate #2C2C2E background)</div>
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', padding: 24, borderRadius: 16, backgroundColor: '#2C2C2E' }}>
+        <div style={subStyle}>Same surface / ink tokens, resolved under [data-theme="dark"] (warm near-black #1C1A15 panel)</div>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', padding: 24, borderRadius: 16, backgroundColor: '#1C1A15' }}>
           {DARK_MODE_COLORS.map(c => (
             <div key={c.token} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <Swatch color={c.value} size={48} />
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#E5E5E7' }}>{c.label}</div>
-              <div style={{ ...monoStyle, color: 'rgba(255,255,255,0.5)' }}>{c.value}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#EEE8DC' }}>{c.label}</div>
+              <div style={{ ...monoStyle, color: 'rgba(238,232,220,0.55)' }}>{c.value}</div>
             </div>
           ))}
         </div>
@@ -468,7 +478,7 @@ export const FullReference: Story = {
           </div>
           <div>
             <div style={{ ...labelStyle, marginBottom: 12, fontWeight: 700 }}>Dark Mode</div>
-            <div style={{ display: 'flex', gap: 8, padding: '8px 12px', borderRadius: 10, backgroundColor: '#2C2C2E' }}>
+            <div style={{ display: 'flex', gap: 8, padding: '8px 12px', borderRadius: 10, backgroundColor: '#1C1A15' }}>
               {DARK_MODE_COLORS.slice(0, 5).map(c => (
                 <div key={c.token} style={{ textAlign: 'center' }}>
                   <Swatch color={c.value} size={40} />
