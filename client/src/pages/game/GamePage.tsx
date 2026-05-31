@@ -127,7 +127,7 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
         <TimerBar game={game} />
         <button
           onClick={onEndGame}
-          className="w-8 h-8 border-none bg-transparent cursor-pointer flex items-center justify-center transition-all duration-200 hover:scale-110 hover:opacity-70 shrink-0 p-0 text-[var(--text-muted)]"
+          className="w-8 h-8 border-none bg-transparent cursor-pointer flex items-center justify-center transition-all duration-200 hover:scale-110 hover:opacity-70 shrink-0 p-0 text-[color:var(--ink-soft)]"
           aria-label="End game"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -195,7 +195,7 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
       {/* Footer: mute toggle + mode label */}
       <div className="flex items-center justify-between w-full mt-1.5">
         {/* Mode label */}
-        <div className="flex items-center gap-2.5 text-[0.6rem] text-[var(--text-muted)] select-none" style={{ fontFamily: 'var(--font-body)', fontWeight: 500 }}>
+        <div className="flex items-center gap-2.5 text-[0.6rem] text-[color:var(--ink-soft)] select-none" style={{ fontFamily: 'var(--font-body)', fontWeight: 500 }}>
           <span className="font-semibold">{modeLabel}</span>
           <span className="flex items-center gap-1 opacity-60">
             {/* Board icon */}

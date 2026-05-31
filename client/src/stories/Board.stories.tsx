@@ -60,7 +60,7 @@ function InteractiveBoard({ board, size }: { board: string[][]; size: number }) 
         feedback={feedback}
       />
       {lastWord && (
-        <div className="text-center mt-3 text-sm text-[var(--text-muted)]">
+        <div className="text-center mt-3 text-sm text-[color:var(--ink-soft)]">
           Last word: <strong>{lastWord}</strong>
         </div>
       )}

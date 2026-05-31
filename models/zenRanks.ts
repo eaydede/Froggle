@@ -11,7 +11,7 @@ export interface ZenRank {
   /** Achieved when (points / maxScore) >= threshold. Range: 0..1. */
   threshold: number;
   /** CSS variable name for the rank's accent color. Resolves against the
-   *  rarity palette in tailwind-v2.css. */
+   *  rarity palette in tailwind.css. */
   colorToken: string;
 }
 

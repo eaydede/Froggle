@@ -56,8 +56,8 @@ function App() {
 
       {showHomeConfirm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100]" onClick={() => setShowHomeConfirm(false)}>
-          <div className="bg-white rounded-xl py-6 px-8 shadow-[0_4px_20px_rgba(0,0,0,0.15)] text-center max-w-[300px]" onClick={e => e.stopPropagation()}>
-            <p className="text-base text-[var(--text)] m-0 mb-5">Return to the home screen?</p>
+          <div className="bg-[var(--surface-card)] rounded-xl py-6 px-8 shadow-[0_4px_20px_rgba(0,0,0,0.15)] text-center max-w-[300px]" onClick={e => e.stopPropagation()}>
+            <p className="text-base text-[color:var(--ink)] m-0 mb-5">Return to the home screen?</p>
             <div className="flex gap-3 justify-center">
               <button
                 className="py-2 px-6 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white border-none rounded-lg cursor-pointer text-sm transition-colors duration-200 font-[family-name:var(--font-button)] [font-weight:var(--font-button-weight)]"
@@ -66,7 +66,7 @@ function App() {
                 Yes
               </button>
               <button
-                className="py-2 px-6 bg-[var(--track)] hover:bg-[var(--dot)] text-[var(--text)] border-none rounded-lg cursor-pointer text-sm transition-colors duration-200 font-[family-name:var(--font-button)] [font-weight:var(--font-button-weight)]"
+                className="py-2 px-6 bg-[var(--ink-whisper)] hover:bg-[var(--ink-trace)] text-[color:var(--ink)] border-none rounded-lg cursor-pointer text-sm transition-colors duration-200 font-[family-name:var(--font-button)] [font-weight:var(--font-button-weight)]"
                 onClick={() => setShowHomeConfirm(false)}
               >
                 Cancel

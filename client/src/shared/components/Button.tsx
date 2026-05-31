@@ -55,8 +55,8 @@ function getVariantClasses(variant: ButtonVariant, mode: ButtonMode): string {
         ].join(' ');
       }
       return [
-        'bg-[var(--track)] text-[var(--text)] border-none',
-        'hover:bg-[#ddd]',
+        'bg-[var(--ink-whisper)] text-[color:var(--ink)] border-none',
+        'hover:bg-[var(--ink-trace)]',
         'active:scale-[0.975] active:duration-[60ms]',
       ].join(' ');
 
@@ -68,8 +68,8 @@ function getVariantClasses(variant: ButtonVariant, mode: ButtonMode): string {
         ].join(' ');
       }
       return [
-        'bg-transparent text-[var(--text-muted)] border border-[#ddd]',
-        'hover:text-[var(--text-mid)] hover:border-[#aaa]',
+        'bg-transparent text-[color:var(--ink-soft)] border border-[#ddd]',
+        'hover:text-[color:var(--ink-muted)] hover:border-[#aaa]',
       ].join(' ');
   }
 }
