@@ -18,28 +18,61 @@ interface PodiumProps {
   onSelfClick?: () => void;
 }
 
-/** Visual podium — 2 / 1 / 3 columns with different pillar heights. The pillar
- *  *slots* are positional (entries arrive in rank order: top scorer center,
- *  runner-up left, third right), but each pillar's place label comes from the
- *  entry's actual rank. So a tie renders as a repeated place — two "1ST"
- *  pillars — instead of silently dropping a player. A small crown sits above
- *  anyone ranked first. */
+/** Visual podium — top scorer centre, runner-up left, third right. Every
+ *  size cue (height, colour, name/score type) is keyed to the entry's *rank*,
+ *  not its slot, so the common 1/2/3 case still steps down center-tall while
+ *  tied players become visually identical: a co-first is two equal gold
+ *  pillars, a co-second two equal silver. Columns are equal width for the same
+ *  reason. A crown sits above anyone ranked first. */
 export function Podium({ entries, onCompare, onSelfClick }: PodiumProps) {
   return (
-    <div className="grid items-end gap-1 mt-3.5 px-0.5 flex-shrink-0" style={{ gridTemplateColumns: '1fr 1.1fr 1fr' }}>
-      <Pillar place="second" entry={entries[1]} onCompare={onCompare} onSelfClick={onSelfClick} />
-      <Pillar place="first" entry={entries[0]} onCompare={onCompare} onSelfClick={onSelfClick} />
-      <Pillar place="third" entry={entries[2]} onCompare={onCompare} onSelfClick={onSelfClick} />
+    <div className="grid items-end gap-1 mt-3.5 px-0.5 flex-shrink-0" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+      <Pillar entry={entries[1]} onCompare={onCompare} onSelfClick={onSelfClick} />
+      <Pillar entry={entries[0]} onCompare={onCompare} onSelfClick={onSelfClick} />
+      <Pillar entry={entries[2]} onCompare={onCompare} onSelfClick={onSelfClick} />
     </div>
   );
 }
 
-// Maps a rank to its podium tier. Ranks past third (only reachable through a
-// tie, e.g. 1, 2, 2 has no third) fall back to bronze.
-function tierColor(rank: number): { bg: string; text: string } {
-  if (rank === 1) return { bg: 'bg-[var(--podium-gold-bg)]', text: 'text-[color:var(--podium-gold)]' };
-  if (rank === 2) return { bg: 'bg-[var(--podium-silver-bg)]', text: 'text-[color:var(--podium-silver)]' };
-  return { bg: 'bg-[var(--podium-bronze-bg)]', text: 'text-[color:var(--podium-bronze)]' };
+// All of a pillar's visual weight — colour, height, and type scale — keyed to
+// rank so equal ranks look equal. Ranks past third (only reachable through a
+// tie, e.g. 1, 2, 2 has no third) fall back to the third-place treatment.
+function tierStyle(rank: number): {
+  bg: string;
+  text: string;
+  padding: string;
+  rankSize: string;
+  nameSize: string;
+  scoreSize: string;
+} {
+  if (rank === 1) {
+    return {
+      bg: 'bg-[var(--podium-gold-bg)]',
+      text: 'text-[color:var(--podium-gold)]',
+      padding: 'pt-[14px] pb-5 px-1.5',
+      rankSize: 'text-[10px]',
+      nameSize: 'text-[15px]',
+      scoreSize: 'text-[20px]',
+    };
+  }
+  if (rank === 2) {
+    return {
+      bg: 'bg-[var(--podium-silver-bg)]',
+      text: 'text-[color:var(--podium-silver)]',
+      padding: 'pt-[10px] pb-3 px-1.5',
+      rankSize: 'text-[9px]',
+      nameSize: 'text-[13px]',
+      scoreSize: 'text-[16px]',
+    };
+  }
+  return {
+    bg: 'bg-[var(--podium-bronze-bg)]',
+    text: 'text-[color:var(--podium-bronze)]',
+    padding: 'pt-[10px] pb-1.5 px-1.5',
+    rankSize: 'text-[9px]',
+    nameSize: 'text-[13px]',
+    scoreSize: 'text-[16px]',
+  };
 }
 
 function ordinalPlace(rank: number): string {
@@ -55,34 +88,18 @@ function ordinalPlace(rank: number): string {
 }
 
 function Pillar({
-  place,
   entry,
   onCompare,
   onSelfClick,
 }: {
-  place: 'first' | 'second' | 'third';
   entry?: PodiumEntry;
   onCompare?: (userId: string) => void;
   onSelfClick?: () => void;
 }) {
   if (!entry) return <div />;
 
-  // Colour follows the rank, not the slot: tied players carry the same
-  // gold/silver/bronze so a co-first reads as two gold pillars. Heights and
-  // text sizes stay positional — they're the podium's structural shape, with
-  // the centre slot always the tallest.
-  const tier = tierColor(entry.rank);
-  const padding =
-    place === 'first'
-      ? 'pt-[14px] pb-5 px-1.5'
-      : place === 'second'
-        ? 'pt-[10px] pb-3 px-1.5'
-        : 'pt-[10px] pb-1.5 px-1.5';
-  const rankTextSize = place === 'first' ? 'text-[10px]' : 'text-[9px]';
+  const tier = tierStyle(entry.rank);
   const rankLabel = ordinalPlace(entry.rank);
-
-  const nameSize = place === 'first' ? 'text-[15px]' : 'text-[13px]';
-  const scoreSize = place === 'first' ? 'text-[20px]' : 'text-[16px]';
 
   const handleClick = entry.isCurrentUser
     ? onSelfClick
@@ -99,7 +116,7 @@ function Pillar({
       className={[
         'relative flex flex-col items-center text-center rounded-t-[10px] border-none',
         tier.bg,
-        padding,
+        tier.padding,
         clickable ? 'cursor-pointer hover:-translate-y-0.5 transition-transform duration-200' : '',
       ].join(' ')}
       style={{ WebkitTapHighlightColor: 'transparent' }}
@@ -115,7 +132,7 @@ function Pillar({
         </span>
       )}
       <span
-        className={`tracking-[0.1em] mb-[5px] font-[family-name:var(--font-structure)] ${rankTextSize} ${tier.text}`}
+        className={`tracking-[0.1em] mb-[5px] font-[family-name:var(--font-structure)] ${tier.rankSize} ${tier.text}`}
         style={{ fontWeight: 800 }}
       >
         {rankLabel}
@@ -123,7 +140,7 @@ function Pillar({
       <span
         className={[
           'flex items-center justify-center gap-1 italic leading-[1.1] tracking-[-0.01em] text-[color:var(--ink)] mb-1.5 font-[family-name:var(--font-display)] w-full min-w-0',
-          nameSize,
+          tier.nameSize,
         ].join(' ')}
         style={{ fontWeight: 600 }}
         title={entry.name}
@@ -134,7 +151,7 @@ function Pillar({
       <span
         className={[
           'tabular-nums leading-none text-[color:var(--ink)] font-[family-name:var(--font-structure)]',
-          scoreSize,
+          tier.scoreSize,
         ].join(' ')}
         style={{ fontWeight: 800, letterSpacing: '-0.02em' }}
       >
