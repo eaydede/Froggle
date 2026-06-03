@@ -1,7 +1,8 @@
 import { StatusIcon } from '../../../shared/components/StatusIcon';
 
 export interface PodiumEntry {
-  rank: 1 | 2 | 3;
+  /** Competition rank — may repeat across entries when players tie. */
+  rank: number;
   name: string;
   score: number;
   userId: string;
@@ -17,18 +18,40 @@ interface PodiumProps {
   onSelfClick?: () => void;
 }
 
-/** Visual podium — 2 / 1 / 3 columns with different pillar heights. The
- *  shape itself encodes the ranking so we don't need border colors or
- *  explicit number badges. A small crown sits above first. */
+/** Visual podium — 2 / 1 / 3 columns with different pillar heights. The pillar
+ *  *slots* are positional (entries arrive in rank order: top scorer center,
+ *  runner-up left, third right), but each pillar's place label comes from the
+ *  entry's actual rank. So a tie renders as a repeated place — two "1ST"
+ *  pillars — instead of silently dropping a player. A small crown sits above
+ *  anyone ranked first. */
 export function Podium({ entries, onCompare, onSelfClick }: PodiumProps) {
-  const byRank = new Map(entries.map((e) => [e.rank, e]));
   return (
     <div className="grid items-end gap-1 mt-3.5 px-0.5 flex-shrink-0" style={{ gridTemplateColumns: '1fr 1.1fr 1fr' }}>
-      <Pillar place="second" entry={byRank.get(2)} onCompare={onCompare} onSelfClick={onSelfClick} />
-      <Pillar place="first" entry={byRank.get(1)} onCompare={onCompare} onSelfClick={onSelfClick} />
-      <Pillar place="third" entry={byRank.get(3)} onCompare={onCompare} onSelfClick={onSelfClick} />
+      <Pillar place="second" entry={entries[1]} onCompare={onCompare} onSelfClick={onSelfClick} />
+      <Pillar place="first" entry={entries[0]} onCompare={onCompare} onSelfClick={onSelfClick} />
+      <Pillar place="third" entry={entries[2]} onCompare={onCompare} onSelfClick={onSelfClick} />
     </div>
   );
+}
+
+// Maps a rank to its podium tier. Ranks past third (only reachable through a
+// tie, e.g. 1, 2, 2 has no third) fall back to bronze.
+function tierColor(rank: number): { bg: string; text: string } {
+  if (rank === 1) return { bg: 'bg-[var(--podium-gold-bg)]', text: 'text-[color:var(--podium-gold)]' };
+  if (rank === 2) return { bg: 'bg-[var(--podium-silver-bg)]', text: 'text-[color:var(--podium-silver)]' };
+  return { bg: 'bg-[var(--podium-bronze-bg)]', text: 'text-[color:var(--podium-bronze)]' };
+}
+
+function ordinalPlace(rank: number): string {
+  const tens = rank % 100;
+  const ones = rank % 10;
+  let suffix = 'TH';
+  if (tens < 11 || tens > 13) {
+    if (ones === 1) suffix = 'ST';
+    else if (ones === 2) suffix = 'ND';
+    else if (ones === 3) suffix = 'RD';
+  }
+  return `${rank}${suffix}`;
 }
 
 function Pillar({
@@ -44,25 +67,19 @@ function Pillar({
 }) {
   if (!entry) return <div />;
 
-  const tint =
-    place === 'first'
-      ? 'bg-[var(--podium-gold-bg)]'
-      : place === 'second'
-        ? 'bg-[var(--podium-silver-bg)]'
-        : 'bg-[var(--podium-bronze-bg)]';
+  // Colour follows the rank, not the slot: tied players carry the same
+  // gold/silver/bronze so a co-first reads as two gold pillars. Heights and
+  // text sizes stay positional — they're the podium's structural shape, with
+  // the centre slot always the tallest.
+  const tier = tierColor(entry.rank);
   const padding =
     place === 'first'
       ? 'pt-[14px] pb-5 px-1.5'
       : place === 'second'
         ? 'pt-[10px] pb-3 px-1.5'
         : 'pt-[10px] pb-1.5 px-1.5';
-  const rankText =
-    place === 'first'
-      ? 'text-[10px] text-[color:var(--podium-gold)]'
-      : place === 'second'
-        ? 'text-[9px] text-[color:var(--podium-silver)]'
-        : 'text-[9px] text-[color:var(--podium-bronze)]';
-  const rankLabel = place === 'first' ? '1ST' : place === 'second' ? '2ND' : '3RD';
+  const rankTextSize = place === 'first' ? 'text-[10px]' : 'text-[9px]';
+  const rankLabel = ordinalPlace(entry.rank);
 
   const nameSize = place === 'first' ? 'text-[15px]' : 'text-[13px]';
   const scoreSize = place === 'first' ? 'text-[20px]' : 'text-[16px]';
@@ -81,13 +98,13 @@ function Pillar({
       onClick={handleClick}
       className={[
         'relative flex flex-col items-center text-center rounded-t-[10px] border-none',
-        tint,
+        tier.bg,
         padding,
         clickable ? 'cursor-pointer hover:-translate-y-0.5 transition-transform duration-200' : '',
       ].join(' ')}
       style={{ WebkitTapHighlightColor: 'transparent' }}
     >
-      {place === 'first' && (
+      {entry.rank === 1 && (
         <span
           aria-hidden
           className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[color:var(--podium-gold)] bg-[var(--surface-panel)] rounded-full p-[3px] leading-none"
@@ -98,7 +115,7 @@ function Pillar({
         </span>
       )}
       <span
-        className={`tracking-[0.1em] mb-[5px] font-[family-name:var(--font-structure)] ${rankText}`}
+        className={`tracking-[0.1em] mb-[5px] font-[family-name:var(--font-structure)] ${rankTextSize} ${tier.text}`}
         style={{ fontWeight: 800 }}
       >
         {rankLabel}

@@ -8,6 +8,7 @@ import { cachePrivate } from '../httpCache.js';
 import { dictionary } from '../services/dictionary.js';
 import { getDisplayNames } from '../services/displayNames.js';
 import { computeChallengeNewResults } from '../services/FreePlayService.js';
+import { assignCompetitionRanks } from '../services/ranking.js';
 import { getDailyConfig } from '../services/dailyConfig.js';
 
 export const freeplayRouter = Router();
@@ -101,9 +102,10 @@ freeplayRouter.get('/history', requireAuth, async (req, res) => {
         const cid = p.challenge_id!;
         playerCountByChallenge.set(cid, (playerCountByChallenge.get(cid) ?? 0) + 1);
       }
-      // Compute rank per challenge — points desc, then word count desc,
-      // then earliest completion (matches the challenge view's ordering
-      // exactly so the badge and the standings agree).
+      // Compute rank per challenge — competition-ranked on points so equal
+      // points share a place (matches the challenge view's ranking exactly so
+      // the badge and the standings agree). Word count and completion only
+      // order the list within a tie; they no longer split the rank.
       const byChallenge = new Map<string, typeof participants>();
       for (const p of participants) {
         const list = byChallenge.get(p.challenge_id!) ?? [];
@@ -116,7 +118,9 @@ freeplayRouter.get('/history', requireAuth, async (req, res) => {
           if (b.word_count !== a.word_count) return b.word_count - a.word_count;
           return a.completed_at.getTime() - b.completed_at.getTime();
         });
-        list.forEach((p, i) => rankByRowId.set(p.id, i + 1));
+        for (const { item, rank } of assignCompetitionRanks(list, (p) => p.points)) {
+          rankByRowId.set(item.id, rank);
+        }
       }
       newResultsByChallenge = computeChallengeNewResults(
         rows
@@ -462,13 +466,19 @@ freeplayRouter.get('/challenge/:challengeId', requireAuth, async (req, res) => {
       };
     });
 
-    // Stable ranking: points desc, then word count desc, then earliest
-    // completion (rewards the first to finish at a tie).
+    // Display order is points desc, then word count, then earliest completion
+    // — a stable order so the list doesn't jitter between requests. Rank,
+    // though, is competition-ranked on points alone: equal points share a
+    // place (1, 1, 3), and the secondary keys only decide who's listed first
+    // within a tie, never the number shown next to them.
     players.sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points;
       if (b.wordCount !== a.wordCount) return b.wordCount - a.wordCount;
       return a.completedAt.localeCompare(b.completedAt);
     });
+    const rankedPlayers = assignCompetitionRanks(players, (p) => p.points).map(
+      ({ item, rank }) => ({ ...item, rank }),
+    );
 
     // Drain the "new results" badge for the owner the moment they open
     // the challenge view. Fire-and-forget so a transient write failure
@@ -495,7 +505,7 @@ freeplayRouter.get('/challenge/:challengeId', requireAuth, async (req, res) => {
       },
       seed: ownerRow.seed,
       ownerUserId: ownerRow.user_id,
-      players,
+      players: rankedPlayers,
       missedWords,
     });
   } catch (err) {
