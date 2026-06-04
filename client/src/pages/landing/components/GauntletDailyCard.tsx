@@ -1,5 +1,6 @@
 import type { GauntletEntry } from 'models/gauntlet';
 import { StatusIcon } from '../../../shared/components/StatusIcon';
+import { RankBadge, type PodiumRank } from './RankBadge';
 
 interface GauntletDailyCardProps {
   entry: GauntletEntry | null;
@@ -19,6 +20,13 @@ export function GauntletDailyCard({ entry, onPlay }: GauntletDailyCardProps) {
       : entry && entry.state === 'partial'
       ? 'in-progress'
       : 'unplayed';
+  const podium: PodiumRank | null =
+    state === 'completed' &&
+    (entry?.aggregateRank === 1 ||
+      entry?.aggregateRank === 2 ||
+      entry?.aggregateRank === 3)
+      ? entry.aggregateRank
+      : null;
 
   return (
     <div className="flex items-stretch w-full rounded-2xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] overflow-hidden font-[family-name:var(--font-ui)]">
@@ -37,6 +45,7 @@ export function GauntletDailyCard({ entry, onPlay }: GauntletDailyCardProps) {
             >
               Gauntlet
             </span>
+            {podium && <RankBadge rank={podium} />}
             {state !== 'unplayed' && <StatusIcon state={state} />}
           </div>
           <HintLine state={state} entry={entry} completedRounds={completedRounds} />
