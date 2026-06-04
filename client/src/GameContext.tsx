@@ -34,9 +34,11 @@ import {
 import { decodeSeedCode } from 'models/seedCode';
 import type { GameConfig } from './pages/config';
 
-// How often a foregrounded tab re-checks the server build ID. Backgrounded
-// tabs skip the work entirely (the check early-returns while hidden).
-const FRESHNESS_POLL_MS = 90_000;
+// How often a foregrounded tab refetches the public daily/zen puzzle data, so a
+// tab left open across the midnight rollover updates without a reload. This
+// refresh swaps cached data only — it never checks the build ID, so it can
+// never trigger a page reload (that stays gated to focus/visibility events).
+const DAILY_CACHE_REFRESH_MS = 90_000;
 
 const loadMuted = (): boolean => {
   try {
@@ -409,13 +411,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   // Mobile browsers freeze backgrounded tabs (bfcache) and resume them with
   // their old in-memory state — yesterday's daily, an outdated JS bundle, etc.
-  // On tab focus, pageshow, or a slow foreground poll, refetch the public
-  // puzzles so the board matches today, and compare the server's build ID
-  // against the one we booted with so a stale bundle reloads instead of
-  // silently lingering. The poll catches a tab that stays foregrounded across
-  // a deploy and so never fires a visibility/focus event. The whole pass is
-  // suppressed while a timed daily run is live so it can't swap the board or
-  // reload mid-run.
+  // Two mechanisms keep a tab current. A slow interval refetches the public
+  // puzzles so the board/landing match today even when a tab sits foregrounded
+  // across the midnight rollover (which fires no visibility/focus event); it
+  // swaps cached data only and never reloads. Separately, on return-to-tab
+  // transitions (focus, visibility change, pageshow) we also compare the
+  // server's build ID against the one we booted with and reload a stale bundle.
+  // The reload lives only on those transitions — never on the interval — so a
+  // deploy can't reload a page out from under a user sitting on it. Both passes
+  // are suppressed while a timed daily run is live so they can't swap the board
+  // or reload mid-run.
   const baselineBuildIdRef = useRef<string | null>(null);
   const gameStatusRef = useRef<GameState | null>(null);
   useEffect(() => {
@@ -452,24 +457,27 @@ export function GameProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {});
 
-    const checkFreshness = () => {
-      if (document.hidden) return;
-
-      // A live timed daily must not be interrupted. Refetching the public
-      // daily swaps cachedDaily, which re-runs the session-fetch effect and
-      // can replace the active session row — around midnight it loads
-      // tomorrow's empty session, so GameRoute sees no active game and bounces
-      // the player home mid-run. A build-mismatch reload would likewise kill
-      // the timer. Skip the entire pass (cache refetch and version check)
-      // until the run is finalized; the next tick resumes normal freshness.
+    // Benign refetch of the public daily/zen puzzles so the board and landing
+    // match today. It only swaps cached data — it never reloads — so it is safe
+    // to run on a timer. Suppressed while a timed daily is live: swapping
+    // cachedDaily re-runs the session-fetch effect and around midnight loads
+    // tomorrow's empty session, so GameRoute sees no active game and bounces the
+    // player home mid-run.
+    const refreshDailyCaches = () => {
       if (timedDailyInProgressRef.current) return;
-
       fetchDaily()
         .then((info) => setCachedDaily(info))
         .catch(() => {});
       fetchDailyZenMeta()
         .then((info) => setCachedDailyZen(info))
         .catch(() => {});
+    };
+
+    const checkFreshness = () => {
+      if (document.hidden) return;
+      if (timedDailyInProgressRef.current) return;
+
+      refreshDailyCaches();
 
       // Don't reload out from under an in-progress run: free play (tracked
       // here via game.status) or a route-local timed run such as a gauntlet
@@ -497,14 +505,20 @@ export function GameProvider({ children }: { children: ReactNode }) {
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('focus', onVisibility);
     window.addEventListener('pageshow', onPageShow);
-    // checkFreshness early-returns while hidden, so the poll costs nothing for
-    // backgrounded tabs and only does work when one is actually in front.
-    const poll = window.setInterval(checkFreshness, FRESHNESS_POLL_MS);
+
+    // Catch a tab that stays foregrounded across the midnight rollover and so
+    // never fires a transition event. Data refresh only — no build-ID check, so
+    // it can never reload the page. Costs nothing while hidden.
+    const dailyCachePoll = window.setInterval(() => {
+      if (document.hidden) return;
+      refreshDailyCaches();
+    }, DAILY_CACHE_REFRESH_MS);
+
     return () => {
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('focus', onVisibility);
       window.removeEventListener('pageshow', onPageShow);
-      window.clearInterval(poll);
+      window.clearInterval(dailyCachePoll);
     };
   }, []);
 
