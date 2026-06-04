@@ -68,7 +68,7 @@ export function LeaderboardRoute() {
   const podium = useMemo(
     () =>
       pointsRankings.slice(0, 3).map((r) => ({
-        rank: r.rank as 1 | 2 | 3,
+        rank: r.rank,
         name: r.displayName,
         score: r.value,
         userId: r.userId,

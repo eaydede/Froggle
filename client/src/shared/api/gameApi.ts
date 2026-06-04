@@ -536,6 +536,8 @@ export interface FreePlayChallengePlayer {
   userId: string | null;
   displayName: string;
   sessionId: string;
+  /** Competition rank on points — equal points share a rank (1, 1, 3). */
+  rank: number;
   points: number;
   wordCount: number;
   longestWord: string;

@@ -127,9 +127,9 @@ function ChallengeResultsView({
 
   const roster: ResultsRosterEntry[] = useMemo(
     () =>
-      data.players.map((p, i) => ({
+      data.players.map((p) => ({
         id: p.sessionId,
-        rank: i + 1,
+        rank: p.rank,
         displayName: p.displayName,
         points: p.points,
         isYou: p.sessionId === me.sessionId,

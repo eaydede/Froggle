@@ -4,6 +4,7 @@ import { getDb } from '../db/index.js';
 import { scoreWords } from '../services/DailyService.js';
 import { getDailyNumber } from '../services/dailyConfig.js';
 import { getDisplayNames } from '../services/displayNames.js';
+import { assignCompetitionRanks } from '../services/ranking.js';
 import { cachePrivate } from '../httpCache.js';
 
 export const leaderboardRouter = Router();
@@ -82,8 +83,13 @@ leaderboardRouter.get('/:date', async (req, res) => {
       subLabelSuffix: string,
     ) {
       const sorted = [...scored].sort((a, b) => b[sortKey] - a[sortKey]);
-      return sorted.map((p, i) => ({
-        rank: i + 1,
+      // Rank on the displayed (rounded) value, not the raw score: the rarity
+      // tab rounds to an integer for display, so ranking on the underlying
+      // float could hand two players who both see "50" different ranks — the
+      // exact confusion we're removing.
+      const ranked = assignCompetitionRanks(sorted, (p) => Math.round(p[sortKey]));
+      return ranked.map(({ item: p, rank }) => ({
+        rank,
         userId: p.userId,
         displayName: p.displayName,
         value: Math.round(p[sortKey]),

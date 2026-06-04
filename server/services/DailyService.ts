@@ -300,8 +300,9 @@ export async function getDailyStats(
 
   // Query 1: this user's rank + aggregates per date they played. In-progress
   // sessions (ended_at is null) are excluded — they don't belong on the
-  // leaderboard and they have no final score to rank by yet. Tiebreak
-  // matches "placed top 3" as presented to users.
+  // leaderboard and they have no final score to rank by yet. Ranked on points
+  // alone so equal points share a place (1, 1, 3); this keeps the stamp tier
+  // consistent with the leaderboard, where a tie is purely an equal score.
   const rankedRows = await db
     .with('ranked', (qb) =>
       qb
@@ -315,7 +316,7 @@ export async function getDailyStats(
           'board_size',
           'min_word_length',
           'time_limit',
-          sql<number>`rank() over (partition by ${eb.ref('date')} order by ${eb.ref('points')} desc, ${eb.ref('word_count')} desc, ${eb.ref('completed_at')} asc)`.as('rank'),
+          sql<number>`rank() over (partition by ${eb.ref('date')} order by ${eb.ref('points')} desc)`.as('rank'),
         ])
         .where('date', '>=', windowStart)
         .where('date', '<=', windowEnd)
@@ -644,8 +645,8 @@ export async function submitTimedDailyWord(
 // Player-triggered finalize. Caps the recorded completion at
 // started_at + time_limit so a slow /end call can't make the row look
 // like the player took longer than allowed. completed_at is updated in
-// lockstep with ended_at to preserve the existing tiebreak semantics
-// (earlier completion ranks first when points + word count are equal).
+// lockstep with ended_at; ranking no longer uses it (ties are decided by
+// score alone), but it stays an honest record of when the session ended.
 export async function endTimedDailySession(
   db: Kysely<Database>,
   userId: string,
