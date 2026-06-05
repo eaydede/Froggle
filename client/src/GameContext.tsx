@@ -132,12 +132,12 @@ interface GameContextValue {
   // mid-game refresh doesn't strand the player on the landing screen.
   freePlayHydrated: boolean;
 
-  // Lets a route-local timed run (e.g. a gauntlet round, whose session
-  // lives outside this context) suppress the stale-tab build-mismatch
-  // reload while its timer is live, so a deploy mid-run can't reload the
-  // page out from under the player. Call on mount of the live run and
-  // invoke the returned unregister fn on teardown.
-  registerActiveTimedRun: () => () => void;
+  // Lets a route-local run (a gauntlet round or zen play, whose session
+  // lives outside this context) suppress the stale-tab refresh and
+  // build-mismatch reload while it's on screen, so a deploy or cache poll
+  // mid-run can't reload or swap the board out from under the player. Call
+  // on mount of the live run and invoke the returned unregister fn on teardown.
+  registerActiveRun: () => () => void;
 
   // Profile
   displayName: string;
@@ -433,25 +433,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
       !!cachedDailyTimedSession && !cachedDailyTimedSession.ended_at;
   }, [cachedDailyTimedSession]);
 
-  // True while a zen daily run is live. Zen is untimed and lives entirely in
-  // cachedDailyZenSession — it never populates the free-play `game` object or
-  // the timed-daily ref above — so without this it slips past every isRunActive
-  // gate and the refresh keeps swapping cachedDailyZen under the player.
-  const zenInProgressRef = useRef(false);
-  useEffect(() => {
-    zenInProgressRef.current =
-      !!cachedDailyZenSession && !cachedDailyZenSession.ended_at;
-  }, [cachedDailyZenSession]);
-
-  // Ref-counted registry for route-local timed runs (gauntlet rounds) that
-  // need the reload suppressed but keep their session outside this context.
+  // Ref-counted registry for route-local runs that need the refresh/reload
+  // suppressed but keep their session outside this context: gauntlet rounds
+  // (timed) and zen play (untimed). Gated from the play route — not the
+  // persisted session row — so it clears the moment the player leaves the
+  // board, even when the session stays unended (zen can sit open all day).
   // A count (not a boolean) so overlapping registrants — and React's
   // StrictMode double-invoke in dev — can't prematurely clear the guard.
-  const activeTimedRunsRef = useRef(0);
-  const registerActiveTimedRun = useCallback(() => {
-    activeTimedRunsRef.current += 1;
+  const activeRunsRef = useRef(0);
+  const registerActiveRun = useCallback(() => {
+    activeRunsRef.current += 1;
     return () => {
-      activeTimedRunsRef.current = Math.max(0, activeTimedRunsRef.current - 1);
+      activeRunsRef.current = Math.max(0, activeRunsRef.current - 1);
     };
   }, []);
 
@@ -465,9 +458,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
     const isRunActive = () =>
       timedDailyInProgressRef.current ||
-      zenInProgressRef.current ||
       gameStatusRef.current === GameState.InProgress ||
-      activeTimedRunsRef.current > 0;
+      activeRunsRef.current > 0;
 
     // Benign refetch of the public daily/zen puzzles so the board and landing
     // match today. It only swaps cached data — it never reloads — so it is safe
@@ -776,7 +768,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       theme, toggleTheme,
       session, authReady,
       freePlayHydrated,
-      registerActiveTimedRun,
+      registerActiveRun,
       displayName, profileReady, nameProfile, updateDisplayName,
     }}>
       <div data-theme={theme} className="contents">

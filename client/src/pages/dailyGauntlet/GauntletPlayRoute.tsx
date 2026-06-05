@@ -26,7 +26,7 @@ export function GauntletPlayRoute() {
   const { round } = useParams<{ round: string }>();
   const navigate = useNavigate();
   const roundIndex = Number(round);
-  const { authReady, muted, toggleMute, registerActiveTimedRun } = useGame();
+  const { authReady, muted, toggleMute, registerActiveRun } = useGame();
 
   const [session, setSession] = useState<GauntletRoundSession | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -47,8 +47,8 @@ export function GauntletPlayRoute() {
   const roundLive = !!session && !session.endedAt;
   useEffect(() => {
     if (!roundLive) return;
-    return registerActiveTimedRun();
-  }, [roundLive, registerActiveTimedRun]);
+    return registerActiveRun();
+  }, [roundLive, registerActiveRun]);
 
   // Initial session load. The confirm route should have already called
   // startGauntletRound; if it didn't, the GET returns null and we bounce.

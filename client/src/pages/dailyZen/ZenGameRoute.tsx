@@ -43,6 +43,7 @@ export function ZenGameRoute() {
     handleSubmitZenWord,
     lastZenModeChoice,
     setLastZenModeChoice,
+    registerActiveRun,
   } = useGame();
 
   const [showEndConfirm, setShowEndConfirm] = useState(false);
@@ -125,6 +126,18 @@ export function ZenGameRoute() {
   useEffect(() => {
     if (session?.ended_at) navigate('/daily/zen/results', { replace: true });
   }, [session?.ended_at, navigate]);
+
+  // While the zen board is live on screen, keep GameContext's stale-tab
+  // refresh from swapping cachedDailyZen (or reloading on a deploy) under the
+  // player. Gated here, not on the persisted session — an unfinished zen
+  // session sits unended all day, so a session-row guard would wrongly
+  // suppress refresh even after the player leaves the board. Cleanup on
+  // unmount (back to home) clears it. Mirrors the gauntlet round registry.
+  const zenLive = !!session && !session.ended_at;
+  useEffect(() => {
+    if (!zenLive) return;
+    return registerActiveRun();
+  }, [zenLive, registerActiveRun]);
 
   const handleStart = useCallback(async (choice: ZenModeChoice) => {
     if (!cachedDailyZen || starting) return;
