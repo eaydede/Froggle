@@ -16,8 +16,8 @@ import {
   prepareGauntletRound,
 } from '../services/dailyGauntletConfig.js';
 import {
+  aggregateFromRoundRanks,
   endGauntletRound,
-  getGauntletAggregate,
   getGauntletRoundRanks,
   getGauntletRoundSession,
   getGauntletStatus,
@@ -271,10 +271,8 @@ dailyGauntletRouter.get('/:date/leaderboard', requireAuth, async (req, res) => {
   try {
     const db = getDb();
     const date = req.params.date;
-    const [perRound, aggregate] = await Promise.all([
-      getGauntletRoundRanks(db, date),
-      getGauntletAggregate(db, date),
-    ]);
+    const perRound = await getGauntletRoundRanks(db, date);
+    const aggregate = aggregateFromRoundRanks(perRound, GAUNTLET_ROUND_COUNT);
 
     // Display names resolved in one pass against the union of users
     // appearing in either list. Cached helper so repeated calls within

@@ -33,6 +33,17 @@ export function ConfigRoute() {
   const sharedGame = useMemo(() => decodeGameParams(searchParams), [searchParams]);
   const challengeId = sharedGame?.challengeId;
 
+  // GameProvider hydrates an in-progress free-play row at mount; if one
+  // resumed, send the player back into /game instead of dropping them on
+  // the config screen for a game that's already underway. The Finished
+  // case is intentionally left to fall through — the player needs a
+  // start affordance to begin a fresh game once their old one's done.
+  useEffect(() => {
+    if (game?.status === GameState.InProgress) {
+      navigate('/game', { replace: true });
+    }
+  }, [game?.status, navigate]);
+
   useEffect(() => {
     if (initRef.current) return;
     // A challenge preview must go out with our token so the server can tell

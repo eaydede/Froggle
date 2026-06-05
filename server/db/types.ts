@@ -41,7 +41,8 @@ export interface FreePlaySessionsTable {
   date: string;
   found_words: Generated<string>;
   board: string;
-  completed_at: Generated<Date>;
+  started_at: Generated<Date>;
+  completed_at: Date | null;
   points: Generated<number>;
   word_count: Generated<number>;
   longest_word: Generated<string>;

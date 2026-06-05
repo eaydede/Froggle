@@ -20,6 +20,7 @@ import type {
 } from './shared/api/gameApi';
 import {
   endDailyTimedSession,
+  fetchActiveFreePlaySession,
   fetchDaily,
   fetchDailyResult,
   fetchDailyTimedSession,
@@ -30,6 +31,12 @@ import {
   submitDailyZenWord,
   updateProfile,
 } from './shared/api/gameApi';
+
+// How often a foregrounded tab refetches the public daily/zen puzzle data, so a
+// tab left open across the midnight rollover updates without a reload. This
+// refresh swaps cached data only — it never checks the build ID, so it can
+// never trigger a page reload (that stays gated to focus/visibility events).
+const DAILY_CACHE_REFRESH_MS = 90_000;
 
 const loadMuted = (): boolean => {
   try {
@@ -119,6 +126,19 @@ interface GameContextValue {
   session: Session | null;
   authReady: boolean;
 
+  // True once the server-resume probe for an in-progress free-play row
+  // has settled. Routes that would otherwise bounce a null-game user
+  // away from /game should wait for this before redirecting so a
+  // mid-game refresh doesn't strand the player on the landing screen.
+  freePlayHydrated: boolean;
+
+  // Lets a route-local timed run (e.g. a gauntlet round, whose session
+  // lives outside this context) suppress the stale-tab build-mismatch
+  // reload while its timer is live, so a deploy mid-run can't reload the
+  // page out from under the player. Call on mount of the live run and
+  // invoke the returned unregister fn on teardown.
+  registerActiveTimedRun: () => () => void;
+
   // Profile
   displayName: string;
   /** True once the initial profile fetch has settled (resolved or failed),
@@ -140,7 +160,7 @@ export function useGame() {
 }
 
 export function GameProvider({ children }: { children: ReactNode }) {
-  const { game, words, results, gameSeed, createGame, startGame, cancelGame, endGame, fetchGameState, submitWord } = useGameApi();
+  const { game, words, results, gameSeed, createGame, startGame, cancelGame, endGame, fetchGameState, submitWord, hydrate } = useGameApi();
   const [feedback, setFeedback] = useState<{ type: FeedbackType; path: Position[] } | null>(null);
   const [muted, setMuted] = useState(loadMuted);
   const [dailyInfo, setDailyInfo] = useState<DailyInfo | null>(null);
@@ -219,6 +239,56 @@ export function GameProvider({ children }: { children: ReactNode }) {
       .then((profile) => applyProfile(profile))
       .catch(() => {}) // Fall back to default 'Anonymous'
       .finally(() => setProfileReady(true));
+  }, [authReady]);
+
+  // Resume an in-progress free-play game from server state when the user
+  // refreshes mid-play. Mirrors the daily-timed session-fetch pattern:
+  // GameProvider mounts → anonymous auth completes → we ask the server
+  // whether the caller has an unfinished row and rehydrate React state
+  // from it, so the existing /game route + timer pick up where they left
+  // off.
+  //
+  // The fetch runs exactly once per mount, gated on authReady. Stashing
+  // hydrate + game into refs lets the .then closure read the latest
+  // values without putting them in the effect dep array — which would
+  // otherwise cause the effect to re-run on every render and have its
+  // cleanup cancel the in-flight resume.
+  //
+  // freePlayHydrated stays false until this fetch settles, so route
+  // components that would otherwise bounce a null-game user away from
+  // /game can hold the redirect until we know whether there's a session
+  // to resume.
+  const [freePlayHydrated, setFreePlayHydrated] = useState(false);
+  const hydrateAttemptedRef = useRef(false);
+  const hydrateRef = useRef(hydrate);
+  const gameRef = useRef(game);
+  useEffect(() => {
+    hydrateRef.current = hydrate;
+    gameRef.current = game;
+  });
+  useEffect(() => {
+    if (!authReady || hydrateAttemptedRef.current) return;
+    hydrateAttemptedRef.current = true;
+    fetchActiveFreePlaySession()
+      .then((session) => {
+        if (session && !gameRef.current) {
+          hydrateRef.current({
+            game: session.game,
+            foundWords: session.found_words,
+            salt: session.salt,
+            wordHashes: session.wordHashes,
+            seed: session.seed,
+          });
+          if (session.challenge_id) setActiveChallengeId(session.challenge_id);
+        }
+      })
+      .catch(() => {
+        // Network blip or 401 — the user just won't get a resume. Better
+        // than crashing the app at boot.
+      })
+      .finally(() => {
+        setFreePlayHydrated(true);
+      });
   }, [authReady]);
 
   const timeRemaining = useTimer(game, fetchGameState);
@@ -334,14 +404,43 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   // Mobile browsers freeze backgrounded tabs (bfcache) and resume them with
   // their old in-memory state — yesterday's daily, an outdated JS bundle, etc.
-  // On tab focus or pageshow, refetch the public puzzles so the board matches
-  // today, and compare the server's build ID against the one we booted with so
-  // a stale bundle reloads instead of silently lingering.
+  // Two mechanisms keep a tab current. A slow interval refetches the public
+  // puzzles so the board/landing match today even when a tab sits foregrounded
+  // across the midnight rollover (which fires no visibility/focus event); it
+  // swaps cached data only and never reloads. Separately, on return-to-tab
+  // transitions (focus, visibility change, pageshow) we also compare the
+  // server's build ID against the one we booted with and reload a stale bundle.
+  // The reload lives only on those transitions — never on the interval — so a
+  // deploy can't reload a page out from under a user sitting on it. Both passes
+  // are suppressed while a timed daily run is live so they can't swap the board
+  // or reload mid-run.
   const baselineBuildIdRef = useRef<string | null>(null);
   const gameStatusRef = useRef<GameState | null>(null);
   useEffect(() => {
     gameStatusRef.current = game?.status ?? null;
   }, [game]);
+
+  // True while a timed daily run is live (started, not yet finalized). The
+  // freshness pass below must bail out entirely when this is set — see the
+  // guard in checkFreshness. Any future timed daily variant (e.g. a gauntlet)
+  // should OR its in-progress session in here so it gets the same protection.
+  const timedDailyInProgressRef = useRef(false);
+  useEffect(() => {
+    timedDailyInProgressRef.current =
+      !!cachedDailyTimedSession && !cachedDailyTimedSession.ended_at;
+  }, [cachedDailyTimedSession]);
+
+  // Ref-counted registry for route-local timed runs (gauntlet rounds) that
+  // need the reload suppressed but keep their session outside this context.
+  // A count (not a boolean) so overlapping registrants — and React's
+  // StrictMode double-invoke in dev — can't prematurely clear the guard.
+  const activeTimedRunsRef = useRef(0);
+  const registerActiveTimedRun = useCallback(() => {
+    activeTimedRunsRef.current += 1;
+    return () => {
+      activeTimedRunsRef.current -= 1;
+    };
+  }, []);
 
   useEffect(() => {
     fetch('/api/version')
@@ -351,17 +450,33 @@ export function GameProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {});
 
-    const checkFreshness = () => {
-      if (document.hidden) return;
-
+    // Benign refetch of the public daily/zen puzzles so the board and landing
+    // match today. It only swaps cached data — it never reloads — so it is safe
+    // to run on a timer. Suppressed while a timed daily is live: swapping
+    // cachedDaily re-runs the session-fetch effect and around midnight loads
+    // tomorrow's empty session, so GameRoute sees no active game and bounces the
+    // player home mid-run.
+    const refreshDailyCaches = () => {
+      if (timedDailyInProgressRef.current) return;
       fetchDaily()
         .then((info) => setCachedDaily(info))
         .catch(() => {});
       fetchDailyZenMeta()
         .then((info) => setCachedDailyZen(info))
         .catch(() => {});
+    };
 
-      if (gameStatusRef.current === GameState.InProgress) return;
+    const checkFreshness = () => {
+      if (document.hidden) return;
+      if (timedDailyInProgressRef.current) return;
+
+      refreshDailyCaches();
+
+      // Don't reload out from under an in-progress run: free play (tracked
+      // here via game.status) or a route-local timed run such as a gauntlet
+      // round (tracked via the registry). The cache refetch above is harmless
+      // to both, so only the version reload is gated here.
+      if (gameStatusRef.current === GameState.InProgress || activeTimedRunsRef.current > 0) return;
       fetch('/api/version')
         .then((r) => r.json())
         .then((d) => {
@@ -381,10 +496,22 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (e.persisted) checkFreshness();
     };
     document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', onVisibility);
     window.addEventListener('pageshow', onPageShow);
+
+    // Catch a tab that stays foregrounded across the midnight rollover and so
+    // never fires a transition event. Data refresh only — no build-ID check, so
+    // it can never reload the page. Costs nothing while hidden.
+    const dailyCachePoll = window.setInterval(() => {
+      if (document.hidden) return;
+      refreshDailyCaches();
+    }, DAILY_CACHE_REFRESH_MS);
+
     return () => {
       document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', onVisibility);
       window.removeEventListener('pageshow', onPageShow);
+      window.clearInterval(dailyCachePoll);
     };
   }, []);
 
@@ -635,6 +762,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       showHomeConfirm, setShowHomeConfirm,
       theme, toggleTheme,
       session, authReady,
+      freePlayHydrated,
+      registerActiveTimedRun,
       displayName, profileReady, nameProfile, updateDisplayName,
     }}>
       <div data-theme={theme} className="contents">

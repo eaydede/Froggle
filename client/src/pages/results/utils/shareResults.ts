@@ -7,7 +7,7 @@ interface ScoreTier {
   emoji: string;
 }
 
-// Mirrors the in-app rarity palette in client/src/tailwind-v2.css and the
+// Mirrors the in-app rarity palette in client/src/tailwind.css and the
 // score thresholds in engine/scoring.ts. Orange (🟧) stays pinned to the top
 // score so the share output preserves the same "orange = best word" mental
 // model players see in the word list.

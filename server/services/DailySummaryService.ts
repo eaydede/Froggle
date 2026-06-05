@@ -1,5 +1,14 @@
-import type { Kysely } from 'kysely';
+import { sql, type Kysely } from 'kysely';
 import type { Database } from '../db/types.js';
+import { getDisplayNames } from './displayNames.js';
+
+export interface FeedbackEntry {
+  id: string;
+  userId: string | null;
+  displayName: string | null;
+  message: string;
+  createdAt: Date;
+}
 
 export interface DailySummary {
   date: string;
@@ -7,6 +16,7 @@ export interface DailySummary {
   zenDailyPlayers: number;
   zenDailyActiveSeconds: number;
   freePlayGames: number;
+  feedback: FeedbackEntry[];
 }
 
 // Returns aggregate engagement counts for a single PST calendar date.
@@ -15,11 +25,17 @@ export interface DailySummary {
 // time. Counts vs. distinct-user counts: daily_results and
 // daily_zen_results have a unique (user_id, date) constraint, so count(*)
 // is already a per-player count for those.
+//
+// freePlayGames counts *completed* sessions only. The table now inserts
+// at /start with completed_at null, so without the filter we'd over-count
+// abandoned games. The session's `date` is rewritten on finalization to
+// the completion-PST date, so cross-midnight games still land on the day
+// they finished (matching the pre-migration semantics).
 export async function getDailySummary(
   db: Kysely<Database>,
   date: string,
 ): Promise<DailySummary> {
-  const [timedRow, zenRow, freePlayRow] = await Promise.all([
+  const [timedRow, zenRow, freePlayRow, feedbackRows] = await Promise.all([
     db
       .selectFrom('daily_results')
       .select((eb) => eb.fn.countAll<number>().as('players'))
@@ -37,8 +53,26 @@ export async function getDailySummary(
       .selectFrom('free_play_sessions')
       .select((eb) => eb.fn.countAll<number>().as('games'))
       .where('date', '=', date)
+      .where('completed_at', 'is not', null)
       .executeTakeFirstOrThrow(),
+    // feedback.created_at is timestamptz; match rows whose PST calendar date equals `date`.
+    db
+      .selectFrom('feedback')
+      .select(['id', 'user_id', 'message', 'created_at'])
+      .where(
+        sql<string>`(created_at at time zone 'America/Los_Angeles')::date::text`,
+        '=',
+        date,
+      )
+      .orderBy('created_at', 'asc')
+      .execute(),
   ]);
+
+  const userIds = feedbackRows
+    .map((row) => row.user_id)
+    .filter((id): id is string => id !== null);
+  const displayNames =
+    userIds.length > 0 ? await getDisplayNames(userIds) : new Map<string, string>();
 
   return {
     date,
@@ -46,6 +80,13 @@ export async function getDailySummary(
     zenDailyPlayers: Number(zenRow.players),
     zenDailyActiveSeconds: Number(zenRow.active_seconds ?? 0),
     freePlayGames: Number(freePlayRow.games),
+    feedback: feedbackRows.map((row) => ({
+      id: row.id,
+      userId: row.user_id,
+      displayName: row.user_id ? displayNames.get(row.user_id) ?? null : null,
+      message: row.message,
+      createdAt: row.created_at,
+    })),
   };
 }
 

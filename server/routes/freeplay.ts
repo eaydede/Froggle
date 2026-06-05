@@ -8,6 +8,7 @@ import { cachePrivate } from '../httpCache.js';
 import { dictionary } from '../services/dictionary.js';
 import { getDisplayNames } from '../services/displayNames.js';
 import { computeChallengeNewResults } from '../services/FreePlayService.js';
+import { assignCompetitionRanks } from '../services/ranking.js';
 import { getDailyConfig } from '../services/dailyConfig.js';
 
 export const freeplayRouter = Router();
@@ -63,6 +64,7 @@ freeplayRouter.get('/history', requireAuth, async (req, res) => {
         'seed',
       ])
       .where('user_id', '=', req.userId!)
+      .where('completed_at', 'is not', null)
       .orderBy('completed_at', 'desc')
       .limit(200)
       .execute();
@@ -71,7 +73,11 @@ freeplayRouter.get('/history', requireAuth, async (req, res) => {
     // /api/game/start before the daily-skip flag landed. Filter them out
     // by matching seed + config against the canonical daily for the row's
     // date so the free-play history stays dedicated to free-play games.
-    const rows = rawRows.filter((r) => !isDailyRow(r));
+    // completed_at is non-null by the WHERE filter above; narrow the type
+    // so downstream consumers (toISOString, getTime) don't need guards.
+    const rows = rawRows.filter(
+      (r): r is typeof r & { completed_at: Date } => !isDailyRow(r) && r.completed_at !== null,
+    );
 
     // For every challenge the caller participated in (owned or joined),
     // pull every other participant once and reduce twice: a participant
@@ -90,14 +96,16 @@ freeplayRouter.get('/history', requireAuth, async (req, res) => {
         .selectFrom('free_play_sessions')
         .select(['id', 'challenge_id', 'completed_at', 'points', 'word_count'])
         .where('challenge_id', 'in', challengeIds)
-        .execute();
+        .where('completed_at', 'is not', null)
+        .execute() as { id: string; challenge_id: string | null; completed_at: Date; points: number; word_count: number }[];
       for (const p of participants) {
         const cid = p.challenge_id!;
         playerCountByChallenge.set(cid, (playerCountByChallenge.get(cid) ?? 0) + 1);
       }
-      // Compute rank per challenge — points desc, then word count desc,
-      // then earliest completion (matches the challenge view's ordering
-      // exactly so the badge and the standings agree).
+      // Compute rank per challenge — competition-ranked on points so equal
+      // points share a place (matches the challenge view's ranking exactly so
+      // the badge and the standings agree). Word count and completion only
+      // order the list within a tie; they no longer split the rank.
       const byChallenge = new Map<string, typeof participants>();
       for (const p of participants) {
         const list = byChallenge.get(p.challenge_id!) ?? [];
@@ -110,7 +118,9 @@ freeplayRouter.get('/history', requireAuth, async (req, res) => {
           if (b.word_count !== a.word_count) return b.word_count - a.word_count;
           return a.completed_at.getTime() - b.completed_at.getTime();
         });
-        list.forEach((p, i) => rankByRowId.set(p.id, i + 1));
+        for (const { item, rank } of assignCompetitionRanks(list, (p) => p.points)) {
+          rankByRowId.set(item.id, rank);
+        }
       }
       newResultsByChallenge = computeChallengeNewResults(
         rows
@@ -170,7 +180,8 @@ freeplayRouter.get('/unread', requireAuth, async (req, res) => {
       .select(['id', 'completed_at', 'last_viewed_at'])
       .where('user_id', '=', req.userId!)
       .whereRef('id', '=', 'challenge_id')
-      .execute();
+      .where('completed_at', 'is not', null)
+      .execute() as { id: string; completed_at: Date; last_viewed_at: Date | null }[];
 
     if (ownedRows.length === 0) {
       cachePrivate(res, 15);
@@ -181,7 +192,8 @@ freeplayRouter.get('/unread', requireAuth, async (req, res) => {
       .selectFrom('free_play_sessions')
       .select(['id', 'challenge_id', 'completed_at'])
       .where('challenge_id', 'in', ownedRows.map((r) => r.id))
-      .execute();
+      .where('completed_at', 'is not', null)
+      .execute() as { id: string; challenge_id: string | null; completed_at: Date }[];
 
     const counts = computeChallengeNewResults(
       ownedRows.map((r) => ({
@@ -224,6 +236,12 @@ freeplayRouter.get('/session/:sessionId', requireAuth, async (req, res) => {
     if (row.user_id !== req.userId!) {
       return res.status(403).json({ error: 'Cannot view another player\'s session' });
     }
+    // Mid-game sessions don't have a results view yet — the player needs
+    // to finish (or time out) before the saved-replay payload makes sense.
+    if (!row.completed_at) {
+      return res.status(404).json({ error: 'Session not finished' });
+    }
+    const completedAt = row.completed_at;
 
     const board: string[][] = typeof row.board === 'string' ? JSON.parse(row.board) : row.board;
     const foundWords: string[] = typeof row.found_words === 'string'
@@ -246,7 +264,7 @@ freeplayRouter.get('/session/:sessionId', requireAuth, async (req, res) => {
       sessionId: row.id,
       challengeId: row.challenge_id,
       seed: row.seed,
-      completedAt: row.completed_at.toISOString(),
+      completedAt: completedAt.toISOString(),
       board,
       foundWords: found,
       missedWords: missed,
@@ -272,13 +290,19 @@ freeplayRouter.post('/share/:sessionId', requireAuth, async (req, res) => {
     const db = getDb();
     const row = await db
       .selectFrom('free_play_sessions')
-      .select(['id', 'user_id', 'challenge_id'])
+      .select(['id', 'user_id', 'challenge_id', 'completed_at'])
       .where('id', '=', sessionId)
       .executeTakeFirst();
 
     if (!row) return res.status(404).json({ error: 'Session not found' });
     if (row.user_id !== req.userId!) {
       return res.status(403).json({ error: 'Cannot share another player\'s session' });
+    }
+    // Sharing a still-in-progress session would surface a challenge link
+    // that points at an incomplete row — the share endpoint stays gated
+    // on finalization so recipients always land on a finished baseline.
+    if (!row.completed_at) {
+      return res.status(409).json({ error: 'Session not finished' });
     }
 
     if (row.challenge_id) {
@@ -310,6 +334,7 @@ freeplayRouter.get('/challenge/:challengeId/me', requireAuth, async (req, res) =
       .select('id')
       .where('challenge_id', '=', challengeId)
       .where('user_id', '=', req.userId!)
+      .where('completed_at', 'is not', null)
       .executeTakeFirst();
     res.json({ played: !!row, sessionId: row?.id ?? null });
   } catch (err) {
@@ -336,6 +361,7 @@ freeplayRouter.get('/challenge/:challengeId/preview', requireAuth, async (req, r
         'seed',
       ])
       .where('challenge_id', '=', challengeId)
+      .where('completed_at', 'is not', null)
       .execute();
 
     if (rows.length === 0) {
@@ -378,11 +404,17 @@ freeplayRouter.get('/challenge/:challengeId', requireAuth, async (req, res) => {
   const { challengeId } = req.params;
   try {
     const db = getDb();
-    const rows = await db
+    const rawRows = await db
       .selectFrom('free_play_sessions')
       .selectAll()
       .where('challenge_id', '=', challengeId)
+      .where('completed_at', 'is not', null)
       .execute();
+    // Narrow completed_at to non-null for the downstream toISOString /
+    // localeCompare calls. The WHERE clause is the runtime guarantee.
+    const rows = rawRows.filter(
+      (r): r is typeof r & { completed_at: Date } => r.completed_at !== null,
+    );
 
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Challenge not found' });
@@ -434,13 +466,19 @@ freeplayRouter.get('/challenge/:challengeId', requireAuth, async (req, res) => {
       };
     });
 
-    // Stable ranking: points desc, then word count desc, then earliest
-    // completion (rewards the first to finish at a tie).
+    // Display order is points desc, then word count, then earliest completion
+    // — a stable order so the list doesn't jitter between requests. Rank,
+    // though, is competition-ranked on points alone: equal points share a
+    // place (1, 1, 3), and the secondary keys only decide who's listed first
+    // within a tie, never the number shown next to them.
     players.sort((a, b) => {
       if (b.points !== a.points) return b.points - a.points;
       if (b.wordCount !== a.wordCount) return b.wordCount - a.wordCount;
       return a.completedAt.localeCompare(b.completedAt);
     });
+    const rankedPlayers = assignCompetitionRanks(players, (p) => p.points).map(
+      ({ item, rank }) => ({ ...item, rank }),
+    );
 
     // Drain the "new results" badge for the owner the moment they open
     // the challenge view. Fire-and-forget so a transient write failure
@@ -467,7 +505,7 @@ freeplayRouter.get('/challenge/:challengeId', requireAuth, async (req, res) => {
       },
       seed: ownerRow.seed,
       ownerUserId: ownerRow.user_id,
-      players,
+      players: rankedPlayers,
       missedWords,
     });
   } catch (err) {

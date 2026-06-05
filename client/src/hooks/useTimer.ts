@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { Game, GameState } from 'models';
 
 /**
- * @param initialElapsedMs Time already elapsed since the play window opened,
- *   for callers that join an in-progress game (a multiplayer reconnect). Leave
- *   at 0 for a locally started game: the countdown then anchors to the first
- *   local render, never to the server's wall clock, so a device whose clock is
- *   skewed ahead of the server doesn't lose that skew (or expire instantly).
- *   Only pass a value derived from a clock you trust to be roughly server-
- *   synced; otherwise the skew leaks straight into this offset.
+ * @param initialElapsedMs Explicit time already elapsed since the play window
+ *   opened, for callers that join an in-progress game (a multiplayer
+ *   reconnect). Leave at 0 and the countdown resumes from the game's
+ *   server-set startedAt instead, so a page refresh continues the round rather
+ *   than restarting it. Either way the anchor is read from the wall clock once
+ *   and every subsequent tick is monotonic (performance.now()), so an NTP
+ *   resync mid-round can't shrink the displayed clock.
  */
 export const useTimer = (
   game: Game | null,
@@ -30,13 +30,16 @@ export const useTimer = (
       }
 
       // Anchor the countdown the first time we see this game in progress.
-      // performance.now() is monotonic, so the running clock is immune to wall-
-      // clock jumps; the only wall-clock input is the caller-supplied
-      // initialElapsedMs (0 for a fresh local start), which back-dates the
-      // anchor so a reconnecting player resumes mid-countdown instead of
-      // restarting from full.
+      // A multiplayer reconnect passes an explicit initialElapsedMs; everyone
+      // else derives it from the server's startedAt so a page refresh resumes
+      // the existing countdown instead of restarting it. After this one-time
+      // read of the wall clock, all subsequent ticks use performance.now()
+      // (monotonic), so an NTP resync mid-round (e.g. on Android) can't spike
+      // elapsed time and shrink the displayed clock.
       if (localStartRef.current === null) {
-        localStartRef.current = performance.now() - Math.max(0, initialElapsedMs);
+        const elapsedMs =
+          initialElapsedMs > 0 ? initialElapsedMs : Math.max(0, Date.now() - game.startedAt);
+        localStartRef.current = performance.now() - elapsedMs;
       }
       const localStart = localStartRef.current;
 

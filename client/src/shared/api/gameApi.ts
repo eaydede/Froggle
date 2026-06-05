@@ -131,6 +131,29 @@ export const fetchGameState = async (): Promise<{
   return response.json();
 };
 
+export interface ActiveFreePlaySession {
+  id: string;
+  game: Game;
+  found_words: string[];
+  challenge_id: string | null;
+  seed: number | null;
+  salt: string;
+  wordHashes: string[];
+}
+
+/** Server-authoritative resume payload for a free-play game still
+ *  in progress. Returned by GET /api/game/active. Used at mount to
+ *  rehydrate React state so a refresh during free play picks up where
+ *  the player left off instead of restarting the timer. */
+export const fetchActiveFreePlaySession = async (): Promise<ActiveFreePlaySession | null> => {
+  const response = await fetch(`${API_URL}/game/active`, {
+    headers: await sessionHeaders(),
+  });
+  if (!response.ok) return null;
+  const data = await response.json();
+  return data.session ?? null;
+};
+
 export const fetchResults = async (): Promise<GameResults> => {
   const response = await fetch(`${API_URL}/game/results`, {
     headers: await sessionHeaders(),
@@ -513,6 +536,8 @@ export interface FreePlayChallengePlayer {
   userId: string | null;
   displayName: string;
   sessionId: string;
+  /** Competition rank on points — equal points share a rank (1, 1, 3). */
+  rank: number;
   points: number;
   wordCount: number;
   longestWord: string;

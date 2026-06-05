@@ -66,7 +66,7 @@ function RoundRow({ index, kind }: { index: number; kind: GauntletRoundKind }) {
   return (
     <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] px-4 py-3 flex items-center gap-3">
       <div
-        className="w-8 h-8 rounded-full flex items-center justify-center text-sm bg-[var(--track)] text-[color:var(--ink-soft)] flex-shrink-0 font-[family-name:var(--font-structure)]"
+        className="w-8 h-8 rounded-full flex items-center justify-center text-sm bg-[var(--ink-whisper)] text-[color:var(--ink-soft)] flex-shrink-0 font-[family-name:var(--font-structure)]"
         style={{ fontWeight: 700 }}
       >
         {index + 1}
