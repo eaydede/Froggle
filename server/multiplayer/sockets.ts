@@ -17,6 +17,7 @@ import type {
 } from 'models/multiplayer';
 import type { GameConfig, Position } from 'models';
 import {
+  advanceCountdown,
   disconnectPlayer,
   endBoard,
   getRoom,
@@ -160,6 +161,14 @@ export function attachMultiplayerSockets(io: Server): void {
       if (!room || room.hostId !== data.playerId) return;
       const started = startBoard(data.roomCode, () => emitState(io, data.roomCode));
       if (started) emitState(io, data.roomCode);
+    });
+
+    socket.on('board:advance-countdown', () => {
+      const data = socket.data as SocketData;
+      const advanced = advanceCountdown(data.roomCode, data.playerId, () =>
+        emitState(io, data.roomCode),
+      );
+      if (advanced) emitState(io, data.roomCode);
     });
 
     socket.on(

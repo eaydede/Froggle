@@ -70,6 +70,7 @@ export function MultiplayerRoomRoute() {
     updateNextConfig,
     setVisibility,
     startBoard,
+    advanceCountdown,
     endBoardForRoom: _endBoardForRoom,
     returnToLobby,
     submitWord,
@@ -184,6 +185,7 @@ export function MultiplayerRoomRoute() {
           youId={youId}
           onSubmitWord={submitWord}
           onFinishMyBoard={finishMyBoard}
+          onAdvanceCountdown={advanceCountdown}
           onLeave={handleLeave}
         />
       </>

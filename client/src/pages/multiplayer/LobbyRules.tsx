@@ -25,7 +25,6 @@ const TIMER_OPTIONS: SegOption[] = [
   { value: 60, label: '1:00', sub: 'Sprint' },
   { value: 120, label: '2:00', sub: 'Standard' },
   { value: 180, label: '3:00', sub: 'Chill' },
-  { value: 300, label: '5:00', sub: 'Marathon' },
 ];
 
 const MIN_OPTIONS: SegOption[] = [
