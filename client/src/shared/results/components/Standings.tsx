@@ -12,6 +12,10 @@ interface StandingsProps {
    *  Standings panel doesn't outgrow the Board next to it (Board ≈ 180px,
    *  header ≈ 20px → inner ≤ 160px). */
   maxHeight?: string;
+  /** Render a thin proportional bar under each row so the point spread —
+   *  i.e. how close the game was — is visible at a glance. Opt-in;
+   *  daily/challenge leave it off. */
+  showBars?: boolean;
 }
 
 export function Standings({
@@ -21,7 +25,9 @@ export function Standings({
   header,
   compact = false,
   maxHeight = '160px',
+  showBars = false,
 }: StandingsProps) {
+  const maxPoints = Math.max(1, ...rows.map((r) => r.points));
   return (
     <div className="flex-1 min-w-0 flex flex-col min-h-0">
       <div
@@ -95,18 +101,47 @@ export function Standings({
                 {row.rank}
               </span>
               <span
-                className="truncate text-xs text-[color:var(--ink)] flex-1 min-w-0"
-                style={{ fontWeight: row.isYou || isSelected ? 700 : 600 }}
+                className="truncate text-xs flex-1 min-w-0 text-[color:var(--ink)]"
+                style={{
+                  fontWeight: row.isYou || isSelected ? 700 : 600,
+                  opacity: row.leftEarly ? 0.6 : 1,
+                }}
                 title={row.isYou ? 'You' : row.displayName}
               >
                 {row.isYou ? 'You' : row.displayName}
               </span>
+              {row.leftEarly && (
+                <span
+                  className="shrink-0 uppercase rounded-full leading-none text-[color:var(--ink-soft)]"
+                  style={{
+                    fontSize: 8,
+                    letterSpacing: '0.08em',
+                    fontWeight: 700,
+                    padding: '2px 5px',
+                    background: 'var(--ink-whisper)',
+                  }}
+                  title="Left before the round ended"
+                >
+                  Left
+                </span>
+              )}
               <span
                 className="tabular-nums font-[family-name:var(--font-structure)] shrink-0 text-xs text-[color:var(--ink-muted)]"
                 style={{ fontWeight: 700 }}
               >
                 {row.points}
               </span>
+              {showBars && row.points > 0 && (
+                <span
+                  aria-hidden
+                  className="absolute left-3 bottom-[3px] h-[3px] rounded-full"
+                  style={{
+                    width: `calc((100% - 18px) * ${row.points / maxPoints})`,
+                    background: stripe,
+                    opacity: 0.55,
+                  }}
+                />
+              )}
             </button>
           );
         })}

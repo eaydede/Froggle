@@ -1,7 +1,9 @@
 import express from 'express';
 import cors from 'cors';
+import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { Server as SocketIOServer } from 'socket.io';
 import { authMiddleware } from './middleware/auth.js';
 import { sessionMiddleware, startSessionCleanup } from './session.js';
 import { gameRouter } from './routes/game.js';
@@ -13,6 +15,9 @@ import { leaderboardRouter } from './routes/leaderboard.js';
 import { freeplayRouter } from './routes/freeplay.js';
 import { feedbackRouter } from './routes/feedback.js';
 import { versionRouter } from './routes/version.js';
+import { multiplayerRouter } from './routes/multiplayer.js';
+import { attachMultiplayerSockets } from './multiplayer/sockets.js';
+import { startRoomCleanup } from './multiplayer/store.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,6 +57,7 @@ app.use('/api/daily/leaderboard', leaderboardRouter);
 app.use('/api/daily/zen', dailyZenRouter);
 app.use('/api/daily/gauntlet', dailyGauntletRouter);
 app.use('/api/daily', dailyRouter);
+app.use('/api/multiplayer', multiplayerRouter);
 app.use('/api/version', versionRouter);
 
 // SPA fallback for non-API routes
@@ -61,7 +67,15 @@ app.get('*', (_req, res) => {
 });
 
 startSessionCleanup();
+startRoomCleanup();
 
-app.listen(PORT, '0.0.0.0', () => {
+// Wrap Express in an HTTP server so Socket.io can attach to the same
+// port — the multiplayer namespace shares the listener with the REST
+// API to keep deployment configuration unchanged.
+const httpServer = http.createServer(app);
+const io = new SocketIOServer(httpServer, { cors: { origin: '*' } });
+attachMultiplayerSockets(io);
+
+httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });

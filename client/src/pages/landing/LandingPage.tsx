@@ -35,6 +35,7 @@ interface LandingPageProps {
   onFreePlayClick: () => void;
   onFreePlayHistory?: () => void;
   freePlayUnread?: number;
+  freePlayPlayingCount?: number;
   theme: "light" | "dark";
   onToggleTheme: () => void;
 }
@@ -62,6 +63,7 @@ export function LandingPage({
   onFreePlayClick,
   onFreePlayHistory,
   freePlayUnread,
+  freePlayPlayingCount,
   theme,
   onToggleTheme,
 }: LandingPageProps) {
@@ -101,6 +103,7 @@ export function LandingPage({
             onClick={onFreePlayClick}
             onHistory={onFreePlayHistory}
             unread={freePlayUnread}
+            playingCount={freePlayPlayingCount}
           />
         </div>
 

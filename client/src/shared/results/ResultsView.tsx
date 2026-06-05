@@ -42,6 +42,9 @@ interface ResultsViewProps {
   initialOpponentId?: string | null;
   /** Standings header label — "Standings" vs "Leaderboard". */
   standingsHeader?: string;
+  /** Render proportional point bars in the standings (multiplayer rooms
+   *  use this to show the spread). */
+  standingsShowBars?: boolean;
   /** Source label in the compare prompt ("Tap any name in the X"). */
   compareSourceLabel?: string;
   /** Per-word find percent — when provided, WordsCard renders the
@@ -78,6 +81,7 @@ export function ResultsView({
   loadOpponent,
   initialOpponentId,
   standingsHeader = 'Standings',
+  standingsShowBars = false,
   compareSourceLabel = 'standings',
   findPercents,
   popularityStyle,
@@ -256,6 +260,7 @@ export function ResultsView({
               header={standingsHeader}
               compact
               maxHeight="160px"
+              showBars={standingsShowBars}
             />
           )}
           <div className={isMulti ? '' : 'flex-1 flex justify-center'}>

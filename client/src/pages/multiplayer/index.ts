@@ -1,0 +1,1 @@
+export { MultiplayerRoomRoute } from './MultiplayerRoomRoute';

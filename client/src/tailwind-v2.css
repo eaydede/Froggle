@@ -83,6 +83,13 @@
      with matching pillar tints (~14% alpha). */
   --podium-gold:    #CA9E34;
   --podium-gold-bg: rgba(202, 158, 52, 0.14);
+  --podium-gold-edge: rgba(202, 158, 52, 0.42);
+  /* Stronger fill + deeper text for the Last Round trophy card so it
+     reads clearly against the near-white page in light mode. */
+  --podium-gold-tint: rgba(202, 158, 52, 0.16);
+  --podium-gold-deep: #9A7521;
+  /* Dark ink that stays legible on a solid gold fill in both themes. */
+  --on-gold: #2A1F08;
   --podium-silver:  #9B9B9B;
   --podium-silver-bg: rgba(155, 155, 155, 0.16);
   --podium-bronze:  #9E6B3C;
@@ -92,6 +99,19 @@
 
   /* Moss green — the "completion" stamp color on date cards. */
   --completion: #6B8E5A;
+
+  /* Player-avatar palette — six distinct hues assigned deterministically
+     from a player id so each person in a multiplayer room reads as a
+     consistent color across the lobby player strip and results. The
+     host's gold and "you" green are applied separately (semantic), so
+     these are the neutral identity hues. Avatars carry dark ink text,
+     so each hue stays mid-to-deep for contrast in both themes. */
+  --avatar-1: #C2814E;  /* clay */
+  --avatar-2: #8C6FC0;  /* violet */
+  --avatar-3: #4E86A8;  /* steel blue */
+  --avatar-4: #B89038;  /* ochre */
+  --avatar-5: #4E9B6B;  /* jade */
+  --avatar-6: #B05C7A;  /* rose */
 
   /* Accent (sage) used on attention-getting affordances — the unread
      pulse on the landing history button uses the soft variant for its
@@ -208,6 +228,10 @@
 
   --podium-gold:    #DCB554;
   --podium-gold-bg: rgba(220, 181, 84, 0.17);
+  --podium-gold-edge: rgba(220, 181, 84, 0.42);
+  --podium-gold-tint: rgba(220, 181, 84, 0.13);
+  --podium-gold-deep: #DCB554;
+  --on-gold: #2A1F08;
   --podium-silver:  #B5B5B5;
   --podium-silver-bg: rgba(181, 181, 181, 0.14);
   --podium-bronze:  #C99465;
@@ -216,6 +240,16 @@
   --you-highlight-bg-hi: rgba(125, 174, 207, 0.12);
 
   --completion: #8BB074;
+
+  /* Avatar palette — brightened a touch for the dark surfaces so the
+     identity hues stay vivid against near-black while keeping dark ink
+     text legible (matches the mock's lime/plum/sky/flame/rose chips). */
+  --avatar-1: #D49A63;  /* clay */
+  --avatar-2: #B086C0;  /* violet */
+  --avatar-3: #6FA3C8;  /* steel blue */
+  --avatar-4: #DCB554;  /* ochre */
+  --avatar-5: #7FB890;  /* jade */
+  --avatar-6: #C97D9A;  /* rose */
 
   --accent-soft:          rgba(139, 176, 116, 0.10);
   --accent-glow:          rgba(139, 176, 116, 0.50);
@@ -249,6 +283,71 @@
   --shadow-btn-primary-hover: 0 2px 0 rgba(0, 0, 0, 0.20), 0 6px 16px rgba(0, 0, 0, 0.40);
   --shadow-toggle: 0 1px 2px rgba(0, 0, 0, 0.30);
   --shadow-toggle-hover: 0 4px 12px rgba(0, 0, 0, 0.40);
+}
+
+/* Floating card treatment shared by the Free Play lobby sections (room
+   card, rules card). Matches the mock's panel: card surface that sits a
+   half-shade off the page, hairline edge, soft drop shadow. */
+.lobby-card {
+  background: var(--surface-card);
+  border: 1px solid var(--ink-border-subtle);
+  border-radius: 18px;
+  box-shadow: var(--shadow-card);
+}
+
+/* No-scrollbar helper for the horizontally-scrolling player strip. */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+
+/* Docked CTA backdrop — fades the page color up from the bottom so the
+   rules card scrolls out of view behind the Start button instead of
+   colliding with it. Gradient interpolates panel → transparent, which
+   passes through a translucent panel tint for a soft edge. */
+.cta-dock {
+  background: linear-gradient(
+    to top,
+    var(--surface-panel) 0%,
+    var(--surface-panel) 55%,
+    transparent 100%
+  );
+}
+
+/* "Last Round" trophy card — gold-tinted fill + corner wash + solid gold
+   edge to set it apart from the config cards as a celebratory recap, and
+   to stand out against the near-white light-mode page. */
+.trophy-card {
+  background:
+    radial-gradient(120% 80% at 0% 0%, var(--podium-gold-bg) 0%, transparent 55%),
+    linear-gradient(var(--podium-gold-tint), var(--podium-gold-tint)),
+    var(--surface-card);
+  border: 1px solid var(--podium-gold-edge);
+  box-shadow: var(--shadow-card);
+}
+.trophy-card:hover {
+  border-color: var(--podium-gold);
+}
+
+/* Lobby roster reveal — the "In the room" section sliding open the first
+   time the solo config becomes a shared lobby. */
+@keyframes lobby-room-reveal {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Individual player chip entry — runs on mount, so a chip added when a
+   new player joins animates in on its own. */
+@keyframes lobby-chip-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.94); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Game-start countdown numeral — each number pops in and fades as it
+   ticks down. */
+@keyframes countdown-pop {
+  0%   { opacity: 0; transform: scale(0.6); }
+  30%  { opacity: 1; transform: scale(1.05); }
+  70%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0.85; transform: scale(0.96); }
 }
 
 /* Score fade-in used on the complete-state daily card. */

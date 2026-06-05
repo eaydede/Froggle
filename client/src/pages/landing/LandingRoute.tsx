@@ -11,6 +11,7 @@ import {
   type DailyStatsResponse,
 } from '../../shared/api/gameApi';
 import { fetchGauntletStatus } from '../../shared/api/gauntletApi';
+import { createMultiplayerRoom, fetchPublicRooms } from '../../shared/api/multiplayerApi';
 import type { GauntletEntry } from 'models/gauntlet';
 import { scoreWord } from '../../shared/utils/score';
 import { getLandingFixture } from './__fixtures__';
@@ -46,6 +47,7 @@ export function LandingRoute() {
   const [dailyRank, setDailyRank] = useState<number | null>(null);
   const [zenRank, setZenRank] = useState<number | null>(null);
   const [freePlayUnread, setFreePlayUnread] = useState(0);
+  const [publicPlaying, setPublicPlaying] = useState(0);
   const [gauntletEntry, setGauntletEntry] = useState<GauntletEntry | null>(null);
 
   // Dev-only fixture injection — `?mock=unplayed|completed|partial` renders
@@ -70,6 +72,26 @@ export function LandingRoute() {
       cancelled = true;
     };
   }, [authReady]);
+
+  // Live "N playing" count for the Free Play card — refreshed on a slow
+  // interval so the landing reflects current public-game activity without
+  // hammering the endpoint. Non-fatal on failure (the cue just hides).
+  useEffect(() => {
+    let cancelled = false;
+    const load = () => {
+      fetchPublicRooms()
+        .then(({ totalPlayers }) => {
+          if (!cancelled) setPublicPlaying(totalPlayers);
+        })
+        .catch(() => {});
+    };
+    load();
+    const id = setInterval(load, 20000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
 
   useEffect(() => {
     if (!authReady) return;
@@ -138,10 +160,22 @@ export function LandingRoute() {
     };
   }, [authReady, cachedDailyZen?.date, cachedDailyZenSession?.date, cachedDailyZenSession?.ended_at, cachedDailyZenSession?.is_competitive]);
 
+  // Free Play now opens the merged config/lobby: a room is minted up front
+  // so the same surface can stay solo or grow into a lobby the moment a
+  // friend joins via the share link. The solo game itself is still created
+  // lazily when the host presses Start (and runs on the single-player
+  // engine), so nothing about solo play changes.
   const handleFreePlay = async () => {
     setDailyInfo(null);
-    await createGame();
-    navigate('/play');
+    try {
+      const room = await createMultiplayerRoom();
+      navigate(`/play/room/${room.code}`);
+    } catch {
+      // Room service unreachable — fall back to the classic solo config
+      // page so Free Play still works offline of the lobby backend.
+      await createGame();
+      navigate('/play');
+    }
   };
 
   const handleDailyPlay = async () => {
@@ -265,6 +299,7 @@ export function LandingRoute() {
       onFreePlayClick={handleFreePlay}
       onFreePlayHistory={() => navigate('/history')}
       freePlayUnread={freePlayUnread}
+      freePlayPlayingCount={publicPlaying}
       theme={theme}
       onToggleTheme={toggleTheme}
     />

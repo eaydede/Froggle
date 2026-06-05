@@ -30,8 +30,6 @@ import {
   submitDailyZenWord,
   updateProfile,
 } from './shared/api/gameApi';
-import { decodeSeedCode } from 'models/seedCode';
-import type { GameConfig } from './pages/config';
 
 const loadMuted = (): boolean => {
   try {
@@ -89,16 +87,6 @@ interface GameContextValue {
   lastZenModeChoice: ZenModeChoice;
   setLastZenModeChoice: (choice: ZenModeChoice) => void;
 
-  // Board code
-  boardCode: string;
-  setBoardCode: (code: string) => void;
-  sharedSeed: { boardSize: number; seed: number } | null;
-  handleCodeChange: (code: string) => void;
-
-  // Config persistence
-  lastConfig: GameConfig | null;
-  setLastConfig: (config: GameConfig | null) => void;
-
   // The challenge the current in-flight free-play game belongs to.
   // Set when starting via a shared link so the post-game flow can
   // redirect into the challenge results view; cleared by cancelGame
@@ -133,6 +121,12 @@ interface GameContextValue {
 
   // Profile
   displayName: string;
+  /** True once the initial profile fetch has settled (resolved or failed),
+   *  so `displayName` reflects the saved name rather than the 'Anonymous'
+   *  default. Consumers that bake the name in at a one-shot moment (e.g.
+   *  opening a multiplayer socket, which doesn't redial on name change)
+   *  should wait on this rather than `authReady`. */
+  profileReady: boolean;
   nameProfile: ProfileResponse | null;
   updateDisplayName: (name: string) => Promise<UpdateProfileResult>;
 }
@@ -151,9 +145,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [muted, setMuted] = useState(loadMuted);
   const [dailyInfo, setDailyInfo] = useState<DailyInfo | null>(null);
   const [cachedDaily, setCachedDaily] = useState<DailyInfo | null>(null);
-  const [boardCode, setBoardCode] = useState('');
-  const [sharedSeed, setSharedSeed] = useState<{ boardSize: number; seed: number } | null>(null);
-  const [lastConfig, setLastConfig] = useState<GameConfig | null>(null);
   const [activeChallengeId, setActiveChallengeId] = useState<string | null>(null);
   const [showHomeConfirm, setShowHomeConfirm] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -176,6 +167,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   // Profile
   const [displayName, setDisplayName] = useState('Anonymous');
+  const [profileReady, setProfileReady] = useState(false);
   const [nameProfile, setNameProfile] = useState<ProfileResponse | null>(null);
 
   const applyProfile = (profile: ProfileResponse) => {
@@ -225,7 +217,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (!authReady) return;
     fetchProfile()
       .then((profile) => applyProfile(profile))
-      .catch(() => {}); // Fall back to default 'Anonymous'
+      .catch(() => {}) // Fall back to default 'Anonymous'
+      .finally(() => setProfileReady(true));
   }, [authReady]);
 
   const timeRemaining = useTimer(game, fetchGameState);
@@ -413,16 +406,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
       try { localStorage.setItem('froggle-muted', String(next)); } catch { /* ignore */ }
       return next;
     });
-  };
-
-  const handleCodeChange = (code: string) => {
-    setBoardCode(code);
-    if (code.length === 14) {
-      const decoded = decodeSeedCode(code);
-      setSharedSeed(decoded || null);
-    } else {
-      setSharedSeed(null);
-    }
   };
 
   // Single source of truth for the audio + 200ms feedback flash both modes
@@ -646,15 +629,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
       cachedDailyZen, cachedDailyZenSession, dailyZenLoaded,
       setCachedDailyZenSession, refreshDailyZenSession,
       lastZenModeChoice, setLastZenModeChoice,
-      boardCode, setBoardCode, sharedSeed, handleCodeChange,
-      lastConfig, setLastConfig,
       activeChallengeId, setActiveChallengeId,
       muted, toggleMute,
       createGame, startGame, cancelGame, endGame, submitWord, handleSubmitWord, handleSubmitZenWord,
       showHomeConfirm, setShowHomeConfirm,
       theme, toggleTheme,
       session, authReady,
-      displayName, nameProfile, updateDisplayName,
+      displayName, profileReady, nameProfile, updateDisplayName,
     }}>
       <div data-theme={theme} className="contents">
         {children}

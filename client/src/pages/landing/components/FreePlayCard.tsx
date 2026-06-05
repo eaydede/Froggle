@@ -2,6 +2,9 @@ interface FreePlayCardProps {
   onClick: () => void;
   onHistory?: () => void;
   unread?: number;
+  /** Players currently in public multiplayer games. Shows a live "N
+   *  playing" cue when > 0; hidden at zero. */
+  playingCount?: number;
 }
 
 // Free Play sits below the dailies as a visually distinct option — same
@@ -10,7 +13,7 @@ interface FreePlayCardProps {
 // and led by a sliders glyph instead of a mode avatar so it reads as a
 // customisation tool, not a daily puzzle. A thin rule above it makes the
 // grouping break with the dailies explicit.
-export function FreePlayCard({ onClick, onHistory, unread = 0 }: FreePlayCardProps) {
+export function FreePlayCard({ onClick, onHistory, unread = 0, playingCount = 0 }: FreePlayCardProps) {
   return (
     <>
       <div
@@ -27,11 +30,14 @@ export function FreePlayCard({ onClick, onHistory, unread = 0 }: FreePlayCardPro
         >
           <SlidersGlyph />
           <span className="flex flex-col gap-[2px] flex-1 min-w-0">
-            <span
-              className="text-caption uppercase tracking-[0.06em] text-[color:var(--ink-muted)] leading-none font-[family-name:var(--font-structure)]"
-              style={{ fontWeight: 700 }}
-            >
-              Free Play
+            <span className="flex items-center gap-2 leading-none">
+              <span
+                className="text-caption uppercase tracking-[0.06em] text-[color:var(--ink-muted)] font-[family-name:var(--font-structure)]"
+                style={{ fontWeight: 700 }}
+              >
+                Free Play
+              </span>
+              {playingCount > 0 && <LivePill count={playingCount} />}
             </span>
             <span
               className="text-xs leading-[1.3] text-[color:var(--ink-soft)]"
@@ -78,6 +84,31 @@ export function FreePlayCard({ onClick, onHistory, unread = 0 }: FreePlayCardPro
         )}
       </div>
     </>
+  );
+}
+
+// Live "N playing" cue — a softly pulsing green dot + count, shown when
+// public multiplayer games have players right now.
+function LivePill({ count }: { count: number }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full leading-none"
+      style={{
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: '0.04em',
+        padding: '2px 6px 2px 5px',
+        color: 'var(--logo-dot)',
+        background: 'var(--accent-soft)',
+      }}
+    >
+      <span
+        aria-hidden
+        className="size-1.5 rounded-full"
+        style={{ background: 'var(--logo-dot)', animation: 'unread-pulse 2.4s ease-in-out infinite' }}
+      />
+      {count} playing
+    </span>
   );
 }
 

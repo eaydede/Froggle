@@ -23,7 +23,6 @@ function RealResultsRoute() {
     game,
     results,
     gameSeed,
-    createGame,
     cancelGame,
     activeChallengeId,
     setActiveChallengeId,
@@ -95,10 +94,12 @@ function RealResultsRoute() {
   // ChallengeRoute mounts.
   if (activeChallengeId) return null;
 
-  const handlePlayAgain = async () => {
+  const handlePlayAgain = () => {
+    // /play retires the standalone config screen for plain free play — it
+    // mints a room and redirects to the merged lobby (where solo Start
+    // still runs the single-player engine).
     navigatingRef.current = true;
     navigate('/play');
-    await createGame();
   };
 
   const handleClose = async () => {
