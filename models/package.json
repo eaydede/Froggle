@@ -7,7 +7,8 @@
     ".": "./index.ts",
     "./seedCode": "./seedCode.ts",
     "./zenRanks": "./zenRanks.ts",
-    "./gauntlet": "./gauntlet.ts"
+    "./gauntlet": "./gauntlet.ts",
+    "./multiplayer": "./multiplayer.ts"
   },
   "private": true
 }

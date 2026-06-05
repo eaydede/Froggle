@@ -17,6 +17,7 @@ import {
 } from './pages/dailyGauntlet';
 import { HistoryRoute, HistoricResultsRoute } from './pages/history';
 import { ChallengeRoute } from './pages/challenge';
+import { MultiplayerRoomRoute } from './pages/multiplayer';
 import './tailwind.css';
 
 function App() {
@@ -95,6 +96,7 @@ function App() {
         <Route path="/history" element={<HistoryRoute />} />
         <Route path="/freeplay/results/:id" element={<HistoricResultsRoute />} />
         <Route path="/freeplay/challenge/:id" element={<ChallengeRoute />} />
+        <Route path="/play/room/:code" element={<MultiplayerRoomRoute />} />
       </Routes>
     </div>
   );

@@ -26,6 +26,10 @@ export interface ResultsRosterEntry {
   displayName: string;
   points: number;
   isYou: boolean;
+  /** Multiplayer: the player left the room mid-round; their score is a
+   *  frozen snapshot. Standings flags them so it's clear they departed
+   *  rather than scored zero. Optional/absent for daily and challenge. */
+  leftEarly?: boolean;
 }
 
 /** A fully-hydrated opponent for the side-by-side compare view. */

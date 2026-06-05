@@ -2,15 +2,20 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { GameState } from 'models';
 import { useGame } from '../../GameContext';
-import { GameConfigPage } from './GameConfigPage';
-import type { GameConfig } from './types';
 import { decodeGameParams } from '../../shared/utils/gameLink';
 import {
   fetchFreePlayChallengePreview,
   type FreePlayChallengePreview,
 } from '../../shared/api/gameApi';
+import { createMultiplayerRoom } from '../../shared/api/multiplayerApi';
 import { ChallengeConfirmPage } from '../challenge/ChallengeConfirmPage';
 
+// The /play entry is a dispatcher, not a config screen. There is no longer
+// a standalone config page — settings live in the lobby. Three kinds of
+// arrival route to three surfaces:
+//   • challenge link  (?c=…&ch=…) → the challenge-accept screen → /game
+//   • bare board link (?c=…)      → straight into /game on the shared board
+//   • plain free play (/play)     → a freshly minted room (the lobby)
 export function ConfigRoute() {
   const {
     game,
@@ -18,25 +23,14 @@ export function ConfigRoute() {
     startGame,
     cancelGame,
     createGame,
-    sharedSeed,
-    boardCode,
-    handleCodeChange,
-    setBoardCode,
-    lastConfig,
-    setLastConfig,
-    setDailyInfo,
     setActiveChallengeId,
   } = useGame();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [ready, setReady] = useState(false);
   const [challengePreview, setChallengePreview] = useState<FreePlayChallengePreview | null>(null);
   const initRef = useRef(false);
 
-  // Decode shared-game params up front so the init effect can branch on
-  // whether this is a challenge link.
   const sharedGame = useMemo(() => decodeGameParams(searchParams), [searchParams]);
-  const isSharedGame = sharedGame !== null;
   const challengeId = sharedGame?.challengeId;
 
   // GameProvider hydrates an in-progress free-play row at mount; if one
@@ -52,43 +46,70 @@ export function ConfigRoute() {
 
   useEffect(() => {
     if (initRef.current) return;
-    // Wait for auth so the challenge preview check goes out with a token —
-    // without one the server treats us as a different (anonymous) caller
-    // and won't see our prior session.
+    // A challenge preview must go out with our token so the server can tell
+    // whether we've already played; wait for auth before that one branch.
     if (challengeId && !authReady) return;
     initRef.current = true;
 
     const init = async () => {
-      if (challengeId) {
+      // Challenge link → show who challenged us before committing.
+      if (challengeId && sharedGame) {
         const preview = await fetchFreePlayChallengePreview(challengeId);
         if (preview?.alreadyPlayed) {
           navigate(`/freeplay/challenge/${challengeId}`, { replace: true });
           return;
         }
-        // Fall through to render the accept screen instead of the
-        // grayed-out free-play config — recipients should see who
-        // challenged them before committing.
         if (preview) {
           setChallengePreview(preview);
-          setReady(true);
           return;
         }
-        // Preview fetch failed (challenge not found, etc.) — fall back
-        // to the regular shared-board flow so the user isn't stranded.
+        // Preview fetch failed (deleted/unknown challenge) — fall through
+        // and just play the board the link encodes.
       }
 
-      if (!game) await createGame();
-      setReady(true);
+      // Bare board link → the board is fully specified by the params, so
+      // there's nothing to configure; drop straight into the game.
+      if (sharedGame) {
+        // /api/game/start only accepts a Config-state session; a leftover
+        // Finished game from a prior round would be rejected, so mint a fresh
+        // one unless the current session is already startable.
+        if (!game || game.status !== GameState.Config) await createGame();
+        await startGame(
+          sharedGame.timer,
+          sharedGame.boardSize,
+          sharedGame.minWordLength,
+          undefined,
+          sharedGame.seed,
+          sharedGame.challengeId,
+        );
+        if (sharedGame.challengeId) setActiveChallengeId(sharedGame.challengeId);
+        navigate('/game', { replace: true });
+        return;
+      }
+
+      // Plain free play → mint a room and hand off to the merged lobby.
+      try {
+        const room = await createMultiplayerRoom();
+        navigate(`/play/room/${room.code}`, { replace: true });
+      } catch {
+        // Room backend unreachable — still let free play work by starting a
+        // default solo game rather than stranding the user on a dead route.
+        // /api/game/start only accepts a Config-state session; a leftover
+        // Finished game from a prior round would be rejected, so mint a fresh
+        // one unless the current session is already startable.
+        if (!game || game.status !== GameState.Config) await createGame();
+        await startGame(60, 4, 3);
+        navigate('/game', { replace: true });
+      }
     };
 
     init();
   }, [authReady, challengeId]);
 
-  if (!ready && !game) return null;
-
-  // Challenge accept page: shown when a recipient lands via a share link
-  // and hasn't played yet. Distinct surface from the regular config flow
-  // so the link's purpose is obvious.
+  // Challenge accept screen: shown when a recipient lands via a share link
+  // and hasn't played yet. A distinct page from anything config-related, so
+  // the link's purpose is obvious. Start runs the established single-player
+  // engine, then routes the post-game compare view via activeChallengeId.
   if (challengePreview && sharedGame) {
     return (
       <ChallengeConfirmPage
@@ -98,7 +119,8 @@ export function ConfigRoute() {
         minWordLength={challengePreview.config.minWordLength}
         playerCount={challengePreview.playerCount}
         onStart={async () => {
-          if (!game) await createGame();
+          // Same Config-state requirement as the auto-start paths above.
+          if (!game || game.status !== GameState.Config) await createGame();
           await startGame(
             sharedGame.timer,
             sharedGame.boardSize,
@@ -107,9 +129,6 @@ export function ConfigRoute() {
             sharedGame.seed,
             sharedGame.challengeId,
           );
-          // Remember which challenge this game belongs to so the
-          // post-game flow can route the player into the compare view
-          // against the originator automatically.
           if (sharedGame.challengeId) setActiveChallengeId(sharedGame.challengeId);
           navigate('/game');
         }}
@@ -122,57 +141,7 @@ export function ConfigRoute() {
     );
   }
 
-  const sharedDefaults = isSharedGame ? {
-    boardSize: sharedGame.boardSize as 4 | 5 | 6,
-    timer: sharedGame.timer as 60 | 120 | 180 | -1,
-    minWordLength: sharedGame.minWordLength as 3 | 4 | 5,
-  } : undefined;
-
-  const defaults = isSharedGame ? sharedDefaults : lastConfig ?? undefined;
-
-  const handleStart = async (config?: GameConfig) => {
-    if (isSharedGame) {
-      await startGame(
-        sharedGame.timer,
-        sharedGame.boardSize,
-        sharedGame.minWordLength,
-        undefined,
-        sharedGame.seed,
-        sharedGame.challengeId,
-      );
-    } else if (config) {
-      const effectiveBoardSize = sharedSeed ? sharedSeed.boardSize : config.boardSize;
-      const seed = sharedSeed?.seed;
-      await startGame(config.timer, effectiveBoardSize, config.minWordLength, undefined, seed);
-      setBoardCode('');
-      handleCodeChange('');
-      setLastConfig(config);
-    }
-    navigate('/game');
-  };
-
-  const handleBack = async () => {
-    setBoardCode('');
-    setDailyInfo(null);
-    setActiveChallengeId(null);
-    await cancelGame();
-    navigate('/');
-  };
-
-  const title = isSharedGame ? 'Shared Board' : 'Free Play';
-  const configKey = defaults ? `${defaults.boardSize}-${defaults.timer}-${defaults.minWordLength}` : 'default';
-
-  return (
-    <GameConfigPage
-      key={configKey}
-      title={title}
-      subtitle="Choose your settings"
-      onBack={handleBack}
-      onStart={isSharedGame ? () => handleStart() : handleStart}
-      disabled={isSharedGame}
-      defaultValues={defaults}
-      code={isSharedGame ? undefined : boardCode}
-      onCodeChange={isSharedGame ? undefined : handleCodeChange}
-    />
-  );
+  // Every other arrival redirects or auto-starts from the effect above; hold
+  // a blank surface until that navigation lands.
+  return null;
 }
