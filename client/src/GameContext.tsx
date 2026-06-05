@@ -341,16 +341,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
   // public daily are both available. The session row handles mid-game
   // resume after a reload (same as zen daily); the result row is what
   // unlocks the "See result" affordance on the confirm page.
+  const cachedDailyDate = cachedDaily?.date ?? null;
+  const cachedDailyZenDate = cachedDailyZen?.date ?? null;
+
   useEffect(() => {
-    if (!authReady || !cachedDaily) return;
+    if (!authReady || !cachedDailyDate) return;
     let cancelled = false;
     setDailyResultLoaded(false);
     setCachedDailyResult(null);
 
     (async () => {
       const [result, session] = await Promise.all([
-        fetchDailyResult(cachedDaily.date).catch(() => null),
-        fetchDailyTimedSession(cachedDaily.date).catch(() => null),
+        fetchDailyResult(cachedDailyDate).catch(() => null),
+        fetchDailyTimedSession(cachedDailyDate).catch(() => null),
       ]);
       if (cancelled) return;
       if (result) setCachedDailyResult(result);
@@ -363,7 +366,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [authReady, cachedDaily]);
+  }, [authReady, cachedDailyDate]);
 
   // Fetch public zen puzzle data immediately. The authenticated session row
   // is loaded separately below once auth is ready.
@@ -382,11 +385,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!authReady || !cachedDailyZen) return;
+    if (!authReady || !cachedDailyZenDate) return;
     let cancelled = false;
     setDailyZenLoaded(false);
 
-    fetchDailyZenSession(cachedDailyZen.date)
+    fetchDailyZenSession(cachedDailyZenDate)
       .then((session) => {
         if (!cancelled) setCachedDailyZenSession(session);
       })
@@ -400,7 +403,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [authReady, cachedDailyZen]);
+  }, [authReady, cachedDailyZenDate]);
 
   // Mobile browsers freeze backgrounded tabs (bfcache) and resume them with
   // their old in-memory state — yesterday's daily, an outdated JS bundle, etc.
@@ -412,8 +415,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
   // server's build ID against the one we booted with and reload a stale bundle.
   // The reload lives only on those transitions — never on the interval — so a
   // deploy can't reload a page out from under a user sitting on it. Both passes
-  // are suppressed while a timed daily run is live so they can't swap the board
-  // or reload mid-run.
+  // are suppressed while any run is live so they can't swap cached data or
+  // reload mid-play.
   const baselineBuildIdRef = useRef<string | null>(null);
   const gameStatusRef = useRef<GameState | null>(null);
   useEffect(() => {
@@ -438,7 +441,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const registerActiveTimedRun = useCallback(() => {
     activeTimedRunsRef.current += 1;
     return () => {
-      activeTimedRunsRef.current -= 1;
+      activeTimedRunsRef.current = Math.max(0, activeTimedRunsRef.current - 1);
     };
   }, []);
 
@@ -450,14 +453,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {});
 
+    const isRunActive = () =>
+      timedDailyInProgressRef.current ||
+      gameStatusRef.current === GameState.InProgress ||
+      activeTimedRunsRef.current > 0;
+
     // Benign refetch of the public daily/zen puzzles so the board and landing
     // match today. It only swaps cached data — it never reloads — so it is safe
-    // to run on a timer. Suppressed while a timed daily is live: swapping
-    // cachedDaily re-runs the session-fetch effect and around midnight loads
-    // tomorrow's empty session, so GameRoute sees no active game and bounces the
-    // player home mid-run.
+    // to run on a timer while idle. Suppressed while any run is live: swapping
+    // cached data can cascade through global context consumers and make the game
+    // surface look like it refreshed under the player.
     const refreshDailyCaches = () => {
-      if (timedDailyInProgressRef.current) return;
+      if (isRunActive()) return;
       fetchDaily()
         .then((info) => setCachedDaily(info))
         .catch(() => {});
@@ -468,15 +475,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
     const checkFreshness = () => {
       if (document.hidden) return;
-      if (timedDailyInProgressRef.current) return;
+      if (isRunActive()) return;
 
       refreshDailyCaches();
 
-      // Don't reload out from under an in-progress run: free play (tracked
-      // here via game.status) or a route-local timed run such as a gauntlet
-      // round (tracked via the registry). The cache refetch above is harmless
-      // to both, so only the version reload is gated here.
-      if (gameStatusRef.current === GameState.InProgress || activeTimedRunsRef.current > 0) return;
       fetch('/api/version')
         .then((r) => r.json())
         .then((d) => {
