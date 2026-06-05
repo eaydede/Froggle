@@ -433,6 +433,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
       !!cachedDailyTimedSession && !cachedDailyTimedSession.ended_at;
   }, [cachedDailyTimedSession]);
 
+  // True while a zen daily run is live. Zen is untimed and lives entirely in
+  // cachedDailyZenSession — it never populates the free-play `game` object or
+  // the timed-daily ref above — so without this it slips past every isRunActive
+  // gate and the refresh keeps swapping cachedDailyZen under the player.
+  const zenInProgressRef = useRef(false);
+  useEffect(() => {
+    zenInProgressRef.current =
+      !!cachedDailyZenSession && !cachedDailyZenSession.ended_at;
+  }, [cachedDailyZenSession]);
+
   // Ref-counted registry for route-local timed runs (gauntlet rounds) that
   // need the reload suppressed but keep their session outside this context.
   // A count (not a boolean) so overlapping registrants — and React's
@@ -455,6 +465,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
     const isRunActive = () =>
       timedDailyInProgressRef.current ||
+      zenInProgressRef.current ||
       gameStatusRef.current === GameState.InProgress ||
       activeTimedRunsRef.current > 0;
 
