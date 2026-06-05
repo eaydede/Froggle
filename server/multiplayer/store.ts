@@ -99,9 +99,158 @@ interface RoomEntry {
   /** Bumped on every mutation so the cleanup sweep can purge idle rooms
    *  without holding active ones. */
   lastActivity: number;
+  /** Public player id → authenticated Supabase user id, for the players the
+   *  server could verify at join. Server-only (never broadcast) so a snapshot
+   *  can't leak a player's user id. Used to key persisted history rows when a
+   *  board ends. */
+  userIds: Map<string, string>;
+  /** The in-flight (or settled) persistence write for the most recently ended
+   *  board. The share endpoint awaits this so a challenge can be minted the
+   *  instant results appear, before the async insert would otherwise land.
+   *  Resolves only once the deferred write below has actually run. */
+  lastPersistence: Promise<void> | null;
+  /** Timer that runs the deferred history write after the post-end grace
+   *  window closes (see schedulePersistence). Cleared if the write is flushed
+   *  early. */
+  persistTimer: NodeJS.Timeout | null;
+  /** Runs the pending history write immediately and idempotently. startBoard
+   *  calls this before it resets per-player state so a fast next round can't
+   *  wipe an unpersisted board; null when no write is pending. */
+  flushPersistence: (() => void) | null;
 }
 
 const rooms = new Map<string, RoomEntry>();
+
+// ---------------------------------------------------------------------------
+// History persistence sink
+//
+// The store stays free of any DB dependency — index.ts wires the handler at
+// boot. When a board ends, the room hands its per-player results to the sink,
+// which writes them into the same free_play_sessions history as solo
+// free-play. That makes room games (solo or multi) appear in /history and
+// promotable to async challenges through the existing infrastructure.
+// ---------------------------------------------------------------------------
+
+/** A finished board's per-player results, handed to the persistence sink. */
+export interface RoomBoardCompletion {
+  seed: number;
+  board: string[][];
+  config: GameConfig;
+  startedAt: number;
+  endedAt: number;
+  participants: Array<{
+    userId: string;
+    foundWords: string[];
+    points: number;
+    wordCount: number;
+    longestWord: string;
+  }>;
+}
+
+type BoardCompletionHandler = (completion: RoomBoardCompletion) => Promise<void> | void;
+let boardCompletionHandler: BoardCompletionHandler | null = null;
+
+/** Register the sink that persists a finished board's results. Called once at
+ *  server boot — kept as an injected callback so the in-memory store never
+ *  imports the database layer. */
+export function setBoardCompletionHandler(handler: BoardCompletionHandler): void {
+  boardCompletionHandler = handler;
+}
+
+/** Await the persistence write for the room's most recently ended board (if
+ *  any). Lets the challenge-share endpoint guarantee the history row exists
+ *  before it tries to promote it. */
+export async function awaitBoardPersistence(code: string): Promise<void> {
+  const entry = getEntry(code);
+  if (entry?.lastPersistence) await entry.lastPersistence;
+}
+
+function longestOf(words: string[]): string {
+  let longest = '';
+  for (const w of words) if (w.length > longest.length) longest = w;
+  return longest;
+}
+
+// Persisting a finished board is deferred until the post-end grace window
+// closes. submitWord keeps accepting a valid word for GRACE_PERIOD_MS after a
+// board ends (so a final word already in flight when the timer fired still
+// counts toward the round) — snapshotting at the instant of ending would write
+// the history row and shared challenge before that word lands, leaving them a
+// word short of the live room results. The extra margin guarantees a word
+// accepted at the very edge of the grace window is included before we read.
+const PERSIST_DELAY_MS = GRACE_PERIOD_MS + 50;
+
+/** Snapshot the just-ended board's per-player results, keyed to each player's
+ *  authenticated user id. Players the server couldn't authenticate are skipped
+ *  — their scores still live in the room snapshot, they just don't write
+ *  history. Returns null when nobody has a row to persist. */
+function buildCompletion(entry: RoomEntry, board: MultiplayerBoard): RoomBoardCompletion | null {
+  const participants: RoomBoardCompletion['participants'] = [];
+  for (const id of board.participantIds) {
+    const userId = entry.userIds.get(id);
+    if (!userId) continue;
+    const player = entry.room.players.find((p) => p.id === id);
+    if (!player) continue;
+    participants.push({
+      userId,
+      foundWords: [...player.foundWords],
+      points: player.points,
+      wordCount: player.wordCount,
+      longestWord: longestOf(player.foundWords),
+    });
+  }
+  if (participants.length === 0) return null;
+  return {
+    seed: board.seed,
+    board: board.board,
+    config: board.config,
+    startedAt: board.startedAt,
+    endedAt: board.endedAt!,
+    participants,
+  };
+}
+
+/** Schedule the deferred history write for the board that just ended. The
+ *  write runs once the grace window closes, or earlier if flushed (e.g. by
+ *  startBoard before it resets player state). `lastPersistence` resolves only
+ *  after the write settles, so the share endpoint can await a real row. */
+function schedulePersistence(entry: RoomEntry): void {
+  // A prior board's write should already have flushed; clear any leftover
+  // timer defensively so two pending writes can't overlap.
+  if (entry.persistTimer) clearTimeout(entry.persistTimer);
+  entry.persistTimer = null;
+  entry.flushPersistence = null;
+
+  const handler = boardCompletionHandler;
+  const board = entry.room.currentBoard;
+  if (!handler || !board || board.endedAt === null) {
+    entry.lastPersistence = null;
+    return;
+  }
+
+  let settle!: () => void;
+  entry.lastPersistence = new Promise<void>((resolve) => {
+    settle = resolve;
+  });
+
+  let done = false;
+  const flush = () => {
+    if (done) return;
+    done = true;
+    if (entry.persistTimer) clearTimeout(entry.persistTimer);
+    entry.persistTimer = null;
+    entry.flushPersistence = null;
+    const completion = buildCompletion(entry, board);
+    if (!completion) {
+      settle();
+      return;
+    }
+    Promise.resolve(handler(completion)).then(settle, settle);
+  };
+
+  entry.flushPersistence = flush;
+  entry.persistTimer = setTimeout(flush, PERSIST_DELAY_MS);
+}
 
 export interface CreateRoomOptions {
   config?: Partial<GameConfig>;
@@ -137,6 +286,10 @@ export function createRoom(options: CreateRoomOptions = {}): MultiplayerRoom {
     keyToPlayerId: new Map(),
     socketCounts: new Map(),
     lastActivity: Date.now(),
+    userIds: new Map(),
+    lastPersistence: null,
+    persistTimer: null,
+    flushPersistence: null,
   });
   return room;
 }
@@ -223,6 +376,7 @@ export function joinRoom(
   code: string,
   playerKey: string,
   displayName: string,
+  userId: string | null,
 ): { room: MultiplayerRoom; player: MultiplayerPlayer } | null {
   const entry = getEntry(code);
   if (!entry) return null;
@@ -235,6 +389,7 @@ export function joinRoom(
     existing.connected = true;
     existing.left = false; // rejoining clears the departed flag
     existing.displayName = displayName || existing.displayName;
+    if (userId) entry.userIds.set(existing.id, userId);
     // A reconnecting player may be the only live person in a room whose
     // host record is stale — make sure they can run it.
     ensureConnectedHost(room);
@@ -262,6 +417,7 @@ export function joinRoom(
 
   entry.keyToPlayerId.set(playerKey, player.id);
   entry.socketCounts.set(player.id, 1);
+  if (userId) entry.userIds.set(player.id, userId);
   room.players.push(player);
   // First player, or first to arrive after the previous host dropped while
   // alone (which leaves a stale disconnected host) — take the room over.
@@ -338,6 +494,9 @@ export function leaveRoom(code: string, playerId: string): MultiplayerRoom | nul
   // or the room is empty), tear it down so it doesn't linger.
   const livePlayers = room.players.filter((p) => !p.left);
   if (livePlayers.length === 0) {
+    // Flush any pending history write before the room (and its player data)
+    // is dropped, so the last board the departing player finished still lands.
+    entry.flushPersistence?.();
     if (entry.boardTimer) clearTimeout(entry.boardTimer);
     rooms.delete(room.code);
     clearRoomNudges(room.code);
@@ -398,6 +557,11 @@ export function startBoard(
   // otherwise create a board with an empty participant set that lands straight
   // on an empty results screen. Refuse it.
   if (!room.players.some((p) => p.connected)) return null;
+
+  // The previous board's history write may still be waiting out its grace
+  // window. Flush it now — the reset below zeroes per-player found words, so a
+  // deferred snapshot taken afterwards would persist an empty board.
+  entry.flushPersistence?.();
 
   const config = room.nextConfig;
   const seed = randomSeed();
@@ -473,6 +637,9 @@ export function endBoard(code: string): MultiplayerRoom | null {
   }
 
   updateLastRound(room);
+  // Defer the history write past the grace window — a final word may still
+  // land in submitWord for GRACE_PERIOD_MS after this point.
+  schedulePersistence(entry);
 
   touch(entry);
   return room;
@@ -731,6 +898,7 @@ export function startRoomCleanup(intervalMs = 15 * 60 * 1000): NodeJS.Timeout {
     for (const [code, entry] of rooms) {
       if (entry.lastActivity < cutoff) {
         if (entry.boardTimer) clearTimeout(entry.boardTimer);
+        if (entry.persistTimer) clearTimeout(entry.persistTimer);
         rooms.delete(code);
         clearRoomNudges(code);
       }

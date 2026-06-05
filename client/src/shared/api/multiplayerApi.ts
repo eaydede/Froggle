@@ -1,5 +1,6 @@
 import type { GameConfig } from 'models';
 import type { MultiplayerRoom, PublicRoomsResponse } from 'models/multiplayer';
+import { sessionHeaders } from './gameApi';
 
 const API_URL = '/api';
 
@@ -28,6 +29,24 @@ export async function fetchPublicRooms(): Promise<PublicRoomsResponse> {
   const res = await fetch(`${API_URL}/multiplayer/public`);
   if (!res.ok) throw new Error(`fetchPublicRooms failed: ${res.status}`);
   return (await res.json()) as PublicRoomsResponse;
+}
+
+export interface RoomChallengeShare {
+  challengeId: string;
+  seed: number;
+  config: { boardSize: number; timeLimit: number; minWordLength: number };
+}
+
+/** Promote the caller's result on the room's most recent board into a
+ *  shareable async challenge. Returns null when there's nothing to share yet
+ *  (no finished board, or the caller has no recorded result). */
+export async function shareRoomChallenge(code: string): Promise<RoomChallengeShare | null> {
+  const res = await fetch(`${API_URL}/multiplayer/rooms/${encodeURIComponent(code)}/share`, {
+    method: 'POST',
+    headers: await sessionHeaders(),
+  });
+  if (!res.ok) return null;
+  return (await res.json()) as RoomChallengeShare;
 }
 
 /** Every found-able word on the room's current board. Returns [] until the

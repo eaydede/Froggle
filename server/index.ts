@@ -17,7 +17,9 @@ import { feedbackRouter } from './routes/feedback.js';
 import { versionRouter } from './routes/version.js';
 import { multiplayerRouter } from './routes/multiplayer.js';
 import { attachMultiplayerSockets } from './multiplayer/sockets.js';
-import { startRoomCleanup } from './multiplayer/store.js';
+import { setBoardCompletionHandler, startRoomCleanup } from './multiplayer/store.js';
+import { persistRoomBoardResults } from './services/FreePlayService.js';
+import { getDb } from './db/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -68,6 +70,16 @@ app.get('*', (_req, res) => {
 
 startSessionCleanup();
 startRoomCleanup();
+
+// Persist finished room boards into the same free_play_sessions history as
+// solo free-play, so room games (solo or multi) show up in /history and can
+// be promoted to async challenges. Injected here to keep the in-memory room
+// store free of any database dependency.
+setBoardCompletionHandler((completion) =>
+  persistRoomBoardResults(getDb(), completion).catch((err) =>
+    console.error('Failed to persist room board results:', err),
+  ),
+);
 
 // Wrap Express in an HTTP server so Socket.io can attach to the same
 // port — the multiplayer namespace shares the listener with the REST
