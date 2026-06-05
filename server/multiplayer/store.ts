@@ -29,7 +29,7 @@ const ROOM_CODE_LENGTH = 5;
 const ROOM_TTL_MS = 6 * 60 * 60 * 1000; // 6h after last activity → purged
 
 const DEFAULT_CONFIG: GameConfig = {
-  durationSeconds: 180,
+  durationSeconds: 60,
   boardSize: 4,
   minWordLength: 3,
 };
@@ -40,6 +40,10 @@ const GRACE_PERIOD_MS = 500;
 // a live board with no warning. The play window (duration) begins at
 // startedAt, so the countdown doesn't eat into anyone's time.
 const COUNTDOWN_MS = 3000;
+// A solo player can fast-forward their own pre-board countdown a step at a
+// time (tap to start sooner); each advance pulls the start — and the matching
+// auto-end — this much earlier.
+const COUNTDOWN_STEP_MS = 1000;
 
 /** Clamp untrusted config to supported bounds. Kept loose — the lobby UI
  *  surfaces the same presets as solo free-play — but it's the single
@@ -618,6 +622,47 @@ export function startBoard(
 
   touch(entry);
   return { room, board };
+}
+
+/** Pull the pre-board countdown earlier by one step so a solo player can start
+ *  their own round sooner. Solo-only: rushing a shared countdown isn't one
+ *  player's call, so this no-ops the moment a second player is connected. The
+ *  auto-end timer is re-pinned to the new start, keeping the play window equal
+ *  to the configured duration. Returns the room when it advanced, else null. */
+export function advanceCountdown(
+  code: string,
+  playerId: string,
+  onAutoEnd: (room: MultiplayerRoom) => void,
+): MultiplayerRoom | null {
+  const entry = getEntry(code);
+  if (!entry) return null;
+  const room = entry.room;
+  const board = room.currentBoard;
+  if (room.status !== 'playing' || !board) return null;
+  if (room.hostId !== playerId) return null;
+  // Solo only — a second connected player means the countdown is shared and no
+  // single player gets to cut it short.
+  if (room.players.filter((p) => p.connected).length > 1) return null;
+  const now = Date.now();
+  if (now >= board.startedAt) return null; // countdown already elapsed
+
+  // Clamp so play never starts in the past.
+  board.startedAt = Math.max(now, board.startedAt - COUNTDOWN_STEP_MS);
+
+  // Re-pin the auto-end to the new start so the play window is unchanged.
+  if (entry.boardTimer) clearTimeout(entry.boardTimer);
+  entry.boardTimer = null;
+  if (board.config.durationSeconds > 0) {
+    const endAt = board.startedAt + board.config.durationSeconds * 1000;
+    entry.boardTimer = setTimeout(() => {
+      endBoard(code);
+      const fresh = getEntry(code);
+      if (fresh) onAutoEnd(fresh.room);
+    }, Math.max(0, endAt - now));
+  }
+
+  touch(entry);
+  return room;
 }
 
 export function endBoard(code: string): MultiplayerRoom | null {

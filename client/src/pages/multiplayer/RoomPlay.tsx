@@ -14,6 +14,9 @@ interface RoomPlayProps {
   youId: string | null;
   onSubmitWord: (path: Position[]) => Promise<WordSubmitResult>;
   onFinishMyBoard: () => void;
+  /** Fast-forward the pre-board countdown a step. Solo-only on the server, so
+   *  the tap target is only shown when the local player is alone in the room. */
+  onAdvanceCountdown: () => void;
   /** Exit the room entirely, mid-round, back to the main menu. */
   onLeave: () => void;
 }
@@ -23,7 +26,14 @@ interface RoomPlayProps {
 // without a leaderboard distraction. A shared "get ready" countdown plays
 // before the board goes live, and a Leave control is always available so a
 // player can bail out mid-round.
-export function RoomPlay({ room, youId, onSubmitWord, onFinishMyBoard, onLeave }: RoomPlayProps) {
+export function RoomPlay({
+  room,
+  youId,
+  onSubmitWord,
+  onFinishMyBoard,
+  onAdvanceCountdown,
+  onLeave,
+}: RoomPlayProps) {
   const { muted, toggleMute } = useGame();
   const board = room.currentBoard;
   const me = useMemo(() => room.players.find((p) => p.id === youId) ?? null, [room, youId]);
@@ -148,6 +158,11 @@ export function RoomPlay({ room, youId, onSubmitWord, onFinishMyBoard, onLeave }
 
   const isSpectating = me.status !== 'playing';
   const countdownNum = Math.max(0, Math.ceil((board.startedAt - now) / 1000));
+  // Only a solo player (alone in the room, so also the host) may cut their own
+  // countdown short — the server enforces the same, this just hides the tap
+  // target when others are present and a shared countdown isn't ours to rush.
+  const canAdvanceCountdown =
+    room.players.filter((p) => p.connected).length <= 1 && room.hostId === youId;
   const spectatorSecondsLeft =
     board.config.durationSeconds <= 0
       ? -1
@@ -164,7 +179,11 @@ export function RoomPlay({ room, youId, onSubmitWord, onFinishMyBoard, onLeave }
         </div>
 
         {counting ? (
-          <CountdownView size={board.board.length} count={countdownNum} />
+          <CountdownView
+            size={board.board.length}
+            count={countdownNum}
+            onAdvance={canAdvanceCountdown ? onAdvanceCountdown : undefined}
+          />
         ) : isSpectating ? (
           <SpectatorView board={board.board} secondsLeft={spectatorSecondsLeft} />
         ) : (
@@ -210,7 +229,17 @@ function LeaveButton({ onClick }: { onClick: () => void }) {
 // where the real one will appear and nothing jumps when play begins. The
 // tiles are intentionally blank — a letter preview would let players scout
 // the board before the clock starts.
-function CountdownView({ size, count }: { size: number; count: number }) {
+function CountdownView({
+  size,
+  count,
+  onAdvance,
+}: {
+  size: number;
+  count: number;
+  /** When set (solo player), the board area becomes a tap target that pulls
+   *  the countdown forward a step, so the round can start sooner. */
+  onAdvance?: () => void;
+}) {
   return (
     <div
       className="w-full max-w-[500px] mx-auto flex flex-col items-center"
@@ -247,8 +276,25 @@ function CountdownView({ size, count }: { size: number; count: number }) {
             >
               {count > 0 ? count : 'Go!'}
             </div>
+            {onAdvance && count > 0 && (
+              <div
+                className="text-caption text-[color:var(--ink-muted)] font-[family-name:var(--font-structure)]"
+                style={{ fontWeight: 600 }}
+              >
+                Tap to start sooner
+              </div>
+            )}
           </div>
         </div>
+        {onAdvance && count > 0 && (
+          <button
+            type="button"
+            onClick={onAdvance}
+            aria-label="Start sooner"
+            className="absolute inset-0 bg-transparent border-0 cursor-pointer"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          />
+        )}
       </div>
     </div>
   );

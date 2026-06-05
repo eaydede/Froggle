@@ -40,6 +40,9 @@ export interface UseMultiplayerRoomResult {
   setVisibility: (visibility: RoomVisibility) => void;
   /** Host-only: start the next board with the current `nextConfig`. */
   startBoard: () => void;
+  /** Solo only: fast-forward the pre-board countdown one step so play starts
+   *  sooner. No-ops server-side once a second player is connected. */
+  advanceCountdown: () => void;
   /** Host-only: forcibly end the active board (skips remaining time). */
   endBoardForRoom: () => void;
   /** Host-only: return the room to lobby state from results. */
@@ -149,6 +152,9 @@ export function useMultiplayerRoom({
   const startBoard = useCallback(() => {
     socketRef.current?.emit('board:start');
   }, []);
+  const advanceCountdown = useCallback(() => {
+    socketRef.current?.emit('board:advance-countdown');
+  }, []);
   const endBoardForRoom = useCallback(() => {
     socketRef.current?.emit('board:end');
   }, []);
@@ -195,6 +201,7 @@ export function useMultiplayerRoom({
     updateNextConfig,
     setVisibility,
     startBoard,
+    advanceCountdown,
     endBoardForRoom,
     returnToLobby,
     submitWord,
