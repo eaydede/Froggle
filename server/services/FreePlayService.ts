@@ -8,6 +8,7 @@ import { scoreWord } from 'engine/scoring.js';
 import { generateSeededBoard } from 'engine/board.js';
 import { randomSeed } from 'models/seedCode';
 import type { Database } from '../db/types.js';
+import type { RoomBoardCompletion } from '../multiplayer/store.js';
 import { dictionary } from './dictionary.js';
 import { getDailyDatePST } from './dailyConfig.js';
 import { scoreResult } from './DailyService.js';
@@ -446,6 +447,100 @@ export function buildFreePlayResults(session: FreePlaySession): {
   missedWords.sort((a, b) => b.score - a.score || b.word.length - a.word.length);
 
   return { board: session.board, foundWords, missedWords };
+}
+
+// ─── Multiplayer room → history bridge ────────────────────────────────────
+//
+// A finished room board persists one completed free_play_sessions row per
+// authenticated participant, so room games (solo or multi) appear in /history
+// and can be promoted to async challenges exactly like solo free-play. The
+// row shape lines up 1:1 with the solo session: board, found words, points,
+// config, and seed are all carried on the board.
+
+/** Persist a finished multiplayer board as one completed session row per
+ *  authenticated participant. challenge_id stays null — sharing promotes a
+ *  row to a challenge later, the same way solo free-play does. */
+export async function persistRoomBoardResults(
+  db: Kysely<Database>,
+  completion: RoomBoardCompletion,
+): Promise<void> {
+  if (completion.participants.length === 0) return;
+  const completedAt = new Date(completion.endedAt);
+  const startedAt = new Date(completion.startedAt);
+  const date = getDailyDatePST(completedAt);
+  const boardJson = JSON.stringify(completion.board);
+
+  await db
+    .insertInto('free_play_sessions')
+    .values(
+      completion.participants.map((p) => ({
+        id: crypto.randomUUID(),
+        user_id: p.userId,
+        date,
+        board: boardJson,
+        found_words: JSON.stringify(p.foundWords),
+        started_at: startedAt,
+        completed_at: completedAt,
+        points: p.points,
+        word_count: p.wordCount,
+        longest_word: p.longestWord,
+        time_limit: completion.config.durationSeconds,
+        board_size: completion.config.boardSize,
+        min_word_length: completion.config.minWordLength,
+        challenge_id: null,
+        seed: completion.seed,
+      })),
+    )
+    .execute();
+}
+
+export interface RoomChallengeShare {
+  challengeId: string;
+  seed: number;
+  config: { boardSize: number; timeLimit: number; minWordLength: number };
+}
+
+/** Promote the caller's persisted result for a specific room board into a
+ *  shareable challenge, reusing the same self-referential challenge_id model
+ *  as solo free-play (challenge id === originator session id). Idempotent:
+ *  re-sharing the same board returns the existing challenge id. Returns null
+ *  when the caller has no completed row for that board (an unauthenticated
+ *  player, or before the board's history write has landed). */
+export async function shareRoomBoardChallenge(
+  db: Kysely<Database>,
+  userId: string,
+  board: { seed: number; boardSize: number },
+): Promise<RoomChallengeShare | null> {
+  const row = await db
+    .selectFrom('free_play_sessions')
+    .select(['id', 'challenge_id', 'board_size', 'time_limit', 'min_word_length', 'seed'])
+    .where('user_id', '=', userId)
+    .where('seed', '=', board.seed)
+    .where('board_size', '=', board.boardSize)
+    .where('completed_at', 'is not', null)
+    .orderBy('completed_at', 'desc')
+    .limit(1)
+    .executeTakeFirst();
+  if (!row) return null;
+
+  const challengeId = row.challenge_id ?? row.id;
+  if (!row.challenge_id) {
+    await db
+      .updateTable('free_play_sessions')
+      .set({ challenge_id: row.id })
+      .where('id', '=', row.id)
+      .execute();
+  }
+
+  return {
+    challengeId,
+    seed: row.seed ?? board.seed,
+    config: {
+      boardSize: row.board_size,
+      timeLimit: row.time_limit,
+      minWordLength: row.min_word_length,
+    },
+  };
 }
 
 // Per-fetch salted hash payload for client-side instant validation.

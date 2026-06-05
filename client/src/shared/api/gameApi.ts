@@ -11,7 +11,7 @@ export function getSessionId(): string | null {
   return sessionId;
 }
 
-async function sessionHeaders(): Promise<Record<string, string>> {
+export async function sessionHeaders(): Promise<Record<string, string>> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (sessionId) {
     headers['X-Session-Id'] = sessionId;

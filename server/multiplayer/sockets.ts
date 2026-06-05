@@ -120,7 +120,7 @@ export function attachMultiplayerSockets(io: Server): void {
     // The socket may have been torn down during the awaits above.
     if (socket.disconnected) return;
 
-    const result = joinRoom(hs.roomCode, hs.playerKey, displayName);
+    const result = joinRoom(hs.roomCode, hs.playerKey, displayName, userId);
     if (!result) {
       socket.emit('room:error', { reason: 'not-found' });
       socket.disconnect(true);

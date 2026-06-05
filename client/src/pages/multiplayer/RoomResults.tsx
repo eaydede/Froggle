@@ -10,7 +10,9 @@ import type {
 } from '../../shared/results/types';
 import { findWordPath } from '../../shared/utils/findWordPath';
 import { scoreWord } from '../../shared/utils/score';
-import { fetchRoomWords } from '../../shared/api/multiplayerApi';
+import { fetchRoomWords, shareRoomChallenge } from '../../shared/api/multiplayerApi';
+import { encodeGameLink } from '../../shared/utils/gameLink';
+import { useShareText } from '../results/hooks/useShareText';
 import { RoomResultsHero } from './RoomResultsHero';
 
 interface RoomResultsProps {
@@ -132,6 +134,24 @@ export function RoomResults({
     };
   }, [me, board, allWords]);
 
+  // Share the just-played board as an async challenge. The board's results
+  // are persisted as free_play_sessions when it ends, so the server can
+  // promote the caller's row into a challenge — recipients then play the same
+  // seeded board on their own time and land on the shared leaderboard, exactly
+  // like a solo free-play challenge. Minted lazily on tap so a results render
+  // never fires the request.
+  const { share, copied } = useShareText(async () => {
+    const minted = await shareRoomChallenge(room.code);
+    if (!minted) return 'Froggle';
+    return `Froggle challenge — ${encodeGameLink({
+      boardSize: minted.config.boardSize,
+      seed: minted.seed,
+      timer: minted.config.timeLimit,
+      minWordLength: minted.config.minWordLength,
+      challengeId: minted.challengeId,
+    })}`;
+  });
+
   const loadOpponent = async (id: string): Promise<LoadOpponentResult> => {
     const opp = room.players.find((p) => p.id === id);
     if (!opp || !board) return { ok: false, error: 'opponent-missing' };
@@ -171,6 +191,12 @@ export function RoomResults({
     );
   }
 
+  // A room of one is a single-player game under the hood — drop the
+  // competitive framing (no "you won" hero, no standings, no rank) so it reads
+  // like the solo results page. ResultsView already collapses standings for a
+  // roster of one; here we also swap the hero and offer Share + Play again.
+  const isSolo = roster.length <= 1;
+
   const isWinner = me.rank === 1 && outcome.rank1Count === 1 && !outcome.scoreless;
   const isTie = me.rank === 1 && outcome.rank1Count > 1 && !outcome.scoreless;
   const hero = (
@@ -206,18 +232,21 @@ export function RoomResults({
       standingsHeader="Standings"
       standingsShowBars
       compareSourceLabel="standings"
-      topbarLabel={`Room · ${room.code}`}
+      topbarLabel={isSolo ? 'Free Play' : `Room · ${room.code}`}
       topbarOnClose={onLeave}
-      soloHero={hero}
+      topbarOnShare={share}
+      topbarShareCopied={copied}
+      soloHero={isSolo ? undefined : hero}
       bottomActions={
         <BottomActions
           isHost={isHost}
           onStartNext={onStartNext}
           onReturnToLobby={onReturnToLobby}
           onBackToLobby={onBackToLobby}
+          nextLabel={isSolo ? 'Play again' : 'Next round'}
         />
       }
-      soloPlaceholderVariant="wait"
+      soloPlaceholderVariant="share"
     />
   );
 }
@@ -227,9 +256,18 @@ interface BottomActionsProps {
   onStartNext: () => void;
   onReturnToLobby: () => void;
   onBackToLobby: () => void;
+  /** Label for the host's primary action — "Next round" with others present,
+   *  "Play again" when solo. */
+  nextLabel?: string;
 }
 
-function BottomActions({ isHost, onStartNext, onReturnToLobby, onBackToLobby }: BottomActionsProps) {
+function BottomActions({
+  isHost,
+  onStartNext,
+  onReturnToLobby,
+  onBackToLobby,
+  nextLabel = 'Next round',
+}: BottomActionsProps) {
   if (!isHost) {
     // Non-hosts can't start the next round, but they shouldn't be stuck on
     // the scoresheet — give them a real, full-width button back to the
@@ -263,7 +301,7 @@ function BottomActions({ isHost, onStartNext, onReturnToLobby, onBackToLobby }: 
       />
       <ActionButton
         onClick={onStartNext}
-        label="Next round"
+        label={nextLabel}
         primary
         icon={
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">

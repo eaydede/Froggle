@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { GameState } from 'models';
 import { useGame } from '../../GameContext';
 import { InkButton } from '../../shared/components/InkButton';
 import { useMultiplayerRoom } from '../../shared/multiplayer/useMultiplayerRoom';
@@ -20,7 +19,7 @@ export function MultiplayerRoomRoute() {
   const { code: rawCode } = useParams<{ code: string }>();
   const code = (rawCode ?? '').toUpperCase();
   const navigate = useNavigate();
-  const { session, profileReady, game, createGame, startGame } = useGame();
+  const { session, profileReady } = useGame();
   const [precheck, setPrecheck] = useState<PrecheckState>('checking');
   // Lets the host reopen the just-finished board's scoresheet from the
   // lobby's "Last Round" card without leaving the room.
@@ -135,27 +134,13 @@ export function MultiplayerRoomRoute() {
     navigate('/');
   };
 
-  // Host pressing Start in the lobby. Solo (room of one) runs the
-  // established single-player free-play engine so challenge links,
-  // history persistence, and the rich solo results page all keep
-  // working untouched. With others present, the board runs through the
-  // room so everyone races the same letters live.
-  const handleStart = async () => {
-    if (!room) return;
-    const connected = room.players.filter((p) => p.connected).length;
-    if (connected <= 1) {
-      const cfg = room.nextConfig;
-      // `startGame` hits /api/game/start, which only accepts a session in
-      // Config state. A leftover game from a just-finished solo round (e.g.
-      // "Play again" routing back through the lobby) is Finished, so create a
-      // fresh session unless the current one is already startable.
-      if (!game || game.status !== GameState.Config) await createGame();
-      await startGame(cfg.durationSeconds, cfg.boardSize, cfg.minWordLength);
-      navigate('/game');
-      return;
-    }
-    startBoard();
-  };
+  // Host pressing Start in the lobby. Every round — solo or multi — runs
+  // through the room: the board, the shared "get ready" countdown, and the
+  // results all live on the room so the room is never dropped and recreated.
+  // Solo just happens to be a room of one; its results still persist to
+  // history and can be shared as an async challenge (handled server-side when
+  // the board ends), so nothing is lost by not diverting to a separate engine.
+  const handleStart = () => startBoard();
 
   const handleShare = async () => {
     const url = `${window.location.origin}/play/room/${code}`;
@@ -172,9 +157,6 @@ export function MultiplayerRoomRoute() {
     await copyToClipboard(url);
   };
 
-  if (precheck === 'checking' || !profileReady) {
-    return <LoadingScreen label="Connecting…" />;
-  }
   if (precheck === 'not-found' || errorReason === 'not-found') {
     return <NotFoundScreen code={code} onHome={() => navigate('/')} />;
   }
@@ -182,8 +164,15 @@ export function MultiplayerRoomRoute() {
     return <NotFoundScreen code={code} onHome={() => navigate('/')} variant="error" />;
   }
 
+  // One calm loader covers the whole pre-room phase (auth settling, room
+  // precheck, socket connect, first state). Plain free play should feel
+  // single-player, not like a multi-step "connecting → joining → reconnecting"
+  // handshake — so there's no per-stage copy. We only surface a reconnect
+  // notice on a genuine socket error with no room state to fall back on; once
+  // a room has loaded, a dropped socket keeps the last snapshot on screen
+  // instead of falling back here.
   if (!room) {
-    return <LoadingScreen label={status === 'connecting' ? 'Joining room…' : 'Reconnecting…'} />;
+    return <LoadingScreen reconnecting={status === 'error'} />;
   }
 
   if (room.status === 'playing') {
@@ -252,16 +241,23 @@ export function MultiplayerRoomRoute() {
   );
 }
 
-function LoadingScreen({ label }: { label: string }) {
+function LoadingScreen({ reconnecting = false }: { reconnecting?: boolean }) {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)]">
-      <div className="flex flex-col items-center gap-2">
-        <div
-          className="font-[family-name:var(--font-display)] italic"
-          style={{ fontSize: '1.4rem', fontWeight: 600 }}
-        >
-          {label}
-        </div>
+      <div className="flex flex-col items-center gap-3">
+        <span
+          className="inline-block rounded-full animate-pulse"
+          style={{ width: 14, height: 14, background: 'var(--logo-dot)' }}
+          aria-label="Loading"
+        />
+        {reconnecting && (
+          <div
+            className="text-caption uppercase tracking-[0.08em] text-[color:var(--ink-muted)] font-[family-name:var(--font-structure)]"
+            style={{ fontWeight: 700 }}
+          >
+            Reconnecting…
+          </div>
+        )}
       </div>
     </div>
   );
