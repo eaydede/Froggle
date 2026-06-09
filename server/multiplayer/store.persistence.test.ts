@@ -4,6 +4,7 @@ import {
   endBoard,
   getRoom,
   joinRoom,
+  leaveRoom,
   setBoardCompletionHandler,
   startBoard,
   type RoomBoardCompletion,
@@ -98,5 +99,33 @@ describe('room board history persistence', () => {
     vi.advanceTimersByTime(1000);
     vi.advanceTimersByTime(1000);
     expect(completions).toHaveLength(1);
+  });
+
+  it('attributes the round to the starting host even if the host leaves during the grace window', () => {
+    const { code } = createRoom();
+    joinRoom(code, 'key-1', 'Alice', 'user-1'); // first joiner becomes host
+    joinRoom(code, 'key-2', 'Bob', 'user-2');
+    startBoard(code, () => {});
+
+    const room = getRoom(code)!;
+    for (const p of room.players) {
+      p.foundWords = ['HELLO'];
+      p.points = 1;
+      p.wordCount = 1;
+    }
+    const originalHostId = room.hostId;
+
+    endBoard(code);
+
+    // The host leaves before the deferred write flushes; the store promotes a
+    // successor. The persisted attribution must still point at the host that
+    // ran the round, not the replacement.
+    leaveRoom(code, originalHostId);
+    expect(getRoom(code)!.hostId).not.toBe(originalHostId);
+
+    vi.advanceTimersByTime(1000);
+
+    expect(completions).toHaveLength(1);
+    expect(completions[0].hostUserId).toBe('user-1');
   });
 });
