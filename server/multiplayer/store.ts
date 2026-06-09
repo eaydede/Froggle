@@ -121,6 +121,12 @@ interface RoomEntry {
    *  calls this before it resets per-player state so a fast next round can't
    *  wipe an unpersisted board; null when no write is pending. */
   flushPersistence: (() => void) | null;
+  /** Authenticated user id of the host that started the current board, captured
+   *  at start so the deferred history write attributes the round to whoever ran
+   *  it — not to a successor promoted during the post-end grace window (or by
+   *  the very departure that ended the round). Null when the host wasn't
+   *  authenticated. */
+  currentBoardHostUserId: string | null;
 }
 
 const rooms = new Map<string, RoomEntry>();
@@ -142,6 +148,12 @@ export interface RoomBoardCompletion {
   config: GameConfig;
   startedAt: number;
   endedAt: number;
+  /** Authenticated user id of the host that started this board, when the host
+   *  was signed in. The persistence layer makes this player the
+   *  originator/owner of the linked challenge, so a shared multiplayer board
+   *  attributes to whoever ran the round rather than an arbitrary row. Null
+   *  when the host wasn't authenticated. */
+  hostUserId: string | null;
   participants: Array<{
     userId: string;
     foundWords: string[];
@@ -210,6 +222,7 @@ function buildCompletion(entry: RoomEntry, board: MultiplayerBoard): RoomBoardCo
     config: board.config,
     startedAt: board.startedAt,
     endedAt: board.endedAt!,
+    hostUserId: entry.currentBoardHostUserId,
     participants,
   };
 }
@@ -294,6 +307,7 @@ export function createRoom(options: CreateRoomOptions = {}): MultiplayerRoom {
     lastPersistence: null,
     persistTimer: null,
     flushPersistence: null,
+    currentBoardHostUserId: null,
   });
   return room;
 }
@@ -593,6 +607,11 @@ export function startBoard(
   };
   room.currentBoard = board;
   room.status = 'playing';
+  // Capture the round's host now (the prior board's pending write already
+  // flushed above, so this can't clobber it). Reading it at the deferred write
+  // instead would misattribute the shared challenge to a successor promoted by
+  // host transfer during the grace window.
+  entry.currentBoardHostUserId = entry.userIds.get(room.hostId) ?? null;
 
   // Players who left during the previous round are gone for good — drop
   // them now that we're starting a fresh board so they don't carry into

@@ -458,8 +458,22 @@ export function buildFreePlayResults(session: FreePlaySession): {
 // config, and seed are all carried on the board.
 
 /** Persist a finished multiplayer board as one completed session row per
- *  authenticated participant. challenge_id stays null — sharing promotes a
- *  row to a challenge later, the same way solo free-play does. */
+ *  authenticated participant.
+ *
+ *  When two or more players played the board, every participant's row is
+ *  stamped with one shared challenge_id so they're linked as a single game:
+ *  the history endpoint then reports the real player count, ranks the field,
+ *  and routes each player into the standings view where they see everyone who
+ *  played — without this, each co-player only ever saw their own solo row.
+ *  The challenge id is the host's own row id, reusing the same self-referential
+ *  originator model as solo free-play: the host owns the board they set up, so
+ *  sharing it attributes to them and "new results" badges land on their row
+ *  when async recipients later play. If the host wasn't an authenticated
+ *  participant we fall back to the first participant so an owner row always
+ *  exists (the challenge endpoints key board/config and attribution off it).
+ *
+ *  A solo board keeps challenge_id null so it behaves exactly like a solo
+ *  free-play session — promotable to a self-referential challenge on share. */
 export async function persistRoomBoardResults(
   db: Kysely<Database>,
   completion: RoomBoardCompletion,
@@ -470,11 +484,41 @@ export async function persistRoomBoardResults(
   const date = getDailyDatePST(completedAt);
   const boardJson = JSON.stringify(completion.board);
 
+  // One signed-in account can hold two player slots (two devices / windows
+  // with distinct reconnect keys). Collapse to a single row per user — their
+  // best showing — so the shared challenge_id can't hit two rows for the same
+  // user and trip the (user_id, challenge_id) unique index, which would reject
+  // the whole batch and lose everyone's results.
+  const byUser = new Map<string, RoomBoardCompletion['participants'][number]>();
+  for (const p of completion.participants) {
+    const prev = byUser.get(p.userId);
+    if (
+      !prev ||
+      p.points > prev.points ||
+      (p.points === prev.points && p.wordCount > prev.wordCount)
+    ) {
+      byUser.set(p.userId, p);
+    }
+  }
+  const participants = [...byUser.values()];
+
+  // Mint row ids up front so a multiplayer board can point every row's
+  // challenge_id at the owner's row — making that row self-referential
+  // (id === challenge_id), exactly like a shared solo session's originator.
+  const rowIds = participants.map(() => crypto.randomUUID());
+  let challengeId: string | null = null;
+  if (participants.length > 1) {
+    const hostIdx = completion.hostUserId
+      ? participants.findIndex((p) => p.userId === completion.hostUserId)
+      : -1;
+    challengeId = rowIds[hostIdx >= 0 ? hostIdx : 0];
+  }
+
   await db
     .insertInto('free_play_sessions')
     .values(
-      completion.participants.map((p) => ({
-        id: crypto.randomUUID(),
+      participants.map((p, i) => ({
+        id: rowIds[i],
         user_id: p.userId,
         date,
         board: boardJson,
@@ -487,7 +531,7 @@ export async function persistRoomBoardResults(
         time_limit: completion.config.durationSeconds,
         board_size: completion.config.boardSize,
         min_word_length: completion.config.minWordLength,
-        challenge_id: null,
+        challenge_id: challengeId,
         seed: completion.seed,
       })),
     )
