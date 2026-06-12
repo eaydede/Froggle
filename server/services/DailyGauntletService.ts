@@ -11,6 +11,8 @@ import {
   type GauntletRoundKind,
   type GauntletRoundSummary,
   type GauntletState,
+  type GauntletStatsDay,
+  type GauntletStatsResponse,
 } from 'models/gauntlet';
 import type { Database } from '../db/types.js';
 import { dictionary } from './dictionary.js';
@@ -631,4 +633,104 @@ export async function getGauntletStatus(
     upcomingConfigs,
     roundKinds,
   };
+}
+
+// ─── History for the standings date picker ───────────────────────────────
+
+function addDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function maxDate(a: string, b: string): string {
+  return a >= b ? a : b;
+}
+
+// Per-day gauntlet history over a lookback window. Mirrors getDailyZenStats
+// in shape so the client can reuse the timeline picker, but folds the three
+// per-round rows into a single per-day summary. Aggregate rank + rank-sum
+// are resolved only for days the player finished all three rounds.
+export async function getDailyGauntletStats(
+  db: Kysely<Database>,
+  userId: string,
+  config: { launchDate: string; today: string; windowDays?: number },
+): Promise<GauntletStatsResponse> {
+  const { launchDate, today, windowDays = 30 } = config;
+  const windowStart = maxDate(addDays(today, -(windowDays - 1)), launchDate);
+  const windowEnd = today;
+
+  const userRows = await db
+    .selectFrom('daily_gauntlet_results')
+    .select(['date', 'points', 'word_count', 'ended_at'])
+    .where('user_id', '=', userId)
+    .where('date', '>=', windowStart)
+    .where('date', '<=', windowEnd)
+    .execute();
+
+  // Distinct players who engaged with the gauntlet on each day.
+  const playerCountRows = await db
+    .selectFrom('daily_gauntlet_results')
+    .select((eb) => ['date', eb.fn.count(eb.ref('user_id')).distinct().as('players')])
+    .where('date', '>=', windowStart)
+    .where('date', '<=', windowEnd)
+    .groupBy('date')
+    .execute();
+  const playersByDate = new Map<string, number>();
+  for (const row of playerCountRows) playersByDate.set(row.date, Number(row.players));
+
+  interface DayAccum {
+    endedRounds: number;
+    points: number;
+    words: number;
+  }
+  const byDate = new Map<string, DayAccum>();
+  for (const r of userRows) {
+    const acc = byDate.get(r.date) ?? { endedRounds: 0, points: 0, words: 0 };
+    if (r.ended_at) acc.endedRounds += 1;
+    acc.points += Number(r.points);
+    acc.words += Number(r.word_count);
+    byDate.set(r.date, acc);
+  }
+
+  // Aggregate standing only matters for days the player finished all three
+  // rounds — compute the rank for those days and pull the player out of it.
+  const completedDates = [...byDate.entries()]
+    .filter(([, acc]) => acc.endedRounds >= GAUNTLET_ROUND_COUNT)
+    .map(([date]) => date);
+  const aggregateByDate = new Map<
+    string,
+    { rank: number | null; rankSum: number | null; total: number }
+  >();
+  for (const date of completedDates) {
+    const aggregate = await getGauntletAggregate(db, date);
+    const mine = aggregate.find((a) => a.userId === userId);
+    aggregateByDate.set(date, {
+      rank: mine?.aggregateRank ?? null,
+      rankSum: mine?.rankSum ?? null,
+      total: aggregate.length,
+    });
+  }
+
+  const days: GauntletStatsDay[] = [];
+  for (let d = windowStart; d <= windowEnd; d = addDays(d, 1)) {
+    const acc = byDate.get(d);
+    const completed = !!acc && acc.endedRounds >= GAUNTLET_ROUND_COUNT;
+    const state: GauntletState = completed ? 'completed' : acc ? 'partial' : 'unplayed';
+    const agg = aggregateByDate.get(d);
+    days.push({
+      date: d,
+      puzzleNumber: getDailyGauntletNumber(d),
+      state,
+      roundsCompleted: acc?.endedRounds ?? 0,
+      points: completed ? acc!.points : null,
+      wordsFound: completed ? acc!.words : null,
+      aggregateRank: completed ? (agg?.rank ?? null) : null,
+      aggregateRankSum: completed ? (agg?.rankSum ?? null) : null,
+      totalPlayersCompleted: agg?.total ?? 0,
+      playersCount: playersByDate.get(d) ?? 0,
+    });
+  }
+
+  return { windowStart, windowEnd, days };
 }

@@ -29,6 +29,12 @@ export function GauntletRoundResultsRoute() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const fromStandings = searchParams.get('from') === 'standings';
+  const todayDate = new Date().toLocaleDateString('en-CA', {
+    timeZone: 'America/Los_Angeles',
+  });
+  const targetDate = searchParams.get('date') ?? todayDate;
+  // Carries the browsed date forward through round-to-round navigation.
+  const dateQuery = `&date=${targetDate}`;
   const { authReady, displayName } = useGame();
   const roundIndex = Number(round);
   const [result, setResult] = useState<GauntletRoundResultResponse | null>(null);
@@ -39,12 +45,9 @@ export function GauntletRoundResultsRoute() {
     if (!authReady || !Number.isFinite(roundIndex)) return;
     let cancelled = false;
     (async () => {
-      const today = new Date().toLocaleDateString('en-CA', {
-        timeZone: 'America/Los_Angeles',
-      });
       const [r, lb] = await Promise.all([
-        fetchGauntletRoundResult(today, roundIndex),
-        fetchGauntletLeaderboard(today).catch(() => null),
+        fetchGauntletRoundResult(targetDate, roundIndex),
+        fetchGauntletLeaderboard(targetDate).catch(() => null),
       ]);
       if (cancelled) return;
       setResult(r);
@@ -54,15 +57,18 @@ export function GauntletRoundResultsRoute() {
     return () => {
       cancelled = true;
     };
-  }, [authReady, roundIndex]);
+  }, [authReady, roundIndex, targetDate]);
 
   // Same render-time navigate guard as the play route — the redirect
   // is deferred to an effect so it doesn't fire during render.
   useEffect(() => {
     if (loaded && !result) {
-      navigate('/daily/gauntlet', { replace: true });
+      navigate(
+        fromStandings ? `/daily/gauntlet/results?date=${targetDate}` : '/daily/gauntlet',
+        { replace: true },
+      );
     }
-  }, [loaded, result, navigate]);
+  }, [loaded, result, navigate, fromStandings, targetDate]);
 
   if (!loaded || !result) {
     return (
@@ -130,10 +136,7 @@ export function GauntletRoundResultsRoute() {
       ];
 
   const loadOpponent = async (userId: string): Promise<LoadOpponentResult> => {
-    const today = new Date().toLocaleDateString('en-CA', {
-      timeZone: 'America/Los_Angeles',
-    });
-    const cmp = await fetchGauntletCompare(today, roundIndex, userId);
+    const cmp = await fetchGauntletCompare(targetDate, roundIndex, userId);
     if (!cmp.ok) return { ok: false, error: cmp.error };
     return {
       ok: true,
@@ -153,11 +156,13 @@ export function GauntletRoundResultsRoute() {
   // the next round is unstarted by definition, so it goes to confirm.
   const advance = () => {
     if (isLastRound) {
-      navigate('/daily/gauntlet/results');
+      navigate(
+        fromStandings ? `/daily/gauntlet/results?date=${targetDate}` : '/daily/gauntlet/results',
+      );
       return;
     }
     if (fromStandings) {
-      navigate(`/daily/gauntlet/round/${roundIndex + 1}/results?from=standings`);
+      navigate(`/daily/gauntlet/round/${roundIndex + 1}/results?from=standings${dateQuery}`);
       return;
     }
     navigate(`/daily/gauntlet/round/${roundIndex + 1}`);
@@ -167,7 +172,7 @@ export function GauntletRoundResultsRoute() {
   // to the standings page; from the mid-play flow, X exits to home and
   // the secondary action stays "Home" as well.
   const onClose = () =>
-    fromStandings ? navigate('/daily/gauntlet/results') : navigate('/');
+    fromStandings ? navigate(`/daily/gauntlet/results?date=${targetDate}`) : navigate('/');
 
   // For the rare-letters round, surface the per-cell point values on
   // the preview board so a player reading their results can match a
