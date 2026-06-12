@@ -60,6 +60,11 @@ export interface UseMultiplayerRoomResult {
   /** Latest incoming nudge (host only) — `{ from, at }`, bumped each time
    *  someone nudges so the UI can surface a toast. Null until first nudge. */
   nudge: { from: string; at: number } | null;
+  /** Estimated `serverClock − deviceClock`, in ms. Add to `Date.now()` to get
+   *  the server's wall time. Lets timing (the pre-board countdown, the play
+   *  deadline) compare against the shared clock so a wrong device clock can't
+   *  distort it. 0 until the first sync round-trip completes. */
+  clockOffsetMs: number;
 }
 
 interface UseMultiplayerRoomOptions {
@@ -81,6 +86,13 @@ export function useMultiplayerRoom({
   const [status, setStatus] = useState<ConnectionStatus>('connecting');
   const [errorReason, setErrorReason] = useState<string | null>(null);
   const [nudge, setNudge] = useState<{ from: string; at: number } | null>(null);
+  const [clockOffsetMs, setClockOffsetMs] = useState(0);
+  // True once a time:sync probe has produced a measurement. Until then the
+  // room snapshot's `serverNow` seeds a coarse offset (so the countdown is
+  // right from the first snapshot, before any probe lands); after, the probes
+  // — which correct for round-trip latency — are authoritative and snapshots
+  // stop touching the offset.
+  const syncedByProbeRef = useRef(false);
   const socketRef = useRef<Socket | null>(null);
   const playerKeyRef = useRef<string>('');
 
@@ -96,6 +108,7 @@ export function useMultiplayerRoom({
     // the connect lets the transient mount cancel before any socket is
     // opened, so only one connection is ever made.
     let socket: Socket | null = null;
+    let cancelled = false;
     setStatus('connecting');
     setErrorReason(null);
 
@@ -111,7 +124,43 @@ export function useMultiplayerRoom({
       });
       socketRef.current = socket;
 
-      socket.on('connect', () => setStatus('connected'));
+      // Estimate the device→server clock offset with a short burst of timed
+      // round-trips (NTP-style: keep the sample with the lowest round-trip
+      // time, since that one has the least one-way asymmetry). Runs on every
+      // connect — a reconnect re-measures — and settles within ~1s, well
+      // before the host can start a board.
+      const syncClock = () => {
+        if (cancelled || !socket) return;
+        let bestRtt = Infinity;
+        let probes = 0;
+        const sample = () => {
+          if (cancelled || !socket || probes >= 3) return;
+          probes += 1;
+          const t0 = Date.now();
+          socket.timeout(3000).emit('time:sync', (err: Error | null, serverTime?: number) => {
+            if (cancelled) return;
+            if (!err && typeof serverTime === 'number') {
+              const t1 = Date.now();
+              const rtt = t1 - t0;
+              syncedByProbeRef.current = true;
+              if (rtt < bestRtt) {
+                bestRtt = rtt;
+                // Assume a symmetric round-trip: the server's reply reflects
+                // its clock at ~t0 + rtt/2, so the offset to add to a local
+                // timestamp is serverTime − (t0 + rtt/2).
+                setClockOffsetMs(serverTime - (t0 + rtt / 2));
+              }
+            }
+            setTimeout(sample, 150);
+          });
+        };
+        sample();
+      };
+
+      socket.on('connect', () => {
+        setStatus('connected');
+        syncClock();
+      });
       socket.on('disconnect', () => setStatus('closed'));
       socket.on('connect_error', () => {
         setStatus('error');
@@ -124,6 +173,13 @@ export function useMultiplayerRoom({
       socket.on('room:state', (broadcast: RoomStateBroadcast) => {
         setRoom(broadcast.room);
         setYouId(broadcast.youId);
+        // Seed a coarse clock offset from the snapshot's server timestamp so
+        // the countdown is computed correctly even on the very first snapshot
+        // (the one that may carry a freshly-started board), before the precise
+        // probe lands. Once a probe has measured, it owns the offset.
+        if (!syncedByProbeRef.current && typeof broadcast.serverNow === 'number') {
+          setClockOffsetMs(broadcast.serverNow - Date.now());
+        }
       });
       socket.on('room:nudge', (payload: { from: string }) => {
         setNudge({ from: payload?.from ?? 'A player', at: Date.now() });
@@ -131,6 +187,7 @@ export function useMultiplayerRoom({
     }, 0);
 
     return () => {
+      cancelled = true;
       clearTimeout(timer);
       if (socket) {
         socket.removeAllListeners();
@@ -209,5 +266,6 @@ export function useMultiplayerRoom({
     leaveRoom,
     nudgeHost,
     nudge,
+    clockOffsetMs,
   };
 }

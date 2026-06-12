@@ -51,12 +51,6 @@ interface SocketData {
   displayName: string;
 }
 
-function buildBroadcast(roomCode: string, youId: string): RoomStateBroadcast | null {
-  const room = getRoom(roomCode);
-  if (!room) return null;
-  return { room, youId };
-}
-
 /** The live sockets in one room. Resolved through Socket.io's own room
  *  membership index (every socket `join`s its room code) so this is O(room
  *  size), not O(all connected sockets across every room). */
@@ -78,9 +72,12 @@ function emitState(io: Server, roomCode: string): void {
   // Every connected socket gets the snapshot tailored to their own id —
   // the `youId` lets the client highlight themselves in the roster
   // without server-side bookkeeping.
+  // One timestamp for the whole fan-out so every recipient seeds its clock
+  // offset against the same instant.
+  const serverNow = Date.now();
   for (const socket of socketsInRoom(io, roomCode)) {
     const data = socket.data as Partial<SocketData>;
-    socket.emit('room:state', { room, youId: data.playerId } as RoomStateBroadcast);
+    socket.emit('room:state', { room, youId: data.playerId, serverNow } as RoomStateBroadcast);
   }
 }
 
@@ -97,6 +94,19 @@ export function attachMultiplayerSockets(io: Server): void {
   const ns = io.of('/multiplayer');
 
   ns.on('connection', async (socket) => {
+    // Clock sync. Registered first thing — before the auth / display-name /
+    // join awaits below — so the listener is up the instant the socket
+    // connects. The client probes this on its own 'connect' event; if we only
+    // attached the listener after those awaits, that first probe could land in
+    // the gap and be dropped, leaving the client on a 0 offset (a wrong device
+    // clock distorting the "get ready" countdown — a 30s-slow clock showed a
+    // 33s countdown) until a later probe happened to land. It just echoes the
+    // server's wall time and touches no room state, so answering before
+    // identity is resolved is safe.
+    socket.on('time:sync', (ack?: (serverTime: number) => void) => {
+      if (typeof ack === 'function') ack(Date.now());
+    });
+
     const hs = readHandshake(socket);
     if (!hs) {
       socket.emit('room:error', { reason: 'bad-handshake' });

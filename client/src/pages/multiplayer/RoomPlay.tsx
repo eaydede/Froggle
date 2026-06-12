@@ -12,6 +12,11 @@ import { LobbyPlayerStrip } from './LobbyPlayerStrip';
 interface RoomPlayProps {
   room: MultiplayerRoom;
   youId: string | null;
+  /** Estimated `serverClock − deviceClock`, in ms (see useMultiplayerRoom).
+   *  `board.startedAt` is stamped on the server clock; subtracting this offset
+   *  rebases it into the device's clock so countdown/timer math against
+   *  `Date.now()` is right even when the device clock is wrong. */
+  clockOffsetMs: number;
   onSubmitWord: (path: Position[]) => Promise<WordSubmitResult>;
   onFinishMyBoard: () => void;
   /** Fast-forward the pre-board countdown a step. Solo-only on the server, so
@@ -29,6 +34,7 @@ interface RoomPlayProps {
 export function RoomPlay({
   room,
   youId,
+  clockOffsetMs,
   onSubmitWord,
   onFinishMyBoard,
   onAdvanceCountdown,
@@ -36,6 +42,11 @@ export function RoomPlay({
 }: RoomPlayProps) {
   const { muted, toggleMute } = useGame();
   const board = room.currentBoard;
+  // The board's start instant rebased onto this device's clock, so every
+  // comparison below (and the play timer inside GamePage) can use the raw
+  // local `Date.now()` and still agree with the server's schedule even if the
+  // device clock is off. Null when there's no board yet.
+  const startedAtLocal = board ? board.startedAt - clockOffsetMs : 0;
   const me = useMemo(() => room.players.find((p) => p.id === youId) ?? null, [room, youId]);
   const [feedback, setFeedback] = useState<
     { type: FeedbackType; path: Position[]; bonus?: string | null } | null
@@ -107,7 +118,7 @@ export function RoomPlay({
 
   // True during the shared pre-board countdown. While counting the board
   // isn't InProgress yet, so neither timer in GamePage runs early.
-  const counting = !!board && me?.status === 'playing' && now < board.startedAt;
+  const counting = !!board && me?.status === 'playing' && now < startedAtLocal;
 
   // Run the wall-clock ticker only while it feeds a visible readout: the
   // countdown, or the spectator "time left" panel once the player is done.
@@ -124,7 +135,7 @@ export function RoomPlay({
     const live = !ended && !counting;
     return {
       board: board.board,
-      startedAt: board.startedAt,
+      startedAt: startedAtLocal,
       status: live ? GameState.InProgress : GameState.Finished,
       config: {
         durationSeconds: board.config.durationSeconds,
@@ -132,7 +143,7 @@ export function RoomPlay({
         minWordLength: board.config.minWordLength,
       },
     };
-  }, [board, me?.status, counting]);
+  }, [board, me?.status, counting, startedAtLocal]);
 
   const finishedRef = useRef(false);
   const onTimerExpire = useCallback(() => {
@@ -146,18 +157,18 @@ export function RoomPlay({
   }, [board?.startedAt]);
 
   // A player who reconnects mid-round sees the game flip to InProgress with a
-  // startedAt already in the past; hand the timer that elapsed time so it
-  // resumes the shared clock instead of restarting from full. For a player
-  // present from the countdown this is ~0. board.startedAt is the server's
-  // schedule — consistent with the countdown/spectator readouts above, which
-  // already compare it against the local clock.
-  const initialElapsedMs = board ? Math.max(0, Date.now() - board.startedAt) : 0;
+  // start already in the past; hand the timer that elapsed time so it resumes
+  // the shared clock instead of restarting from full. For a player present
+  // from the countdown this is ~0. startedAtLocal is the server's schedule
+  // rebased onto this device's clock — consistent with the countdown/spectator
+  // readouts above, which compare the same value against the local clock.
+  const initialElapsedMs = board ? Math.max(0, Date.now() - startedAtLocal) : 0;
   const timeRemaining = useTimer(game, onTimerExpire, initialElapsedMs);
 
   if (!board || !game || !me) return null;
 
   const isSpectating = me.status !== 'playing';
-  const countdownNum = Math.max(0, Math.ceil((board.startedAt - now) / 1000));
+  const countdownNum = Math.max(0, Math.ceil((startedAtLocal - now) / 1000));
   // Only a solo player (alone in the room, so also the host) may cut their own
   // countdown short — the server enforces the same, this just hides the tap
   // target when others are present and a shared countdown isn't ours to rush.
@@ -166,7 +177,7 @@ export function RoomPlay({
   const spectatorSecondsLeft =
     board.config.durationSeconds <= 0
       ? -1
-      : Math.max(0, Math.ceil((board.startedAt + board.config.durationSeconds * 1000 - now) / 1000));
+      : Math.max(0, Math.ceil((startedAtLocal + board.config.durationSeconds * 1000 - now) / 1000));
 
   return (
     <div className="fixed inset-0 flex items-start justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] overflow-y-auto">
