@@ -379,8 +379,11 @@ export interface RankedRow {
 }
 
 // Per-round ranks across all finalized rows on the date. Used to render
-// per-round leaderboards and to feed the aggregate. Tiebreak mirrors
-// timed daily: points desc, word_count desc, completed_at asc.
+// per-round leaderboards and to feed the aggregate. Ranked on points
+// alone so equal points share a place (1, 1, 3), matching timed daily
+// and the canonical competition-rank rule in ranking.ts: a tie is an
+// equal score, full stop — never broken by word count or finish time.
+// The aggregate applies its own tiebreaks for final standings.
 export async function getGauntletRoundRanks(
   db: Kysely<Database>,
   date: string,
@@ -396,7 +399,7 @@ export async function getGauntletRoundRanks(
           'points',
           'word_count',
           'completed_at',
-          sql<number>`rank() over (partition by ${eb.ref('round_index')} order by ${eb.ref('points')} desc, ${eb.ref('word_count')} desc, ${eb.ref('completed_at')} asc)`.as('rank'),
+          sql<number>`rank() over (partition by ${eb.ref('round_index')} order by ${eb.ref('points')} desc)`.as('rank'),
         ])
         .where('date', '=', date)
         .where('ended_at', 'is not', null),
