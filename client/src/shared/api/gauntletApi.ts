@@ -4,6 +4,7 @@ import type {
   GauntletModifier,
   GauntletRoundConfig,
   GauntletRoundKind,
+  GauntletStatsResponse,
 } from 'models/gauntlet';
 import { supabase } from '../supabase';
 
@@ -51,6 +52,27 @@ export interface GauntletStatusResponse {
 export async function fetchGauntletStatus(): Promise<GauntletStatusResponse> {
   const res = await fetch(`${API_URL}/daily/gauntlet`, { headers: await authHeaders() });
   if (!res.ok) throw new Error('Failed to fetch gauntlet status');
+  return res.json();
+}
+
+// Standings payload for an arbitrary date — used by the results page to
+// render historic gauntlets browsed through the date picker.
+export async function fetchGauntletStatusForDate(
+  date: string,
+): Promise<GauntletStatusResponse> {
+  const res = await fetch(`${API_URL}/daily/gauntlet/${date}/status`, {
+    headers: await authHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to fetch gauntlet status');
+  return res.json();
+}
+
+// Per-day gauntlet history that populates the standings date picker.
+export async function fetchGauntletStats(): Promise<GauntletStatsResponse> {
+  const res = await fetch(`${API_URL}/daily/gauntlet/stats`, {
+    headers: await authHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to fetch gauntlet stats');
   return res.json();
 }
 

@@ -11,6 +11,7 @@ import { cachePrivate, noStore } from '../httpCache.js';
 import { dictionary } from '../services/dictionary.js';
 import { getDailyDatePST } from '../services/dailyConfig.js';
 import {
+  DAILY_GAUNTLET_LAUNCH_DATE,
   getDailyGauntletNumber,
   prepareAllGauntletRounds,
   prepareGauntletRound,
@@ -18,6 +19,7 @@ import {
 import {
   aggregateFromRoundRanks,
   endGauntletRound,
+  getDailyGauntletStats,
   getGauntletRoundRanks,
   getGauntletRoundSession,
   getGauntletStatus,
@@ -68,6 +70,50 @@ dailyGauntletRouter.get('/', requireAuth, async (req, res) => {
     res.json({
       date,
       puzzleNumber: getDailyGauntletNumber(date),
+      ...status,
+    });
+  } catch (err) {
+    console.error('Failed to fetch gauntlet status:', err);
+    res.status(500).json({ error: 'Failed to fetch gauntlet status' });
+  }
+});
+
+// Per-day gauntlet history for the standings date picker. Single literal
+// segment, so it must be registered before the `/:date/...` routes below.
+dailyGauntletRouter.get('/stats', requireAuth, async (req, res) => {
+  try {
+    const stats = await getDailyGauntletStats(getDb(), req.userId!, {
+      launchDate: DAILY_GAUNTLET_LAUNCH_DATE,
+      today: getDailyDatePST(),
+    });
+    // The window always includes today, whose state is still mutable, so the
+    // whole payload must skip the cache — otherwise the picker can keep
+    // showing today as not-completed for the TTL after the player finishes.
+    noStore(res);
+    res.json(stats);
+  } catch (err) {
+    console.error('Failed to fetch gauntlet stats:', err);
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
+// Status (hub payload) for an arbitrary date — powers historic standings.
+// Same shape as `/` (today) but lets the results page render past gauntlets.
+dailyGauntletRouter.get('/:date/status', requireAuth, async (req, res) => {
+  try {
+    const status = await getGauntletStatus(getDb(), req.userId!, req.params.date);
+    // Today's state is still mutable (the player may finish more rounds
+    // mid-session), so it must not be cached — otherwise a `partial` snapshot
+    // fetched before finishing can mask the completed standings until the TTL
+    // expires. Past dates are immutable (starts are gated to today).
+    if (req.params.date === getDailyDatePST()) {
+      noStore(res);
+    } else {
+      cachePrivate(res, 60);
+    }
+    res.json({
+      date: req.params.date,
+      puzzleNumber: getDailyGauntletNumber(req.params.date),
       ...status,
     });
   } catch (err) {

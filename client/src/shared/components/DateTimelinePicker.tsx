@@ -187,7 +187,9 @@ export function DateTimelinePicker({
                   {group.label}
                 </div>
                 {group.entries.map((entry) => {
-                  const iso = entry.date.toISOString().slice(0, 10);
+                  // Prefer the canonical ISO when provided — re-deriving from
+                  // the local-noon `date` drifts a day for UTC+13/+14/-12.
+                  const iso = entry.iso ?? entry.date.toISOString().slice(0, 10);
                   return (
                     <DayCard
                       key={iso}

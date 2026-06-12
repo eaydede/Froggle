@@ -72,3 +72,27 @@ export interface GauntletEntry {
   aggregateRank: number | null;
   totalPlayersCompleted: number;
 }
+
+// One day of gauntlet history for the standings date picker. `points` and
+// `wordsFound` are the sums across the three rounds (completed days only);
+// the aggregate rank + rank-sum mirror the standings headline so the picker
+// can preview a day's outcome. `state` is the true gauntlet state — the
+// client maps it onto the picker's completed/missed/unplayed display.
+export interface GauntletStatsDay {
+  date: string;
+  puzzleNumber: number;
+  state: GauntletState;
+  roundsCompleted: number;
+  points: number | null;
+  wordsFound: number | null;
+  aggregateRank: number | null;
+  aggregateRankSum: number | null;
+  totalPlayersCompleted: number;
+  playersCount: number;
+}
+
+export interface GauntletStatsResponse {
+  windowStart: string;
+  windowEnd: string;
+  days: GauntletStatsDay[];
+}
