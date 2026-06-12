@@ -20,6 +20,14 @@ export const useTimer = (
   // started. Set once per in-progress game so an NTP resync mid-round can't
   // spike elapsed time and shrink the displayed clock.
   const localStartRef = useRef<number | null>(null);
+  // The startedAt this anchor was computed against. In multiplayer it can
+  // shift once shortly after mount, when the device→server clock offset
+  // finishes calibrating; re-anchoring on that change keeps a client that
+  // reached play before the first sync (e.g. a mid-round reconnect on a
+  // skewed clock) from holding a wrong elapsed value for the rest of the
+  // board. It only changes on a deliberate schedule correction, never per
+  // tick, so the NTP-jump protection above is preserved.
+  const anchoredStartedAtRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (game && game.status === GameState.InProgress) {
@@ -29,17 +37,19 @@ export const useTimer = (
         return;
       }
 
-      // Anchor the countdown the first time we see this game in progress.
-      // A multiplayer reconnect passes an explicit initialElapsedMs; everyone
+      // Anchor the countdown the first time we see this game in progress (and
+      // re-anchor if startedAt is later corrected by clock sync). A
+      // multiplayer reconnect passes an explicit initialElapsedMs; everyone
       // else derives it from the server's startedAt so a page refresh resumes
-      // the existing countdown instead of restarting it. After this one-time
-      // read of the wall clock, all subsequent ticks use performance.now()
+      // the existing countdown instead of restarting it. After this read of
+      // the wall clock, all subsequent ticks use performance.now()
       // (monotonic), so an NTP resync mid-round (e.g. on Android) can't spike
       // elapsed time and shrink the displayed clock.
-      if (localStartRef.current === null) {
+      if (localStartRef.current === null || anchoredStartedAtRef.current !== game.startedAt) {
         const elapsedMs =
           initialElapsedMs > 0 ? initialElapsedMs : Math.max(0, Date.now() - game.startedAt);
         localStartRef.current = performance.now() - elapsedMs;
+        anchoredStartedAtRef.current = game.startedAt;
       }
       const localStart = localStartRef.current;
 
@@ -63,6 +73,7 @@ export const useTimer = (
     } else {
       // Reset local start when game is not in progress
       localStartRef.current = null;
+      anchoredStartedAtRef.current = null;
       setTimeRemaining(0);
     }
   }, [game, onTimeExpired]);

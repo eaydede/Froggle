@@ -146,6 +146,13 @@ export interface RoomStateBroadcast {
    *  in `room.players` is theirs. Echoed so the server can confirm the
    *  player key was accepted. */
   youId: string;
+  /** Server wall-clock (`Date.now()`) at the moment this snapshot was
+   *  emitted. The client subtracts its own clock to seed a coarse
+   *  device→server offset immediately — so countdown/timer math is right
+   *  from the first snapshot, before the precise `time:sync` probe lands.
+   *  Carries the one-way send latency as error (~tens of ms); the probe
+   *  burst refines it. */
+  serverNow: number;
 }
 
 export interface WordSubmitPayload {

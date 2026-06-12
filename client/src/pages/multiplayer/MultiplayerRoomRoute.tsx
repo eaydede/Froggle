@@ -78,6 +78,7 @@ export function MultiplayerRoomRoute() {
     leaveRoom,
     nudgeHost,
     nudge,
+    clockOffsetMs,
   } = useMultiplayerRoom({
     roomCode: code,
     accessToken: session?.access_token,
@@ -183,6 +184,7 @@ export function MultiplayerRoomRoute() {
         <RoomPlay
           room={room}
           youId={youId}
+          clockOffsetMs={clockOffsetMs}
           onSubmitWord={submitWord}
           onFinishMyBoard={finishMyBoard}
           onAdvanceCountdown={advanceCountdown}

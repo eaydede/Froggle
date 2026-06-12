@@ -9,10 +9,15 @@ export const TimerBar = ({ game }: TimerBarProps) => {
   const [remainingPercentage, setRemainingPercentage] = useState(100);
   // Anchor the local start time against the server-issued game.startedAt
   // so a refresh mid-play picks up where the bar was, instead of snapping
-  // back to 100%. The one-time wall-clock read mirrors useTimer's
-  // approach — subsequent ticks stay on performance.now() (monotonic) to
-  // avoid jumps from NTP sync on Android.
+  // back to 100%. The wall-clock read mirrors useTimer's approach —
+  // subsequent ticks stay on performance.now() (monotonic) to avoid jumps
+  // from NTP sync on Android.
   const localStartRef = useRef<number | null>(null);
+  // The startedAt this anchor was computed against. Re-anchor if it shifts —
+  // in multiplayer it can move once after mount when the device→server clock
+  // offset finishes calibrating, so a client that reached play before the
+  // first sync doesn't keep a skewed bar position. Mirrors useTimer.
+  const anchoredStartedAtRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (game.config.durationSeconds <= 0) {
@@ -20,9 +25,10 @@ export const TimerBar = ({ game }: TimerBarProps) => {
       return;
     }
 
-    if (localStartRef.current === null) {
+    if (localStartRef.current === null || anchoredStartedAtRef.current !== game.startedAt) {
       const serverElapsedMs = Math.max(0, Date.now() - game.startedAt);
       localStartRef.current = performance.now() - serverElapsedMs;
+      anchoredStartedAtRef.current = game.startedAt;
     }
     const localStart = localStartRef.current;
 
