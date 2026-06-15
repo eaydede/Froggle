@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assignCompetitionRanks } from './ranking.js';
+import { assignCompetitionRanks } from 'models/ranking';
 
 // Characterization: locks the current standard-competition-rank behavior
 // ("1, 1, 3" — equal scores share a rank, the next distinct score skips the

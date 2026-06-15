@@ -8,7 +8,7 @@ import { cachePrivate } from '../httpCache.js';
 import { dictionary } from '../services/dictionary.js';
 import { getDisplayNames } from '../services/displayNames.js';
 import { computeChallengeNewResults } from '../services/FreePlayService.js';
-import { assignCompetitionRanks } from '../services/ranking.js';
+import { assignCompetitionRanks } from 'models/ranking';
 import { getDailyConfig } from '../services/dailyConfig.js';
 
 export const freeplayRouter = Router();

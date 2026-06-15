@@ -102,11 +102,10 @@ describe.runIf(dockerAvailable())('zen lifecycle (characterization, DB)', () => 
     expect(row.ended_by_player).toBe(true);
   });
 
-  // BUG DOCUMENTATION: two players with equal points but different word counts
-  // should share rank 1 (competition ranking). Today the zen leaderboard ranks
-  // by array index after a points-then-wordCount sort, so it splits them into
-  // ranks 1 and 2. PR-1 will change the expected ranks below to [1, 1].
-  it('CURRENT (buggy) ranking splits a tie into ranks 1 and 2', async () => {
+  // Two players with equal points but different word counts share rank 1
+  // (competition ranking), matching the daily/free-play leaderboards. The word
+  // count still orders the displayed list, but it does not split the rank.
+  it('shares rank 1 for tied points (competition ranking)', async () => {
     await zenRow(h, ['ABCDEF']); // one 6-letter word  → 5 points, 1 word
     await zenRow(h, ['ABC', 'DEF', 'GHI', 'JKL', 'MNO']); // five 3-letter words → 5 points, 5 words
 
@@ -114,8 +113,8 @@ describe.runIf(dockerAvailable())('zen lifecycle (characterization, DB)', () => 
     const points = lb.rankings.points;
 
     expect(points.map((p) => p.points)).toEqual([5, 5]);
-    expect(points.map((p) => p.rank)).toEqual([1, 2]); // <-- buggy: should become [1, 1]
-    // Current tiebreak sorts the higher word count first.
+    expect(points.map((p) => p.rank)).toEqual([1, 1]); // tie → shared rank
+    // The higher word count still sorts first for display order.
     expect(points[0].wordCount).toBe(5);
     expect(points[1].wordCount).toBe(1);
   });

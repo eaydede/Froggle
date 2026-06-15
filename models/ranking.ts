@@ -3,10 +3,12 @@
 // already be in non-increasing score order — rank is derived by comparing each
 // item's score to the one before it.
 //
-// This lives in one place so the daily leaderboard, the free-play challenge
-// standings, and the history-badge rank all agree on what a tie means. A tie is
-// equal score, full stop; we deliberately do not break it by completion time or
-// word count, so two players who see the same number also see the same place.
+// This lives in models/ — importable by both server and client — so the daily
+// leaderboard, the free-play challenge standings, the zen leaderboard, the
+// live multiplayer results, and the history-badge rank all agree on what a tie
+// means. A tie is equal score, full stop; we deliberately do not break it by
+// completion time or word count, so two players who see the same number also
+// see the same place.
 export function assignCompetitionRanks<T>(
   sorted: readonly T[],
   scoreOf: (item: T) => number,

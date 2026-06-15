@@ -1,5 +1,6 @@
 import { sql, type Kysely } from 'kysely';
 import type { Position } from 'models';
+import { assignCompetitionRanks } from 'models/ranking';
 import { isValidPath } from 'engine/adjacency.js';
 import { isValidWord } from 'engine/dictionary.js';
 import { scoreWord } from 'engine/scoring.js';
@@ -518,8 +519,18 @@ export async function getZenLeaderboard(
       isCompetitive: e.isCompetitive,
     }));
 
-  const byPoints = [...ranked].sort((a, b) => b.points - a.points || b.wordCount - a.wordCount);
-  const byWords = [...ranked].sort((a, b) => b.wordCount - a.wordCount || b.points - a.points);
+  // Competition ranking: players with equal scores share a rank. The secondary
+  // sort key still orders the displayed list (so equal-point players appear in
+  // a stable order), but it does not split their rank — two players who see the
+  // same number see the same place, matching the daily/free-play leaderboards.
+  const byPoints = assignCompetitionRanks(
+    [...ranked].sort((a, b) => b.points - a.points || b.wordCount - a.wordCount),
+    (e) => e.points,
+  );
+  const byWords = assignCompetitionRanks(
+    [...ranked].sort((a, b) => b.wordCount - a.wordCount || b.points - a.points),
+    (e) => e.wordCount,
+  );
 
   let currentPlayer: ZenLeaderboardCurrentPlayer | null = null;
   if (requestingUserId) {
@@ -531,9 +542,9 @@ export async function getZenLeaderboard(
       let rank: number | null = null;
       let ranked = false;
       if (myRow.isCompetitive && !myRow.inProgress) {
-        const idx = byPoints.findIndex((e) => e.userId === requestingUserId);
-        if (idx >= 0) {
-          rank = idx + 1;
+        const entry = byPoints.find(({ item }) => item.userId === requestingUserId);
+        if (entry) {
+          rank = entry.rank;
           ranked = true;
         }
       }
@@ -562,16 +573,16 @@ export async function getZenLeaderboard(
     inProgressCount: inProgressPlayers.length,
     avgScore,
     rankings: {
-      points: byPoints.map((e, i) => ({
-        rank: i + 1,
+      points: byPoints.map(({ item: e, rank }) => ({
+        rank,
         userId: e.userId,
         displayName: e.displayName,
         points: e.points,
         wordCount: e.wordCount,
         longestWord: e.longestWord,
       })),
-      words: byWords.map((e, i) => ({
-        rank: i + 1,
+      words: byWords.map(({ item: e, rank }) => ({
+        rank,
         userId: e.userId,
         displayName: e.displayName,
         points: e.points,
