@@ -1,10 +1,9 @@
 import { sql, type Kysely } from 'kysely';
 import type { Position } from 'models';
 import { assignCompetitionRanks } from 'models/ranking';
-import { isValidPath } from 'engine/adjacency.js';
-import { isValidWord } from 'engine/dictionary.js';
 import { scoreWord } from 'engine/scoring.js';
 import { findAllWords } from 'engine/solver.js';
+import { validateSubmission } from 'engine/submission.js';
 import type { Database } from '../db/types.js';
 import { dictionary } from './dictionary.js';
 import { getDisplayNames } from './displayNames.js';
@@ -152,28 +151,15 @@ export async function submitWord(
   if (session.ended_at) return { valid: false, reason: 'ended' };
 
   const config = getDailyZenConfig(date);
-
-  if (!isValidPath(path, config.boardSize)) {
-    return { valid: false, reason: 'invalid' };
-  }
-
-  const word = path
-    .map((pos) => session.board[pos.row][pos.col])
-    .join('')
-    .toUpperCase();
-
-  if (word.length < config.minWordLength) {
-    return { valid: false, reason: 'invalid' };
-  }
-  if (!isValidWord(dictionary, word.toLowerCase())) {
-    return { valid: false, reason: 'invalid' };
-  }
-  if (session.found_words.some((w) => w.toUpperCase() === word)) {
-    return { valid: false, reason: 'repeat' };
-  }
-
-  const nextWords = [...session.found_words, word];
-  const { points, wordCount, longestWord } = scoreResult(nextWords);
+  const result = validateSubmission(path, {
+    board: session.board,
+    foundWords: session.found_words,
+    boardSize: config.boardSize,
+    minWordLength: config.minWordLength,
+    dictionary,
+    score: scoreResult,
+  });
+  if (!result.valid) return result;
 
   // Gap-capped active-time accumulation: credit min(elapsed, CAP) seconds
   // for the gap since the last word submission. The cap prevents long
@@ -189,11 +175,11 @@ export async function submitWord(
   await db
     .updateTable('daily_zen_results')
     .set({
-      found_words: JSON.stringify(nextWords),
+      found_words: JSON.stringify(result.nextWords),
       last_active_at: now,
-      points,
-      word_count: wordCount,
-      longest_word: longestWord,
+      points: result.aggregate.points,
+      word_count: result.aggregate.wordCount,
+      longest_word: result.aggregate.longestWord,
       active_seconds: sql<number>`active_seconds + ${creditSec}`,
     })
     .where('user_id', '=', userId)
@@ -201,7 +187,7 @@ export async function submitWord(
     .where('ended_at', 'is', null)
     .execute();
 
-  return { valid: true, word, score: scoreWord(word) };
+  return { valid: true, word: result.word, score: result.score };
 }
 
 export async function endSession(

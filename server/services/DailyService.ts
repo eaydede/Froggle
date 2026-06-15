@@ -1,8 +1,7 @@
 import { sql, type Kysely } from 'kysely';
 import type { Position } from 'models';
-import { isValidPath } from 'engine/adjacency.js';
-import { isValidWord } from 'engine/dictionary.js';
 import { scoreWord } from 'engine/scoring.js';
+import { validateSubmission } from 'engine/submission.js';
 import type { Database } from '../db/types.js';
 import { dictionary } from './dictionary.js';
 import { getDailyConfig, type DailyConfig } from './dailyConfig.js';
@@ -604,42 +603,30 @@ export async function submitTimedDailyWord(
   if (session.ended_at) return { valid: false, reason: 'ended' };
 
   const config = getDailyConfig(date);
-  if (!isValidPath(path, config.boardSize)) {
-    return { valid: false, reason: 'invalid' };
-  }
-
-  const word = path
-    .map((pos) => session.board[pos.row][pos.col])
-    .join('')
-    .toUpperCase();
-
-  if (word.length < config.minWordLength) {
-    return { valid: false, reason: 'invalid' };
-  }
-  if (!isValidWord(dictionary, word.toLowerCase())) {
-    return { valid: false, reason: 'invalid' };
-  }
-  if (session.found_words.some((w) => w.toUpperCase() === word)) {
-    return { valid: false, reason: 'repeat' };
-  }
-
-  const nextWords = [...session.found_words, word];
-  const { points, wordCount, longestWord } = scoreResult(nextWords);
+  const result = validateSubmission(path, {
+    board: session.board,
+    foundWords: session.found_words,
+    boardSize: config.boardSize,
+    minWordLength: config.minWordLength,
+    dictionary,
+    score: scoreResult,
+  });
+  if (!result.valid) return result;
 
   await db
     .updateTable('daily_results')
     .set({
-      found_words: JSON.stringify(nextWords),
-      points,
-      word_count: wordCount,
-      longest_word: longestWord,
+      found_words: JSON.stringify(result.nextWords),
+      points: result.aggregate.points,
+      word_count: result.aggregate.wordCount,
+      longest_word: result.aggregate.longestWord,
     })
     .where('user_id', '=', userId)
     .where('date', '=', date)
     .where('ended_at', 'is', null)
     .execute();
 
-  return { valid: true, word, score: scoreWord(word) };
+  return { valid: true, word: result.word, score: result.score };
 }
 
 // Player-triggered finalize. Caps the recorded completion at
