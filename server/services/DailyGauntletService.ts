@@ -3,6 +3,7 @@ import { isValidPath } from 'engine/adjacency.js';
 import { isValidWord } from 'engine/dictionary.js';
 import { scoreGauntletWord } from 'engine/gauntletScoring.js';
 import type { Position } from 'models';
+import { assignCompetitionRanks } from 'models/ranking';
 import {
   GAUNTLET_ROUND_COUNT,
   type GauntletEntry,
@@ -465,36 +466,30 @@ export function aggregateFromRoundRanks(
     });
   }
 
+  // best single-round rank, then earliest last-finish, order the displayed
+  // list among players who share a rank-sum — but they do NOT split the rank.
   entries.sort((a, b) => {
     if (a.rankSum !== b.rankSum) return a.rankSum - b.rankSum;
     if (a.bestSingleRank !== b.bestSingleRank) return a.bestSingleRank - b.bestSingleRank;
     return a.lastFinishedAt.getTime() - b.lastFinishedAt.getTime();
   });
 
-  // Dense-rank by (rankSum, bestSingleRank, lastFinishedAt) so tied
-  // players share a rank. The trio is unique enough in practice that
-  // pure ties are rare, but keeping dense-rank semantics avoids
-  // surprising the player who is "tied for 3rd" with a 4th-place display.
-  let lastKey = '';
-  let lastRank = 0;
-  for (let i = 0; i < entries.length; i++) {
-    const e = entries[i];
-    const key = `${e.rankSum}|${e.bestSingleRank}|${e.lastFinishedAt.getTime()}`;
-    if (key !== lastKey) {
-      lastRank = i + 1;
-      lastKey = key;
-    }
-    e.aggregateRank = lastRank;
+  // Rank on rank-sum alone via the shared competition-rank helper: players with
+  // an equal rank-sum share a place (1, 1, 3), the same tie rule the per-round
+  // ranks and every other leaderboard use. The sort keys above only fix the
+  // display order within a tie; they no longer break the rank.
+  for (const { item, rank } of assignCompetitionRanks(entries, (e) => e.rankSum)) {
+    item.aggregateRank = rank;
   }
 
   return entries;
 }
 
 // Aggregate ranks across all 3 rounds. Only includes players who have
-// finalized all three rounds. Tiebreak order:
-//   primary:    rankSum asc (lower = better — the gauntlet "score")
-//   secondary:  best single-round rank (rewards specialists when tied)
-//   tertiary:   last-round completed_at asc (earliest finisher wins)
+// finalized all three rounds. Placement is by rankSum asc (lower = better —
+// the gauntlet "score"); players with an equal rankSum share a rank. Best
+// single-round rank, then earliest last-finish, only order the display within
+// a tie — they do not split the rank.
 export async function getGauntletAggregate(
   db: Kysely<Database>,
   date: string,
