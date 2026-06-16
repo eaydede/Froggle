@@ -9,10 +9,9 @@
 
 import { randomUUID } from 'node:crypto';
 import { generateSeededBoard } from 'engine/board.js';
-import { isValidPath } from 'engine/adjacency.js';
-import { isValidWord } from 'engine/dictionary.js';
 import { findAllWords } from 'engine/solver.js';
 import { scoreWord } from 'engine/scoring.js';
+import { validateSubmission } from 'engine/submission.js';
 import { hashWord, generateSalt, type Position, type GameConfig } from 'models';
 import { randomSeed } from 'models/seedCode';
 import type {
@@ -23,6 +22,7 @@ import type {
   RoomVisibility,
 } from 'models/multiplayer';
 import { dictionary } from '../services/dictionary.js';
+import { scoreResult } from '../services/DailyService.js';
 
 const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/1/I/O ambiguity
 const ROOM_CODE_LENGTH = 5;
@@ -904,30 +904,28 @@ export function submitWord(
     return { outcome: { valid: false, reason: 'expired' }, room };
   }
 
-  if (!isValidPath(path, board.config.boardSize)) {
-    return { outcome: { valid: false, reason: 'invalid' }, room };
+  // The validate/derive/dedupe/score middle is the shared engine core; the
+  // multiplayer-specific gating (lobby/countdown/grace) above and the in-memory
+  // mutation below stay here. The rejected word is surfaced so the client can
+  // show it in the "not a word" toast.
+  const result = validateSubmission(path, {
+    board: board.board,
+    foundWords: player.foundWords,
+    boardSize: board.config.boardSize,
+    minWordLength: board.config.minWordLength,
+    dictionary,
+    scoreWord,
+    score: scoreResult,
+  });
+  if (!result.valid) {
+    return { outcome: { valid: false, word: result.word, reason: result.reason }, room };
   }
-  const word = path
-    .map((p) => board.board[p.row]?.[p.col] ?? '')
-    .join('')
-    .toUpperCase();
 
-  if (word.length < board.config.minWordLength) {
-    return { outcome: { valid: false, word, reason: 'invalid' }, room };
-  }
-  if (!isValidWord(dictionary, word.toLowerCase())) {
-    return { outcome: { valid: false, word, reason: 'invalid' }, room };
-  }
-  if (player.foundWords.some((w) => w.toUpperCase() === word)) {
-    return { outcome: { valid: false, word, reason: 'repeat' }, room };
-  }
-
-  const score = scoreWord(word);
-  player.foundWords.push(word);
-  player.points += score;
-  player.wordCount += 1;
+  player.foundWords.push(result.word);
+  player.points = result.aggregate.points;
+  player.wordCount = result.aggregate.wordCount;
   touch(entry);
-  return { outcome: { valid: true, word, score }, room };
+  return { outcome: { valid: true, word: result.word, score: result.score }, room };
 }
 
 export function markPlayerFinished(

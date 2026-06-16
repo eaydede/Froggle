@@ -309,7 +309,7 @@ export async function submitGauntletWord(
     scoreWord: (w) => scoreGauntletWord(w, session.modifier),
     score: (words) => scoreGauntletResult(words, session.modifier),
   });
-  if (!result.valid) return result;
+  if (!result.valid) return { valid: false, reason: result.reason };
 
   await db
     .updateTable('daily_gauntlet_results')

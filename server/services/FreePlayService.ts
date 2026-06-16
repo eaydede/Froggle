@@ -320,7 +320,7 @@ export async function submitFreePlayWord(
       scoreWord,
       score: scoreResult,
     });
-    if (!result.valid) return result;
+    if (!result.valid) return { valid: false, reason: result.reason };
 
     const updated = await trx
       .updateTable('free_play_sessions')

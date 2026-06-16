@@ -612,7 +612,7 @@ export async function submitTimedDailyWord(
     scoreWord,
     score: scoreResult,
   });
-  if (!result.valid) return result;
+  if (!result.valid) return { valid: false, reason: result.reason };
 
   await db
     .updateTable('daily_results')

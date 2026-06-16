@@ -160,7 +160,7 @@ export async function submitWord(
     scoreWord,
     score: scoreResult,
   });
-  if (!result.valid) return result;
+  if (!result.valid) return { valid: false, reason: result.reason };
 
   // Gap-capped active-time accumulation: credit min(elapsed, CAP) seconds
   // for the gap since the last word submission. The cap prevents long

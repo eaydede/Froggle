@@ -60,24 +60,24 @@ describe('validateSubmission', () => {
     }
   });
 
-  it('rejects a non-adjacent path as invalid', () => {
+  it('rejects a non-adjacent path as invalid, with no derived word', () => {
     const result = validateSubmission([at(0, 0), at(2, 2)], ctx());
     expect(result).toEqual({ valid: false, reason: 'invalid' });
   });
 
-  it('rejects a word below the minimum length as invalid', () => {
+  it('rejects a word below the minimum length as invalid, surfacing the word', () => {
     const result = validateSubmission(CAT, ctx({ minWordLength: 4 }));
-    expect(result).toEqual({ valid: false, reason: 'invalid' });
+    expect(result).toEqual({ valid: false, reason: 'invalid', word: 'CAT' });
   });
 
-  it('rejects a path that spells a non-dictionary word as invalid', () => {
+  it('rejects a path that spells a non-dictionary word as invalid, surfacing the word', () => {
     // A(0,1) → O(1,1) → G(2,2): a connected path, but "AOG" is not a word.
     const result = validateSubmission([at(0, 1), at(1, 1), at(2, 2)], ctx());
-    expect(result).toEqual({ valid: false, reason: 'invalid' });
+    expect(result).toEqual({ valid: false, reason: 'invalid', word: 'AOG' });
   });
 
-  it('rejects a duplicate of an already-found word as repeat', () => {
+  it('rejects a duplicate of an already-found word as repeat, surfacing the word', () => {
     const result = validateSubmission(CAT, ctx({ foundWords: ['CAT'] }));
-    expect(result).toEqual({ valid: false, reason: 'repeat' });
+    expect(result).toEqual({ valid: false, reason: 'repeat', word: 'CAT' });
   });
 });
