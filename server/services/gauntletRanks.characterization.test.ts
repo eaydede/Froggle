@@ -1,7 +1,13 @@
 import { randomUUID } from 'crypto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { scoreWord } from 'engine/scoring.js';
 import { dockerAvailable, startTestDb, type TestDb } from '../test/pgHarness.js';
-import { getGauntletAggregate, getGauntletRoundRanks } from './DailyGauntletService.js';
+import { boardWithWords } from '../test/fixtures.js';
+import {
+  getGauntletAggregate,
+  getGauntletRoundRanks,
+  submitGauntletWord,
+} from './DailyGauntletService.js';
 
 const DATE = '2026-05-21';
 const DUMMY_BOARD = JSON.stringify(
@@ -32,6 +38,25 @@ async function gauntletRow(
       time_limit: 90,
       ended_at: ts,
       completed_at: ts,
+    })
+    .execute();
+}
+
+// Inserts an in-progress (not-yet-ended) round with a real fixture board so
+// submitGauntletWord can validate genuine paths against it.
+async function startedRound(h: TestDb, userId: string, board: string[][]) {
+  await h.db
+    .insertInto('daily_gauntlet_results')
+    .values({
+      user_id: userId,
+      date: DATE,
+      round_index: 0,
+      round_kind: 'regular',
+      board: JSON.stringify(board),
+      modifier: MODIFIER,
+      board_size: 5,
+      min_word_length: 4,
+      time_limit: 90,
     })
     .execute();
 }
@@ -79,5 +104,41 @@ describe.runIf(dockerAvailable())('gauntlet ranks (characterization, DB)', () =>
     const agg = await getGauntletAggregate(h.db, DATE);
     expect(agg.map((e) => e.aggregateRank)).toEqual([1, 1]);
     expect(agg.every((e) => e.rankSum === 3)).toBe(true);
+  });
+
+  it('submit accepts a valid word and updates aggregates (regular modifier)', async () => {
+    const { board, words } = boardWithWords(5, 4);
+    const userId = randomUUID();
+    await startedRound(h, userId, board);
+
+    const short = words[0];
+    const long = words[words.length - 1];
+
+    const r1 = await submitGauntletWord(h.db, userId, DATE, 0, short.path);
+    expect(r1).toMatchObject({ valid: true, word: short.word, score: scoreWord(short.word) });
+    const r2 = await submitGauntletWord(h.db, userId, DATE, 0, long.path);
+    expect(r2).toMatchObject({ valid: true, word: long.word });
+
+    const row = await h.db
+      .selectFrom('daily_gauntlet_results')
+      .select(['points', 'word_count', 'longest_word'])
+      .where('user_id', '=', userId)
+      .where('date', '=', DATE)
+      .where('round_index', '=', 0)
+      .executeTakeFirstOrThrow();
+    // 'regular' modifier scores identically to the base scorer.
+    expect(row.points).toBe(scoreWord(short.word) + scoreWord(long.word));
+    expect(row.word_count).toBe(2);
+    expect(row.longest_word).toBe(long.word);
+  });
+
+  it('submit rejects a duplicate with reason "repeat"', async () => {
+    const { board, words } = boardWithWords(5, 4);
+    const userId = randomUUID();
+    await startedRound(h, userId, board);
+
+    await submitGauntletWord(h.db, userId, DATE, 0, words[0].path);
+    const dup = await submitGauntletWord(h.db, userId, DATE, 0, words[0].path);
+    expect(dup).toEqual({ valid: false, reason: 'repeat' });
   });
 });

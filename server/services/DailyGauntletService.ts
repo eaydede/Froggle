@@ -1,7 +1,6 @@
 import { sql, type Kysely } from 'kysely';
-import { isValidPath } from 'engine/adjacency.js';
-import { isValidWord } from 'engine/dictionary.js';
 import { scoreGauntletWord } from 'engine/gauntletScoring.js';
+import { validateSubmission } from 'engine/submission.js';
 import type { Position } from 'models';
 import { assignCompetitionRanks } from 'models/ranking';
 import {
@@ -301,35 +300,24 @@ export async function submitGauntletWord(
   if (!session) return { valid: false, reason: 'not_started' };
   if (session.endedAt) return { valid: false, reason: 'ended' };
 
-  if (!isValidPath(path, session.config.boardSize)) {
-    return { valid: false, reason: 'invalid' };
-  }
-
-  const word = path
-    .map((pos) => session.board[pos.row][pos.col])
-    .join('')
-    .toUpperCase();
-
-  if (word.length < session.config.minWordLength) {
-    return { valid: false, reason: 'invalid' };
-  }
-  if (!isValidWord(dictionary, word.toLowerCase())) {
-    return { valid: false, reason: 'invalid' };
-  }
-  if (session.foundWords.some((w) => w.toUpperCase() === word)) {
-    return { valid: false, reason: 'repeat' };
-  }
-
-  const nextWords = [...session.foundWords, word];
-  const { points, wordCount, longestWord } = scoreGauntletResult(nextWords, session.modifier);
+  const result = validateSubmission(path, {
+    board: session.board,
+    foundWords: session.foundWords,
+    boardSize: session.config.boardSize,
+    minWordLength: session.config.minWordLength,
+    dictionary,
+    scoreWord: (w) => scoreGauntletWord(w, session.modifier),
+    score: (words) => scoreGauntletResult(words, session.modifier),
+  });
+  if (!result.valid) return result;
 
   await db
     .updateTable('daily_gauntlet_results')
     .set({
-      found_words: JSON.stringify(nextWords),
-      points,
-      word_count: wordCount,
-      longest_word: longestWord,
+      found_words: JSON.stringify(result.nextWords),
+      points: result.aggregate.points,
+      word_count: result.aggregate.wordCount,
+      longest_word: result.aggregate.longestWord,
     })
     .where('user_id', '=', userId)
     .where('date', '=', date)
@@ -337,11 +325,7 @@ export async function submitGauntletWord(
     .where('ended_at', 'is', null)
     .execute();
 
-  return {
-    valid: true,
-    word,
-    score: scoreGauntletWord(word, session.modifier),
-  };
+  return { valid: true, word: result.word, score: result.score };
 }
 
 export async function endGauntletRound(

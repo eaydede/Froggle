@@ -609,6 +609,7 @@ export async function submitTimedDailyWord(
     boardSize: config.boardSize,
     minWordLength: config.minWordLength,
     dictionary,
+    scoreWord,
     score: scoreResult,
   });
   if (!result.valid) return result;

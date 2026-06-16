@@ -157,6 +157,7 @@ export async function submitWord(
     boardSize: config.boardSize,
     minWordLength: config.minWordLength,
     dictionary,
+    scoreWord,
     score: scoreResult,
   });
   if (!result.valid) return result;

@@ -1,7 +1,6 @@
 import type { Position } from 'models';
 import { isValidPath } from './adjacency.js';
 import { isValidWord } from './dictionary.js';
-import { scoreWord } from './scoring.js';
 
 export interface SubmissionAggregate {
   points: number;
@@ -15,8 +14,11 @@ export interface SubmissionContext {
   boardSize: number;
   minWordLength: number;
   dictionary: Set<string>;
-  // Injected so callers supply the scoring rule (plain vs gauntlet modifier);
-  // the engine stays agnostic to which mode it is validating for.
+  // Both scorers are injected so callers supply the scoring rule (plain vs
+  // gauntlet modifier); the engine stays agnostic to which mode it validates
+  // for. `scoreWord` is the per-word value shown to the player; `score` builds
+  // the aggregate persisted alongside the row.
+  scoreWord: (word: string) => number;
   score: (words: string[]) => SubmissionAggregate;
 }
 
@@ -61,7 +63,7 @@ export function validateSubmission(
   return {
     valid: true,
     word,
-    score: scoreWord(word),
+    score: ctx.scoreWord(word),
     nextWords,
     aggregate: ctx.score(nextWords),
   };

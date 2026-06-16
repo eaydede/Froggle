@@ -33,6 +33,7 @@ function ctx(overrides: Partial<SubmissionContext> = {}): SubmissionContext {
     boardSize: 3,
     minWordLength: 3,
     dictionary: DICTIONARY,
+    scoreWord,
     score: countingScore,
     ...overrides,
   };
