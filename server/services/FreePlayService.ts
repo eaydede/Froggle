@@ -11,6 +11,7 @@ import type { RoomBoardCompletion } from '../multiplayer/store.js';
 import { dictionary } from './dictionary.js';
 import { getDailyDatePST } from './dailyConfig.js';
 import { scoreResult } from './DailyService.js';
+import { isTimedSessionExpired, timedExpiryInstant } from './sessionTiming.js';
 
 // Counts challenge participants whose completions are unseen by the
 // originator. A row counts as "unseen" when it isn't the originator's
@@ -131,13 +132,16 @@ function isExpired(
   session: { started_at: Date; time_limit: number },
   now: Date,
 ): boolean {
-  if (session.time_limit <= 0) return false;
-  const elapsed = Math.floor((now.getTime() - session.started_at.getTime()) / 1000);
-  return elapsed > session.time_limit + FREE_PLAY_GRACE_SECONDS;
+  return isTimedSessionExpired(
+    session.started_at,
+    session.time_limit,
+    FREE_PLAY_GRACE_SECONDS,
+    now,
+  );
 }
 
 function expiryInstant(session: { started_at: Date; time_limit: number }): Date {
-  return new Date(session.started_at.getTime() + session.time_limit * 1000);
+  return timedExpiryInstant(session.started_at, session.time_limit);
 }
 
 const SESSION_COLUMNS = [

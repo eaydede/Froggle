@@ -5,6 +5,7 @@ import { validateSubmission } from 'engine/submission.js';
 import type { Database } from '../db/types.js';
 import { dictionary } from './dictionary.js';
 import { getDailyConfig, type DailyConfig } from './dailyConfig.js';
+import { isTimedSessionExpired, timedExpiryInstant } from './sessionTiming.js';
 
 export interface ScoredResult {
   points: number;
@@ -509,12 +510,16 @@ function isExpired(
   session: { started_at: Date; time_limit: number },
   now: Date,
 ): boolean {
-  const elapsed = Math.floor((now.getTime() - session.started_at.getTime()) / 1000);
-  return elapsed > session.time_limit + TIMED_DAILY_GRACE_SECONDS;
+  return isTimedSessionExpired(
+    session.started_at,
+    session.time_limit,
+    TIMED_DAILY_GRACE_SECONDS,
+    now,
+  );
 }
 
 function expiryInstant(session: { started_at: Date; time_limit: number }): Date {
-  return new Date(session.started_at.getTime() + session.time_limit * 1000);
+  return timedExpiryInstant(session.started_at, session.time_limit);
 }
 
 async function autoFinalizeIfExpired(

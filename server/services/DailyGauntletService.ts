@@ -16,6 +16,7 @@ import {
 } from 'models/gauntlet';
 import type { Database } from '../db/types.js';
 import { dictionary } from './dictionary.js';
+import { isTimedSessionExpired, timedExpiryInstant } from './sessionTiming.js';
 import {
   getDailyGauntletNumber,
   prepareGauntletRound,
@@ -130,14 +131,18 @@ function isExpired(
   session: { startedAt: Date; config: { timeLimit: number } },
   now: Date,
 ): boolean {
-  const elapsed = Math.floor((now.getTime() - session.startedAt.getTime()) / 1000);
-  return elapsed > session.config.timeLimit + TIMED_GAUNTLET_GRACE_SECONDS;
+  return isTimedSessionExpired(
+    session.startedAt,
+    session.config.timeLimit,
+    TIMED_GAUNTLET_GRACE_SECONDS,
+    now,
+  );
 }
 
 function expiryInstant(
   session: { startedAt: Date; config: { timeLimit: number } },
 ): Date {
-  return new Date(session.startedAt.getTime() + session.config.timeLimit * 1000);
+  return timedExpiryInstant(session.startedAt, session.config.timeLimit);
 }
 
 async function autoFinalizeIfExpired(

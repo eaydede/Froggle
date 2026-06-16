@@ -80,4 +80,31 @@ describe.runIf(dockerAvailable())('free-play lifecycle (characterization, DB)', 
     const res = await submitFreePlayWord(h.db, userId, [words[0].path[0]]);
     expect(res).toEqual({ valid: false, reason: 'invalid' });
   });
+
+  it('auto-finalizes an expired session on submit, capped at started_at + time_limit', async () => {
+    const { board, words } = boardWithWords(BOARD_SIZE, MIN_WORD_LENGTH);
+    const userId = randomUUID();
+    await start(userId, board);
+
+    // Backdate the start so the 120s session is well past time_limit + grace.
+    const pastStart = new Date(Date.now() - (120 + 30) * 1000);
+    await h.db
+      .updateTable('free_play_sessions')
+      .set({ started_at: pastStart })
+      .where('user_id', '=', userId)
+      .where('completed_at', 'is', null)
+      .execute();
+
+    const res = await submitFreePlayWord(h.db, userId, words[0].path);
+    expect(res).toEqual({ valid: false, reason: 'expired' });
+
+    const row = await h.db
+      .selectFrom('free_play_sessions')
+      .select(['completed_at'])
+      .where('user_id', '=', userId)
+      .executeTakeFirstOrThrow();
+    expect(row.completed_at).not.toBeNull();
+    // Capped exactly at started_at + time_limit, not "now".
+    expect(row.completed_at!.getTime()).toBe(pastStart.getTime() + 120 * 1000);
+  });
 });
