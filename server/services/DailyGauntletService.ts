@@ -1,8 +1,8 @@
 import { sql, type Kysely } from 'kysely';
-import { isValidPath } from 'engine/adjacency.js';
-import { isValidWord } from 'engine/dictionary.js';
 import { scoreGauntletWord } from 'engine/gauntletScoring.js';
+import { validateSubmission } from 'engine/submission.js';
 import type { Position } from 'models';
+import { assignCompetitionRanks } from 'models/ranking';
 import {
   GAUNTLET_ROUND_COUNT,
   type GauntletEntry,
@@ -16,6 +16,7 @@ import {
 } from 'models/gauntlet';
 import type { Database } from '../db/types.js';
 import { dictionary } from './dictionary.js';
+import { isTimedSessionExpired, timedExpiryInstant } from './sessionTiming.js';
 import {
   getDailyGauntletNumber,
   prepareGauntletRound,
@@ -130,14 +131,18 @@ function isExpired(
   session: { startedAt: Date; config: { timeLimit: number } },
   now: Date,
 ): boolean {
-  const elapsed = Math.floor((now.getTime() - session.startedAt.getTime()) / 1000);
-  return elapsed > session.config.timeLimit + TIMED_GAUNTLET_GRACE_SECONDS;
+  return isTimedSessionExpired(
+    session.startedAt,
+    session.config.timeLimit,
+    TIMED_GAUNTLET_GRACE_SECONDS,
+    now,
+  );
 }
 
 function expiryInstant(
   session: { startedAt: Date; config: { timeLimit: number } },
 ): Date {
-  return new Date(session.startedAt.getTime() + session.config.timeLimit * 1000);
+  return timedExpiryInstant(session.startedAt, session.config.timeLimit);
 }
 
 async function autoFinalizeIfExpired(
@@ -300,35 +305,24 @@ export async function submitGauntletWord(
   if (!session) return { valid: false, reason: 'not_started' };
   if (session.endedAt) return { valid: false, reason: 'ended' };
 
-  if (!isValidPath(path, session.config.boardSize)) {
-    return { valid: false, reason: 'invalid' };
-  }
-
-  const word = path
-    .map((pos) => session.board[pos.row][pos.col])
-    .join('')
-    .toUpperCase();
-
-  if (word.length < session.config.minWordLength) {
-    return { valid: false, reason: 'invalid' };
-  }
-  if (!isValidWord(dictionary, word.toLowerCase())) {
-    return { valid: false, reason: 'invalid' };
-  }
-  if (session.foundWords.some((w) => w.toUpperCase() === word)) {
-    return { valid: false, reason: 'repeat' };
-  }
-
-  const nextWords = [...session.foundWords, word];
-  const { points, wordCount, longestWord } = scoreGauntletResult(nextWords, session.modifier);
+  const result = validateSubmission(path, {
+    board: session.board,
+    foundWords: session.foundWords,
+    boardSize: session.config.boardSize,
+    minWordLength: session.config.minWordLength,
+    dictionary,
+    scoreWord: (w) => scoreGauntletWord(w, session.modifier),
+    score: (words) => scoreGauntletResult(words, session.modifier),
+  });
+  if (!result.valid) return { valid: false, reason: result.reason };
 
   await db
     .updateTable('daily_gauntlet_results')
     .set({
-      found_words: JSON.stringify(nextWords),
-      points,
-      word_count: wordCount,
-      longest_word: longestWord,
+      found_words: JSON.stringify(result.nextWords),
+      points: result.aggregate.points,
+      word_count: result.aggregate.wordCount,
+      longest_word: result.aggregate.longestWord,
     })
     .where('user_id', '=', userId)
     .where('date', '=', date)
@@ -336,11 +330,7 @@ export async function submitGauntletWord(
     .where('ended_at', 'is', null)
     .execute();
 
-  return {
-    valid: true,
-    word,
-    score: scoreGauntletWord(word, session.modifier),
-  };
+  return { valid: true, word: result.word, score: result.score };
 }
 
 export async function endGauntletRound(
@@ -465,36 +455,30 @@ export function aggregateFromRoundRanks(
     });
   }
 
+  // best single-round rank, then earliest last-finish, order the displayed
+  // list among players who share a rank-sum — but they do NOT split the rank.
   entries.sort((a, b) => {
     if (a.rankSum !== b.rankSum) return a.rankSum - b.rankSum;
     if (a.bestSingleRank !== b.bestSingleRank) return a.bestSingleRank - b.bestSingleRank;
     return a.lastFinishedAt.getTime() - b.lastFinishedAt.getTime();
   });
 
-  // Dense-rank by (rankSum, bestSingleRank, lastFinishedAt) so tied
-  // players share a rank. The trio is unique enough in practice that
-  // pure ties are rare, but keeping dense-rank semantics avoids
-  // surprising the player who is "tied for 3rd" with a 4th-place display.
-  let lastKey = '';
-  let lastRank = 0;
-  for (let i = 0; i < entries.length; i++) {
-    const e = entries[i];
-    const key = `${e.rankSum}|${e.bestSingleRank}|${e.lastFinishedAt.getTime()}`;
-    if (key !== lastKey) {
-      lastRank = i + 1;
-      lastKey = key;
-    }
-    e.aggregateRank = lastRank;
+  // Rank on rank-sum alone via the shared competition-rank helper: players with
+  // an equal rank-sum share a place (1, 1, 3), the same tie rule the per-round
+  // ranks and every other leaderboard use. The sort keys above only fix the
+  // display order within a tie; they no longer break the rank.
+  for (const { item, rank } of assignCompetitionRanks(entries, (e) => e.rankSum)) {
+    item.aggregateRank = rank;
   }
 
   return entries;
 }
 
 // Aggregate ranks across all 3 rounds. Only includes players who have
-// finalized all three rounds. Tiebreak order:
-//   primary:    rankSum asc (lower = better — the gauntlet "score")
-//   secondary:  best single-round rank (rewards specialists when tied)
-//   tertiary:   last-round completed_at asc (earliest finisher wins)
+// finalized all three rounds. Placement is by rankSum asc (lower = better —
+// the gauntlet "score"); players with an equal rankSum share a rank. Best
+// single-round rank, then earliest last-finish, only order the display within
+// a tie — they do not split the rank.
 export async function getGauntletAggregate(
   db: Kysely<Database>,
   date: string,

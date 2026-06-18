@@ -54,9 +54,10 @@ describe('aggregateFromRoundRanks', () => {
     expect(out[1].aggregateRank).toBe(2);
   });
 
-  it('tiebreaks rank-sum ties on best single-round rank', () => {
-    // Both 'a' and 'b' have rank-sum 6, but 'a' has a 1st-place round
-    // while 'b' has no rank better than 2. Specialist wins.
+  it('shares a rank for an equal rank-sum; best single-round rank only orders the display', () => {
+    // Both 'a' and 'b' have rank-sum 6. 'a' has a 1st-place round while 'b'
+    // has no rank better than 2, so 'a' sorts ahead — but the equal rank-sum
+    // means they SHARE the aggregate rank rather than being split.
     const ranked: RankedRow[] = [
       row('a', 0, 1, '2026-05-21T12:00:00Z'),
       row('a', 1, 2, '2026-05-21T12:05:00Z'),
@@ -66,14 +67,14 @@ describe('aggregateFromRoundRanks', () => {
       row('b', 2, 2, '2026-05-21T12:10:00Z'),
     ];
     const out = aggregateFromRoundRanks(ranked, 3);
-    expect(out.map((e) => e.userId)).toEqual(['a', 'b']);
+    expect(out.map((e) => e.userId)).toEqual(['a', 'b']); // display order
     expect(out[0].aggregateRank).toBe(1);
-    expect(out[1].aggregateRank).toBe(2);
+    expect(out[1].aggregateRank).toBe(1); // tie on rank-sum → shared rank
   });
 
-  it('tiebreaks identical rank-sum + best-single on earliest last-finish', () => {
-    // 'a' and 'b' identical rank-sum (6) and best (2). 'a' finished round
-    // 2 earlier, so it places first.
+  it('shares a rank for an equal rank-sum; last-finish only orders the display', () => {
+    // 'a' and 'b' identical rank-sum (6) and best (2). 'a' finished round 2
+    // earlier, so it sorts first — but they still share the aggregate rank.
     const ranked: RankedRow[] = [
       row('a', 0, 2, '2026-05-21T12:00:00Z'),
       row('a', 1, 2, '2026-05-21T12:05:00Z'),
@@ -83,12 +84,14 @@ describe('aggregateFromRoundRanks', () => {
       row('b', 2, 2, '2026-05-21T12:15:00Z'),
     ];
     const out = aggregateFromRoundRanks(ranked, 3);
-    expect(out.map((e) => e.userId)).toEqual(['a', 'b']);
+    expect(out.map((e) => e.userId)).toEqual(['a', 'b']); // display order
+    expect(out[0].aggregateRank).toBe(1);
+    expect(out[1].aggregateRank).toBe(1); // tie on rank-sum → shared rank
   });
 
-  it('dense-ranks true ties (same rank-sum, best, and last-finish)', () => {
-    // Identical on all three keys → dense rank assigns same number to
-    // both; the next distinct player gets the next sequential rank.
+  it('competition-ranks rank-sum ties: equal share a place, the next distinct skips the gap (1,1,3)', () => {
+    // 'a' and 'b' both rank-sum 3; 'c' rank-sum 15. a & b share rank 1; c gets
+    // rank 3 (the gap left by the tie is skipped).
     const ranked: RankedRow[] = [
       row('a', 0, 1, '2026-05-21T12:00:00Z'),
       row('a', 1, 1, '2026-05-21T12:05:00Z'),
@@ -104,8 +107,6 @@ describe('aggregateFromRoundRanks', () => {
     const byUser = new Map(out.map((e) => [e.userId, e.aggregateRank]));
     expect(byUser.get('a')).toBe(1);
     expect(byUser.get('b')).toBe(1);
-    // Dense rank: the next distinct group takes index+1, not "rank after
-    // skipping ties". For 'c' that's position 3 (zero-indexed 2 → +1).
     expect(byUser.get('c')).toBe(3);
   });
 

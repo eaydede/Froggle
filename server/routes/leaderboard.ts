@@ -4,7 +4,7 @@ import { getDb } from '../db/index.js';
 import { scoreWords } from '../services/DailyService.js';
 import { getDailyNumber } from '../services/dailyConfig.js';
 import { getDisplayNames } from '../services/displayNames.js';
-import { assignCompetitionRanks } from '../services/ranking.js';
+import { assignCompetitionRanks } from 'models/ranking';
 import { cachePrivate } from '../httpCache.js';
 
 export const leaderboardRouter = Router();

@@ -1,17 +1,17 @@
 import crypto from 'crypto';
 import type { Kysely } from 'kysely';
 import { generateSalt, hashWord, type Position } from 'models';
-import { isValidPath } from 'engine/adjacency.js';
-import { isValidWord } from 'engine/dictionary.js';
 import { findAllWords } from 'engine/solver.js';
 import { scoreWord } from 'engine/scoring.js';
 import { generateSeededBoard } from 'engine/board.js';
+import { validateSubmission } from 'engine/submission.js';
 import { randomSeed } from 'models/seedCode';
 import type { Database } from '../db/types.js';
 import type { RoomBoardCompletion } from '../multiplayer/store.js';
 import { dictionary } from './dictionary.js';
 import { getDailyDatePST } from './dailyConfig.js';
 import { scoreResult } from './DailyService.js';
+import { isTimedSessionExpired, timedExpiryInstant } from './sessionTiming.js';
 
 // Counts challenge participants whose completions are unseen by the
 // originator. A row counts as "unseen" when it isn't the originator's
@@ -132,13 +132,16 @@ function isExpired(
   session: { started_at: Date; time_limit: number },
   now: Date,
 ): boolean {
-  if (session.time_limit <= 0) return false;
-  const elapsed = Math.floor((now.getTime() - session.started_at.getTime()) / 1000);
-  return elapsed > session.time_limit + FREE_PLAY_GRACE_SECONDS;
+  return isTimedSessionExpired(
+    session.started_at,
+    session.time_limit,
+    FREE_PLAY_GRACE_SECONDS,
+    now,
+  );
 }
 
 function expiryInstant(session: { started_at: Date; time_limit: number }): Date {
-  return new Date(session.started_at.getTime() + session.time_limit * 1000);
+  return timedExpiryInstant(session.started_at, session.time_limit);
 }
 
 const SESSION_COLUMNS = [
@@ -312,35 +315,24 @@ export async function submitFreePlayWord(
       return { valid: false, reason: 'expired' };
     }
 
-    if (!isValidPath(path, session.board_size)) {
-      return { valid: false, reason: 'invalid' };
-    }
+    const result = validateSubmission(path, {
+      board: session.board,
+      foundWords: session.found_words,
+      boardSize: session.board_size,
+      minWordLength: session.min_word_length,
+      dictionary,
+      scoreWord,
+      score: scoreResult,
+    });
+    if (!result.valid) return { valid: false, reason: result.reason };
 
-    const word = path
-      .map((pos) => session.board[pos.row][pos.col])
-      .join('')
-      .toUpperCase();
-
-    if (word.length < session.min_word_length) {
-      return { valid: false, reason: 'invalid' };
-    }
-    if (!isValidWord(dictionary, word.toLowerCase())) {
-      return { valid: false, reason: 'invalid' };
-    }
-    if (session.found_words.some((w) => w.toUpperCase() === word)) {
-      return { valid: false, reason: 'repeat' };
-    }
-
-    const nextWords = [...session.found_words, word];
-    const { points, wordCount, longestWord } = scoreResult(nextWords);
-
-    const result = await trx
+    const updated = await trx
       .updateTable('free_play_sessions')
       .set({
-        found_words: JSON.stringify(nextWords),
-        points,
-        word_count: wordCount,
-        longest_word: longestWord,
+        found_words: JSON.stringify(result.nextWords),
+        points: result.aggregate.points,
+        word_count: result.aggregate.wordCount,
+        longest_word: result.aggregate.longestWord,
       })
       .where('id', '=', session.id)
       .where('completed_at', 'is', null)
@@ -350,11 +342,11 @@ export async function submitFreePlayWord(
     // update landing (e.g. /end ran in another connection that beat the
     // lock), the update affects zero rows. Don't claim the word was
     // accepted in that case.
-    if (Number(result.numUpdatedRows ?? 0) === 0) {
+    if (Number(updated.numUpdatedRows ?? 0) === 0) {
       return { valid: false, reason: 'ended' };
     }
 
-    return { valid: true, word, score: scoreWord(word) };
+    return { valid: true, word: result.word, score: result.score };
   });
 }
 

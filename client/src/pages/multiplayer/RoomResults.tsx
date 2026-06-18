@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { MultiplayerRoom } from 'models/multiplayer';
+import { assignCompetitionRanks } from 'models/ranking';
 import { ActionButton } from '../../shared/results/components/ActionButton';
 import { Standings } from '../../shared/results/components/Standings';
 import { ResultsView } from '../../shared/results/ResultsView';
@@ -423,23 +424,13 @@ function rankByPoints(
   }[],
 ): RankedPlayer[] {
   const sorted = [...players].sort((a, b) => b.points - a.points);
-  const ranked: RankedPlayer[] = [];
-  let lastPoints = Infinity;
-  let lastRank = 0;
-  sorted.forEach((p, i) => {
-    if (p.points !== lastPoints) {
-      lastRank = i + 1;
-      lastPoints = p.points;
-    }
-    ranked.push({
-      id: p.id,
-      displayName: p.displayName,
-      rank: lastRank,
-      points: p.points,
-      wordCount: p.wordCount,
-      foundWords: p.foundWords,
-      left: p.left,
-    });
-  });
-  return ranked;
+  return assignCompetitionRanks(sorted, (p) => p.points).map(({ item: p, rank }) => ({
+    id: p.id,
+    displayName: p.displayName,
+    rank,
+    points: p.points,
+    wordCount: p.wordCount,
+    foundWords: p.foundWords,
+    left: p.left,
+  }));
 }

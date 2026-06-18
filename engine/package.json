@@ -14,7 +14,9 @@
     "./gauntletScoring": "./gauntletScoring.ts",
     "./gauntletScoring.js": "./gauntletScoring.ts",
     "./solver": "./solver.ts",
-    "./solver.js": "./solver.ts"
+    "./solver.js": "./solver.ts",
+    "./submission": "./submission.ts",
+    "./submission.js": "./submission.ts"
   },
   "private": true,
   "dependencies": {

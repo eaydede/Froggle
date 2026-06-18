@@ -6,6 +6,7 @@
   "exports": {
     ".": "./index.ts",
     "./seedCode": "./seedCode.ts",
+    "./ranking": "./ranking.ts",
     "./zenRanks": "./zenRanks.ts",
     "./gauntlet": "./gauntlet.ts",
     "./multiplayer": "./multiplayer.ts"

@@ -1,9 +1,9 @@
 import { sql, type Kysely } from 'kysely';
 import type { Position } from 'models';
-import { isValidPath } from 'engine/adjacency.js';
-import { isValidWord } from 'engine/dictionary.js';
+import { assignCompetitionRanks } from 'models/ranking';
 import { scoreWord } from 'engine/scoring.js';
 import { findAllWords } from 'engine/solver.js';
+import { validateSubmission } from 'engine/submission.js';
 import type { Database } from '../db/types.js';
 import { dictionary } from './dictionary.js';
 import { getDisplayNames } from './displayNames.js';
@@ -151,28 +151,16 @@ export async function submitWord(
   if (session.ended_at) return { valid: false, reason: 'ended' };
 
   const config = getDailyZenConfig(date);
-
-  if (!isValidPath(path, config.boardSize)) {
-    return { valid: false, reason: 'invalid' };
-  }
-
-  const word = path
-    .map((pos) => session.board[pos.row][pos.col])
-    .join('')
-    .toUpperCase();
-
-  if (word.length < config.minWordLength) {
-    return { valid: false, reason: 'invalid' };
-  }
-  if (!isValidWord(dictionary, word.toLowerCase())) {
-    return { valid: false, reason: 'invalid' };
-  }
-  if (session.found_words.some((w) => w.toUpperCase() === word)) {
-    return { valid: false, reason: 'repeat' };
-  }
-
-  const nextWords = [...session.found_words, word];
-  const { points, wordCount, longestWord } = scoreResult(nextWords);
+  const result = validateSubmission(path, {
+    board: session.board,
+    foundWords: session.found_words,
+    boardSize: config.boardSize,
+    minWordLength: config.minWordLength,
+    dictionary,
+    scoreWord,
+    score: scoreResult,
+  });
+  if (!result.valid) return { valid: false, reason: result.reason };
 
   // Gap-capped active-time accumulation: credit min(elapsed, CAP) seconds
   // for the gap since the last word submission. The cap prevents long
@@ -188,11 +176,11 @@ export async function submitWord(
   await db
     .updateTable('daily_zen_results')
     .set({
-      found_words: JSON.stringify(nextWords),
+      found_words: JSON.stringify(result.nextWords),
       last_active_at: now,
-      points,
-      word_count: wordCount,
-      longest_word: longestWord,
+      points: result.aggregate.points,
+      word_count: result.aggregate.wordCount,
+      longest_word: result.aggregate.longestWord,
       active_seconds: sql<number>`active_seconds + ${creditSec}`,
     })
     .where('user_id', '=', userId)
@@ -200,7 +188,7 @@ export async function submitWord(
     .where('ended_at', 'is', null)
     .execute();
 
-  return { valid: true, word, score: scoreWord(word) };
+  return { valid: true, word: result.word, score: result.score };
 }
 
 export async function endSession(
@@ -518,8 +506,18 @@ export async function getZenLeaderboard(
       isCompetitive: e.isCompetitive,
     }));
 
-  const byPoints = [...ranked].sort((a, b) => b.points - a.points || b.wordCount - a.wordCount);
-  const byWords = [...ranked].sort((a, b) => b.wordCount - a.wordCount || b.points - a.points);
+  // Competition ranking: players with equal scores share a rank. The secondary
+  // sort key still orders the displayed list (so equal-point players appear in
+  // a stable order), but it does not split their rank — two players who see the
+  // same number see the same place, matching the daily/free-play leaderboards.
+  const byPoints = assignCompetitionRanks(
+    [...ranked].sort((a, b) => b.points - a.points || b.wordCount - a.wordCount),
+    (e) => e.points,
+  );
+  const byWords = assignCompetitionRanks(
+    [...ranked].sort((a, b) => b.wordCount - a.wordCount || b.points - a.points),
+    (e) => e.wordCount,
+  );
 
   let currentPlayer: ZenLeaderboardCurrentPlayer | null = null;
   if (requestingUserId) {
@@ -531,9 +529,9 @@ export async function getZenLeaderboard(
       let rank: number | null = null;
       let ranked = false;
       if (myRow.isCompetitive && !myRow.inProgress) {
-        const idx = byPoints.findIndex((e) => e.userId === requestingUserId);
-        if (idx >= 0) {
-          rank = idx + 1;
+        const entry = byPoints.find(({ item }) => item.userId === requestingUserId);
+        if (entry) {
+          rank = entry.rank;
           ranked = true;
         }
       }
@@ -562,16 +560,16 @@ export async function getZenLeaderboard(
     inProgressCount: inProgressPlayers.length,
     avgScore,
     rankings: {
-      points: byPoints.map((e, i) => ({
-        rank: i + 1,
+      points: byPoints.map(({ item: e, rank }) => ({
+        rank,
         userId: e.userId,
         displayName: e.displayName,
         points: e.points,
         wordCount: e.wordCount,
         longestWord: e.longestWord,
       })),
-      words: byWords.map((e, i) => ({
-        rank: i + 1,
+      words: byWords.map(({ item: e, rank }) => ({
+        rank,
         userId: e.userId,
         displayName: e.displayName,
         points: e.points,
