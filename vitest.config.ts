@@ -1,9 +1,11 @@
 import { defineConfig } from 'vitest/config';
 
-// Single root config so the whole monorepo runs through `npm test`. Tests
-// live colocated with source as `*.test.ts` / `*.test.tsx`. Add `node`
-// vs `jsdom` environments later when there's a reason — every current test
-// is pure logic and runs fine in the default node env.
+// Default suite: fast, pure tests that gate CI and the deploy. No Docker, no
+// network. Heavier Docker-backed integration tests are named `*.dbtest.ts` and
+// run separately via `npm run test:integration` (vitest.integration.config.ts);
+// they are excluded here so the deploy gate never imports testcontainers —
+// that import requires Node >= 21 and a running Docker daemon, neither of which
+// the staging runner (Node 20, no guaranteed Docker) provides.
 export default defineConfig({
   test: {
     include: [
@@ -12,5 +14,6 @@ export default defineConfig({
       'server/**/*.test.ts',
       'models/**/*.test.ts',
     ],
+    exclude: ['**/node_modules/**', '**/*.dbtest.ts'],
   },
 });
