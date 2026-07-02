@@ -16,6 +16,10 @@ interface BoardProps {
    *  rare-letters round to surface point values on the preview board so
    *  the player can see why words add up to their scores. */
   cellBadge?: (row: number, col: number, letter: string) => ReactNode;
+  /** Optional full-cell adornment per cell. Used by the On Thin Ice
+   *  experimental mode to show which tiles were breakable (and their final
+   *  cracked/broken state) on the results preview board. */
+  cellOverlay?: (row: number, col: number, letter: string) => ReactNode;
 }
 
 const STEP_MS = 70;
@@ -27,6 +31,7 @@ export function Board({
   config,
   compact = false,
   cellBadge,
+  cellOverlay,
 }: BoardProps) {
   const size = board.length;
   const [animatedCells, setAnimatedCells] = useState<Set<string>>(new Set());
@@ -62,6 +67,7 @@ export function Board({
               : 'var(--ink-trace)';
             const litBorder = highlightColor ?? 'var(--ink-mid)';
             const badge = cellBadge?.(r, c, letter);
+            const overlay = cellOverlay?.(r, c, letter);
             return (
               <div
                 key={`${r}-${c}`}
@@ -76,6 +82,9 @@ export function Board({
                 }}
               >
                 {letter}
+                {overlay !== undefined && overlay !== null && (
+                  <span className="absolute inset-0 pointer-events-none">{overlay}</span>
+                )}
                 {badge !== undefined && badge !== null && (
                   <span
                     className="absolute bottom-[1px] right-[2px] leading-none tabular-nums pointer-events-none text-[8px] opacity-60"

@@ -57,6 +57,7 @@ function InContextWrapper({ completed }: { completed: boolean }) {
         zenRank={null}
         gauntletEntry={null}
         onGauntletPlay={() => {}}
+        onExperimentalOpen={() => {}}
         displayName={name}
         nameProfile={null}
         onDisplayNameChange={async (n) => {

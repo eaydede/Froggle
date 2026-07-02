@@ -28,6 +28,9 @@ interface ResultsViewProps {
    *  Forwarded to the preview Board so modes like the gauntlet's
    *  rare-letters round can surface per-letter point values. */
   boardCellBadge?: (row: number, col: number, letter: string) => ReactNode;
+  /** Optional full-cell adornment on the board preview. Forwarded to the
+   *  preview Board so On Thin Ice can show which tiles were breakable. */
+  boardCellOverlay?: (row: number, col: number, letter: string) => ReactNode;
   config: ResultsBoardConfig;
   /** Standings roster. Must include the viewer (entry with isYou=true).
    *  length === 1 collapses to the solo state (no standings panel; right
@@ -45,6 +48,10 @@ interface ResultsViewProps {
   /** Render proportional point bars in the standings (multiplayer rooms
    *  use this to show the spread). */
   standingsShowBars?: boolean;
+  /** Format the trailing standings value. Defaults to raw points; Time is
+   *  Money passes a formatter that shows time survived so the standings rank
+   *  by time. */
+  standingsFormatValue?: (points: number) => string;
   /** Source label in the compare prompt ("Tap any name in the X"). */
   compareSourceLabel?: string;
   /** Per-word find percent — when provided, WordsCard renders the
@@ -76,12 +83,14 @@ export function ResultsView({
   me,
   board,
   boardCellBadge,
+  boardCellOverlay,
   config,
   roster,
   loadOpponent,
   initialOpponentId,
   standingsHeader = 'Standings',
   standingsShowBars = false,
+  standingsFormatValue,
   compareSourceLabel = 'standings',
   findPercents,
   popularityStyle,
@@ -261,6 +270,7 @@ export function ResultsView({
               compact
               maxHeight="160px"
               showBars={standingsShowBars}
+              formatValue={standingsFormatValue}
             />
           )}
           <div className={isMulti ? '' : 'flex-1 flex justify-center'}>
@@ -271,6 +281,7 @@ export function ResultsView({
               config={config}
               compact
               cellBadge={boardCellBadge}
+              cellOverlay={boardCellOverlay}
             />
           </div>
         </section>

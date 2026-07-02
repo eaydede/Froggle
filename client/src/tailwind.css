@@ -178,6 +178,23 @@ button, input, select, textarea {
   --rarity-mythic:    #9B4AAC;
   --rarity-legendary: #D17A28;
 
+  /* Golden Ticket (experimental) — the wildcard tile at the center of the
+     board. Uniform gold face + a warm halo that pulses around the outside
+     (rendered as a box-shadow that escapes the cell). Reuses the podium-gold
+     hue family so the "golden" identity fits without introducing a new
+     colour; face is opaque so the tile hides the wildcard character in the
+     board array. */
+  --golden-tile-face: #F0C550;
+  --golden-tile-halo: rgba(240, 197, 80, 0.38);
+  --golden-reveal-word: #B67F14;
+
+  /* Experimental vote tally bar — red / yellow / green segments reading as
+     "did not enjoy / it was okay / enjoyed it". Sat down a notch from the
+     word-rarity palette so the bar reads as ambient feedback, not scoring. */
+  --vote-tally-down: #C6534A;
+  --vote-tally-meh:  #D9B94A;
+  --vote-tally-up:   #6BA05A;
+
   /* Compare page — neutral two-player palette. "You" leans blue,
      opponent leans amber, shared words use a muted grey. */
   --compare-you:     #4E7E9B;
@@ -303,6 +320,18 @@ button, input, select, textarea {
   --rarity-epic:      #6FA3C8;
   --rarity-mythic:    #B086C0;
   --rarity-legendary: #E09A5C;
+
+  /* Golden Ticket (experimental) — dark-theme uniform face + halo. Slightly
+     cooler face so the plate doesn't glare against a dark surface. */
+  --golden-tile-face: #E7BE58;
+  --golden-tile-halo: rgba(231, 190, 88, 0.34);
+  --golden-reveal-word: #E7BE58;
+
+  /* Experimental vote tally bar — dark-theme swap. Slightly lifted values so
+     the segments read against a dark card without going neon. */
+  --vote-tally-down: #D8695F;
+  --vote-tally-meh:  #EFCE5F;
+  --vote-tally-up:   #82B872;
 
   --compare-you:     #7DAECF;
   --compare-you-bg:  rgba(125, 174, 207, 0.18);
@@ -503,6 +532,15 @@ button, input, select, textarea {
   50%  { box-shadow: -2px 0 3px rgba(232,189,80,0.45), 1px 0 2px rgba(196,144,10,0.1); }
   75%  { box-shadow: 0 -2px 3px rgba(232,189,80,0.45), 0 1px 2px rgba(196,144,10,0.1); }
   100% { box-shadow: 2px 0 3px rgba(232,189,80,0.45), -1px 0 2px rgba(196,144,10,0.1); }
+}
+
+/* Golden Ticket wildcard tile — a soft outer halo that breathes. The glow
+   lives entirely in box-shadow so it spills outside the cell bounds; the
+   surface stays a uniform gold plate. Deliberately gentle — a hint of
+   warmth on the surrounding surface, not a beacon. */
+@keyframes golden-tile-glow {
+  0%, 100% { box-shadow: 0 0 6px 1px var(--golden-tile-halo); }
+  50%      { box-shadow: 0 0 12px 2px var(--golden-tile-halo); }
 }
 
 /* Score fade-in used on the complete-state daily card. */

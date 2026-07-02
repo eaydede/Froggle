@@ -19,6 +19,11 @@ interface CellProps extends HTMLAttributes<HTMLDivElement> {
   /** Visual emphasis on the cell itself. 'hot' draws an accent ring
    *  (used to flag the hot letter during a gauntlet hot-letter round). */
   accent?: CellAccent;
+  /** Full-cell adornment layered over the tile — used by the On Thin Ice
+   *  experimental mode to draw the frost + cracks (and the hollow broken
+   *  state) of a breakable tile. Clipped to the cell's rounded corners and
+   *  non-interactive so it never intercepts the drag path. */
+  overlay?: ReactNode;
 }
 
 const SIZE_MAP: Record<string, string> = {
@@ -176,7 +181,7 @@ export function getCellStateStyle(state: CellState, variant: CellVariant = 'simp
 
 export function Cell({
   letter, state = 'default', size = 'md', mode = 'light', variant = 'simple',
-  styleOverride, className = '', badge, accent = null, ...props
+  styleOverride, className = '', badge, accent = null, overlay, ...props
 }: CellProps) {
   const isResponsive = size === 'responsive';
   const dimension = isResponsive ? undefined : SIZE_MAP[size];
@@ -224,6 +229,17 @@ export function Cell({
       {...props}
     >
       {letter}
+      {overlay !== undefined && overlay !== null && (
+        // Not clipped — overlays are expected to shape themselves (e.g. via
+        // border-radius) so their box-shadows can escape the cell for outer
+        // glow effects like the Golden Ticket wildcard tile.
+        <span
+          className="absolute inset-0 pointer-events-none"
+          style={{ borderRadius: '12px' }}
+        >
+          {overlay}
+        </span>
+      )}
       {badge !== undefined && badge !== null && (
         <span
           className="absolute bottom-[6%] right-[8%] leading-none tabular-nums pointer-events-none"
