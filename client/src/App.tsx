@@ -15,6 +15,12 @@ import {
   GauntletRoundResultsRoute,
   GauntletResultsRoute,
 } from './pages/dailyGauntlet';
+import {
+  ExperimentalHubRoute,
+  ExperimentalOverviewRoute,
+  ExperimentalPlayRoute,
+  ExperimentalResultsRoute,
+} from './pages/dailyExperimental';
 import { HistoryRoute, HistoricResultsRoute } from './pages/history';
 import { ChallengeRoute } from './pages/challenge';
 import { MultiplayerRoomRoute } from './pages/multiplayer';
@@ -93,6 +99,10 @@ function App() {
         <Route path="/daily/gauntlet/round/:round" element={<GauntletConfirmRoute />} />
         <Route path="/daily/gauntlet/round/:round/play" element={<GauntletPlayRoute />} />
         <Route path="/daily/gauntlet/round/:round/results" element={<GauntletRoundResultsRoute />} />
+        <Route path="/daily/experimental" element={<ExperimentalHubRoute />} />
+        <Route path="/daily/experimental/:mode" element={<ExperimentalOverviewRoute />} />
+        <Route path="/daily/experimental/:mode/play" element={<ExperimentalPlayRoute />} />
+        <Route path="/daily/experimental/:mode/results" element={<ExperimentalResultsRoute />} />
         <Route path="/history" element={<HistoryRoute />} />
         <Route path="/freeplay/results/:id" element={<HistoricResultsRoute />} />
         <Route path="/freeplay/challenge/:id" element={<ChallengeRoute />} />

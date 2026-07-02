@@ -9,6 +9,7 @@
     "./ranking": "./ranking.ts",
     "./zenRanks": "./zenRanks.ts",
     "./gauntlet": "./gauntlet.ts",
+    "./experimental": "./experimental.ts",
     "./multiplayer": "./multiplayer.ts"
   },
   "private": true

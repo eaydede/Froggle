@@ -81,10 +81,41 @@ export interface DailyGauntletResultsTable {
   completed_at: Date | null;
 }
 
+export interface ExperimentalResultsTable {
+  id: Generated<string>;
+  user_id: string;
+  date: string;
+  mode_key: string;
+  board: string; // JSON string
+  state: Generated<string>; // JSON string — mode-specific bookkeeping
+  found_words: Generated<string>; // JSON string
+  points: Generated<number>;
+  word_count: Generated<number>;
+  longest_word: Generated<string>;
+  board_size: number;
+  min_word_length: number;
+  time_limit: number;
+  started_at: Generated<Date>;
+  ended_at: Date | null;
+  completed_at: Date | null;
+}
+
+export interface ExperimentalVotesTable {
+  id: Generated<string>;
+  user_id: string;
+  date: string;
+  mode_key: string;
+  sentiment: string;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
 export interface Database {
   daily_results: DailyResultsTable;
   daily_zen_results: DailyZenResultsTable;
   daily_gauntlet_results: DailyGauntletResultsTable;
   free_play_sessions: FreePlaySessionsTable;
   feedback: FeedbackTable;
+  experimental_results: ExperimentalResultsTable;
+  experimental_votes: ExperimentalVotesTable;
 }

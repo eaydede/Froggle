@@ -16,6 +16,10 @@ interface StandingsProps {
    *  i.e. how close the game was — is visible at a glance. Opt-in;
    *  daily/challenge leave it off. */
   showBars?: boolean;
+  /** Format the trailing per-row value. Defaults to the raw points number.
+   *  The Time is Money experimental mode passes a formatter that turns the
+   *  points into the time survived (mm:ss), so the standings rank by time. */
+  formatValue?: (points: number) => string;
 }
 
 export function Standings({
@@ -26,6 +30,7 @@ export function Standings({
   compact = false,
   maxHeight = '160px',
   showBars = false,
+  formatValue,
 }: StandingsProps) {
   const maxPoints = Math.max(1, ...rows.map((r) => r.points));
   return (
@@ -129,7 +134,7 @@ export function Standings({
                 className="tabular-nums font-[family-name:var(--font-structure)] shrink-0 text-xs text-[color:var(--ink-muted)]"
                 style={{ fontWeight: 700 }}
               >
-                {row.points}
+                {formatValue ? formatValue(row.points) : row.points}
               </span>
               {showBars && row.points > 0 && (
                 <span
