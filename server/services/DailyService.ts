@@ -6,6 +6,7 @@ import type { Database } from '../db/types.js';
 import { dictionary } from './dictionary.js';
 import { getDailyConfig, type DailyConfig } from './dailyConfig.js';
 import { isTimedSessionExpired, timedExpiryInstant } from './sessionTiming.js';
+import { appendWordTimes, elapsedSeconds, parseWordTimes } from './wordTiming.js';
 
 export interface ScoredResult {
   points: number;
@@ -459,6 +460,7 @@ export interface TimedDailySession {
   date: string;
   board: string[][];
   found_words: string[];
+  word_times: (number | null)[];
   started_at: Date;
   ended_at: Date | null;
   points: number;
@@ -482,6 +484,7 @@ function parseTimedSession(row: {
   date: string;
   board: unknown;
   found_words: unknown;
+  word_times: unknown;
   started_at: Date;
   ended_at: Date | null;
   points: number;
@@ -497,6 +500,7 @@ function parseTimedSession(row: {
     date: row.date,
     board,
     found_words: foundWords,
+    word_times: parseWordTimes(row.word_times),
     started_at: row.started_at,
     ended_at: row.ended_at,
     points: row.points,
@@ -551,6 +555,7 @@ export async function getTimedDailySession(
       'date',
       'board',
       'found_words',
+      'word_times',
       'started_at',
       'ended_at',
       'points',
@@ -619,10 +624,18 @@ export async function submitTimedDailyWord(
   });
   if (!result.valid) return { valid: false, reason: result.reason };
 
+  const wordTimes = appendWordTimes(
+    session.word_times,
+    session.found_words.length,
+    result.nextWords.length - session.found_words.length,
+    elapsedSeconds(session.started_at),
+  );
+
   await db
     .updateTable('daily_results')
     .set({
       found_words: JSON.stringify(result.nextWords),
+      word_times: JSON.stringify(wordTimes),
       points: result.aggregate.points,
       word_count: result.aggregate.wordCount,
       longest_word: result.aggregate.longestWord,

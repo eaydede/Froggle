@@ -21,6 +21,7 @@ import {
   getDailyGauntletNumber,
   prepareGauntletRound,
 } from './dailyGauntletConfig.js';
+import { appendWordTimes, elapsedSeconds, parseWordTimes } from './wordTiming.js';
 
 // Same grace window as timed daily — a few hundred ms of client/server
 // clock drift shouldn't reject the last fairly-played word.
@@ -38,6 +39,7 @@ export interface GauntletRoundSession {
     minWordLength: number;
   };
   foundWords: string[];
+  wordTimes: (number | null)[];
   points: number;
   wordCount: number;
   longestWord: string;
@@ -89,6 +91,7 @@ function parseSessionRow(row: {
   board: unknown;
   modifier: unknown;
   found_words: unknown;
+  word_times: unknown;
   points: number;
   word_count: number;
   longest_word: string;
@@ -118,6 +121,7 @@ function parseSessionRow(row: {
       minWordLength: row.min_word_length,
     },
     foundWords,
+    wordTimes: parseWordTimes(row.word_times),
     points: row.points,
     wordCount: row.word_count,
     longestWord: row.longest_word,
@@ -178,6 +182,7 @@ export async function getGauntletRoundSession(
       'board',
       'modifier',
       'found_words',
+      'word_times',
       'points',
       'word_count',
       'longest_word',
@@ -213,6 +218,7 @@ async function getRoundsForUser(
       'board',
       'modifier',
       'found_words',
+      'word_times',
       'points',
       'word_count',
       'longest_word',
@@ -316,10 +322,18 @@ export async function submitGauntletWord(
   });
   if (!result.valid) return { valid: false, reason: result.reason };
 
+  const wordTimes = appendWordTimes(
+    session.wordTimes,
+    session.foundWords.length,
+    result.nextWords.length - session.foundWords.length,
+    elapsedSeconds(session.startedAt),
+  );
+
   await db
     .updateTable('daily_gauntlet_results')
     .set({
       found_words: JSON.stringify(result.nextWords),
+      word_times: JSON.stringify(wordTimes),
       points: result.aggregate.points,
       word_count: result.aggregate.wordCount,
       longest_word: result.aggregate.longestWord,

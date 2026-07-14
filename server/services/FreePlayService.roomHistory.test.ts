@@ -48,6 +48,7 @@ function completion(
     participants: userIds.map((userId) => ({
       userId,
       foundWords: ['CAB'],
+      foundWordTimes: [5],
       points: 1,
       wordCount: 1,
       longestWord: 'CAB',
@@ -95,9 +96,9 @@ describe('persistRoomBoardResults', () => {
       endedAt: 61_000,
       hostUserId: 'user-1',
       participants: [
-        { userId: 'user-1', foundWords: ['CA'], points: 2, wordCount: 1, longestWord: 'CA' },
-        { userId: 'user-1', foundWords: ['CAB', 'DAB'], points: 5, wordCount: 2, longestWord: 'CAB' },
-        { userId: 'user-2', foundWords: ['DAB'], points: 3, wordCount: 1, longestWord: 'DAB' },
+        { userId: 'user-1', foundWords: ['CA'], foundWordTimes: [3], points: 2, wordCount: 1, longestWord: 'CA' },
+        { userId: 'user-1', foundWords: ['CAB', 'DAB'], foundWordTimes: [4, 9], points: 5, wordCount: 2, longestWord: 'CAB' },
+        { userId: 'user-2', foundWords: ['DAB'], foundWordTimes: [7], points: 3, wordCount: 1, longestWord: 'DAB' },
       ],
     });
 

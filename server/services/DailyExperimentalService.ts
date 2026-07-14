@@ -19,6 +19,7 @@ import { scoreResult } from './DailyService.js';
 import { getDisplayNames } from './displayNames.js';
 import { isTimedSessionExpired, timedExpiryInstant } from './sessionTiming.js';
 import { prepareExperimentalBoard } from './experimentalConfig.js';
+import { appendWordTimes, elapsedSeconds, parseWordTimes } from './wordTiming.js';
 
 // Same buzzer-grace window the timed daily uses — a word fairly played as the
 // clock hits zero can reach the server a few hundred ms late.
@@ -30,6 +31,7 @@ export interface ExperimentalSession {
   board: string[][];
   state: ExperimentalModeState;
   found_words: string[];
+  word_times: (number | null)[];
   started_at: Date;
   ended_at: Date | null;
   points: number;
@@ -103,6 +105,7 @@ function parseSession(row: {
   board: unknown;
   state: unknown;
   found_words: unknown;
+  word_times: unknown;
   started_at: Date;
   ended_at: Date | null;
   points: number;
@@ -118,6 +121,7 @@ function parseSession(row: {
     board: parseJson<string[][]>(row.board, []),
     state: parseJson<ExperimentalModeState>(row.state, {}),
     found_words: parseJson<string[]>(row.found_words, []),
+    word_times: parseWordTimes(row.word_times),
     started_at: row.started_at,
     ended_at: row.ended_at,
     points: row.points,
@@ -161,6 +165,7 @@ export async function getExperimentalSession(
       'board',
       'state',
       'found_words',
+      'word_times',
       'started_at',
       'ended_at',
       'points',
@@ -335,10 +340,18 @@ export async function submitExperimentalWord(
 
   if (!branch.valid) return { valid: false, reason: branch.reason };
 
+  const wordTimes = appendWordTimes(
+    session.word_times,
+    session.found_words.length,
+    branch.nextWords.length - session.found_words.length,
+    elapsedSeconds(session.started_at),
+  );
+
   await db
     .updateTable('experimental_results')
     .set({
       found_words: JSON.stringify(branch.nextWords),
+      word_times: JSON.stringify(wordTimes),
       points: branch.aggregates.points,
       word_count: branch.aggregates.wordCount,
       longest_word: branch.aggregates.longestWord,
