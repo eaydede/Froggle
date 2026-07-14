@@ -40,6 +40,10 @@ export interface MultiplayerPlayer {
    *  starts so the lobby card numbers reflect the latest round, not a
    *  stale aggregate. */
   foundWords: string[];
+  /** Elapsed play time in seconds (from the board's start) at which each
+   *  word in `foundWords` was found — parallel array, index-aligned. Feeds
+   *  the results-page timeline; cleared alongside `foundWords` each board. */
+  foundWordTimes: number[];
   /** Whether the socket is currently connected. Disconnected players
    *  stay in the roster (key-based identity) so reconnects slot back in. */
   connected: boolean;

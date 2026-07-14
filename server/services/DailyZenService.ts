@@ -18,11 +18,13 @@ import {
   getDailyZenConfig,
   getDailyZenNumber,
 } from './dailyZenConfig.js';
+import { appendWordTimes, elapsedSeconds, parseWordTimes } from './wordTiming.js';
 
 export interface ZenSession {
   date: string;
   board: string[][];
   found_words: string[];
+  word_times: (number | null)[];
   started_at: Date;
   last_active_at: Date;
   ended_at: Date | null;
@@ -51,6 +53,7 @@ export type SubmitOutcome =
 function parseSession(row: {
   date: string;
   found_words: unknown;
+  word_times: unknown;
   board: unknown;
   started_at: Date;
   last_active_at: Date;
@@ -71,6 +74,7 @@ function parseSession(row: {
     date: row.date,
     board,
     found_words: foundWords,
+    word_times: parseWordTimes(row.word_times),
     started_at: row.started_at,
     last_active_at: row.last_active_at,
     ended_at: row.ended_at,
@@ -173,10 +177,18 @@ export async function submitWord(
   );
   const creditSec = Math.min(gapSec, ACTIVE_TIME_GAP_CAP_SECONDS);
 
+  const wordTimes = appendWordTimes(
+    session.word_times,
+    session.found_words.length,
+    result.nextWords.length - session.found_words.length,
+    elapsedSeconds(session.started_at, now),
+  );
+
   await db
     .updateTable('daily_zen_results')
     .set({
       found_words: JSON.stringify(result.nextWords),
+      word_times: JSON.stringify(wordTimes),
       last_active_at: now,
       points: result.aggregate.points,
       word_count: result.aggregate.wordCount,

@@ -12,6 +12,7 @@ import { dictionary } from './dictionary.js';
 import { getDailyDatePST } from './dailyConfig.js';
 import { scoreResult } from './DailyService.js';
 import { isTimedSessionExpired, timedExpiryInstant } from './sessionTiming.js';
+import { appendWordTimes, elapsedSeconds, parseWordTimes } from './wordTiming.js';
 
 // Counts challenge participants whose completions are unseen by the
 // originator. A row counts as "unseen" when it isn't the originator's
@@ -69,6 +70,7 @@ export interface FreePlaySession {
   id: string;
   board: string[][];
   found_words: string[];
+  word_times: (number | null)[];
   started_at: Date;
   completed_at: Date | null;
   points: number;
@@ -95,6 +97,7 @@ function parseFreePlaySession(row: {
   id: string;
   board: unknown;
   found_words: unknown;
+  word_times: unknown;
   started_at: Date;
   completed_at: Date | null;
   points: number;
@@ -114,6 +117,7 @@ function parseFreePlaySession(row: {
     id: row.id,
     board,
     found_words: foundWords,
+    word_times: parseWordTimes(row.word_times),
     started_at: row.started_at,
     completed_at: row.completed_at,
     points: row.points,
@@ -148,6 +152,7 @@ const SESSION_COLUMNS = [
   'id',
   'board',
   'found_words',
+  'word_times',
   'started_at',
   'completed_at',
   'points',
@@ -326,10 +331,18 @@ export async function submitFreePlayWord(
     });
     if (!result.valid) return { valid: false, reason: result.reason };
 
+    const wordTimes = appendWordTimes(
+      session.word_times,
+      session.found_words.length,
+      result.nextWords.length - session.found_words.length,
+      elapsedSeconds(session.started_at),
+    );
+
     const updated = await trx
       .updateTable('free_play_sessions')
       .set({
         found_words: JSON.stringify(result.nextWords),
+        word_times: JSON.stringify(wordTimes),
         points: result.aggregate.points,
         word_count: result.aggregate.wordCount,
         longest_word: result.aggregate.longestWord,
@@ -515,6 +528,7 @@ export async function persistRoomBoardResults(
         date,
         board: boardJson,
         found_words: JSON.stringify(p.foundWords),
+        word_times: JSON.stringify(p.foundWordTimes),
         started_at: startedAt,
         completed_at: completedAt,
         points: p.points,
