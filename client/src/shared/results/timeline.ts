@@ -30,9 +30,21 @@ export interface TimelineBreak {
   durationSeconds: number;
 }
 
+/** One stretch of the compressed axis (leading wait, an inter-find gap, or the
+ *  trailing time-on-the-clock) paired with the real seconds it represents.
+ *  Lets realtime playback advance the playhead at true pace — crawling across a
+ *  compressed break zone for its full real duration — while fast playback just
+ *  sweeps the axis uniformly. `x` values are fractions (0–1). */
+export interface TimelineSegment {
+  xStart: number;
+  xEnd: number;
+  seconds: number;
+}
+
 export interface TimelineModel {
   marks: TimelineMark[];
   breaks: TimelineBreak[];
+  segments: TimelineSegment[];
   hasData: boolean;
   /** First → last find, in real seconds. */
   spanSeconds: number;
@@ -77,6 +89,7 @@ export function buildTimeline(
     return {
       marks: [],
       breaks: [],
+      segments: [],
       hasData: false,
       spanSeconds: 0,
       longestLullSeconds: 0,
@@ -118,6 +131,7 @@ export function buildTimeline(
 
   const marks: TimelineMark[] = [];
   const breaks: TimelineBreak[] = [];
+  const segments: TimelineSegment[] = [];
 
   const pushBreakZone = (fromDisplay: number, gap: number) => {
     if (!isBreak(gap)) return;
@@ -128,14 +142,26 @@ export function buildTimeline(
     });
   };
 
+  // A segment maps one real-time span onto its compressed slice of the axis.
+  const pushSegment = (fromDisplay: number, gap: number) => {
+    if (gap <= 0) return;
+    segments.push({
+      xStart: fromDisplay / totalDisplay,
+      xEnd: (fromDisplay + displayOf(gap)) / totalDisplay,
+      seconds: gap,
+    });
+  };
+
   // Walk the compressed axis, emitting a mark per find and a zone per break.
   let cursor = 0;
+  pushSegment(cursor, leadingGap);
   pushBreakZone(cursor, leadingGap);
   cursor += displayOf(leadingGap);
 
   for (let i = 0; i < timed.length; i++) {
     if (i > 0) {
       const gap = interGaps[i - 1];
+      pushSegment(cursor, gap);
       pushBreakZone(cursor, gap);
       cursor += displayOf(gap);
     }
@@ -151,9 +177,12 @@ export function buildTimeline(
     });
   }
 
+  pushSegment(cursor, trailingGap);
+
   return {
     marks,
     breaks,
+    segments,
     hasData: true,
     spanSeconds: lastTime - firstTime,
     longestLullSeconds: interGaps.reduce((max, g) => Math.max(max, g), 0),

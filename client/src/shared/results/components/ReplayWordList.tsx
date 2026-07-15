@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { RARITY_VAR } from '../../../pages/results/utils/wordRarity';
 import { formatClock, type TimelineMark } from '../timeline';
 
@@ -17,7 +17,11 @@ interface ReplayWordListProps {
  * visual continuity. The current word stays scrolled into view as the replay
  * advances, and breaks show inline so lulls read at a glance.
  */
-export function ReplayWordList({ marks, currentIndex, onSelect }: ReplayWordListProps) {
+export const ReplayWordList = memo(function ReplayWordList({
+  marks,
+  currentIndex,
+  onSelect,
+}: ReplayWordListProps) {
   const total = marks.reduce((sum, m) => sum + m.score, 0);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const activeRowRef = useRef<HTMLDivElement | null>(null);
@@ -65,7 +69,7 @@ export function ReplayWordList({ marks, currentIndex, onSelect }: ReplayWordList
       </div>
     </div>
   );
-}
+});
 
 function ReplayWordRow({
   mark,
