@@ -4,9 +4,9 @@ import type { ScoredWord } from '../../types';
 import type { ResultsBoardConfig } from '../types';
 import { findWordPath } from '../../utils/findWordPath';
 import { RARITY_VAR } from '../../../pages/results/utils/wordRarity';
-import { WordsCard } from '../../../pages/results/components/WordsCard';
 import { Board } from './Board';
 import { ReplayScrubber } from './ReplayScrubber';
+import { ReplayWordList } from './ReplayWordList';
 import { buildTimeline, formatClock, type TimelineMark } from '../timeline';
 
 interface TimelineProps {
@@ -61,16 +61,6 @@ export function Timeline({ board, foundWords, config }: TimelineProps) {
     return map;
   }, [foundWords, board]);
 
-  const seekToWord = useCallback(
-    (word: string | null) => {
-      if (!word) return;
-      const target = word.toUpperCase();
-      const mark = marks.find((m) => m.word === target);
-      if (mark) seek(mark.xPct / 100);
-    },
-    [marks, seek],
-  );
-
   if (!model.hasData) return null;
 
   const current = currentIndex >= 0 ? marks[currentIndex] : null;
@@ -94,36 +84,41 @@ export function Timeline({ board, foundWords, config }: TimelineProps) {
 
       <NowPlaying mark={current} />
 
-      <div className="shrink-0 flex items-center gap-2">
-        <TransportButton
-          label={playing ? 'Pause replay' : 'Play replay'}
-          onClick={toggle}
-          primary
-        >
-          {playing ? <PauseIcon /> : atEnd ? <ReplayIcon /> : <PlayIcon />}
-        </TransportButton>
-        <div className="flex-1 min-w-0">
-          <ReplayScrubber
-            marks={marks}
-            breaks={model.breaks}
-            endSeconds={endSeconds}
-            playhead={playhead}
-            currentIndex={currentIndex}
-            onScrub={seek}
-          />
+      <div className="shrink-0">
+        <div className="flex items-center gap-2">
+          <TransportButton
+            label={playing ? 'Pause replay' : 'Play replay'}
+            onClick={toggle}
+            primary
+          >
+            {playing ? <PauseIcon /> : atEnd ? <ReplayIcon /> : <PlayIcon />}
+          </TransportButton>
+          <div className="flex-1 min-w-0">
+            <ReplayScrubber
+              marks={marks}
+              breaks={model.breaks}
+              playhead={playhead}
+              currentIndex={currentIndex}
+              onScrub={seek}
+            />
+          </div>
+          <TransportButton label="Restart replay" onClick={() => seek(0)}>
+            <RestartIcon />
+          </TransportButton>
         </div>
-        <TransportButton label="Restart replay" onClick={() => seek(0)}>
-          <RestartIcon />
-        </TransportButton>
+        {/* Axis labels align under the track, clearing the flanking buttons
+            (w-9 + gap-2 = 44px = px-11) so the buttons center on the bar. */}
+        <div className="flex justify-between mt-1 px-11 text-label-xs tabular-nums text-[color:var(--ink-faint)] font-[family-name:var(--font-ui)]">
+          <span>0:00</span>
+          <span>{formatClock(endSeconds)}</span>
+        </div>
       </div>
 
       <div className="flex-1 min-h-0 flex flex-col">
-        <WordsCard
-          foundWords={foundWords}
-          missedWords={[]}
-          showMissedTab={false}
-          highlightedWord={current?.word ?? null}
-          onHighlightWord={seekToWord}
+        <ReplayWordList
+          marks={marks}
+          currentIndex={currentIndex}
+          onSelect={(i) => seek(marks[i].xPct / 100)}
         />
       </div>
     </div>
@@ -176,29 +171,33 @@ function useReplay(durationMs: number) {
   return { playhead, playing, atEnd: playhead >= 1, toggle, seek };
 }
 
+// Fixed-height regardless of state so starting playback never reflows the
+// scrubber and list below it. (A bare <p> would also add default browser
+// margin — preflight isn't fully imported here — compounding the shift.)
 function NowPlaying({ mark }: { mark: TimelineMark | null }) {
-  if (!mark) {
-    return (
-      <p className="shrink-0 h-6 flex items-center justify-center text-caption text-[color:var(--ink-faint)] font-[family-name:var(--font-ui)]">
-        Press play to replay your finds
-      </p>
-    );
-  }
   return (
     <div className="shrink-0 h-6 flex items-center justify-center gap-2">
-      <span
-        className="h-2.5 w-2.5 rounded-full"
-        style={{ background: RARITY_VAR[mark.rarity] }}
-      />
-      <span
-        className="text-body text-[color:var(--ink)] font-[family-name:var(--font-ui)]"
-        style={{ fontWeight: 600 }}
-      >
-        {mark.word}
-      </span>
-      <span className="text-caption text-[color:var(--ink-soft)] tabular-nums font-[family-name:var(--font-ui)]">
-        {formatClock(mark.timeSeconds)}
-      </span>
+      {mark ? (
+        <>
+          <span
+            className="h-2.5 w-2.5 rounded-full"
+            style={{ background: RARITY_VAR[mark.rarity] }}
+          />
+          <span
+            className="text-body text-[color:var(--ink)] font-[family-name:var(--font-ui)]"
+            style={{ fontWeight: 600 }}
+          >
+            {mark.word}
+          </span>
+          <span className="text-caption text-[color:var(--ink-soft)] tabular-nums font-[family-name:var(--font-ui)]">
+            {formatClock(mark.timeSeconds)}
+          </span>
+        </>
+      ) : (
+        <span className="text-caption text-[color:var(--ink-faint)] font-[family-name:var(--font-ui)]">
+          Press play to replay your finds
+        </span>
+      )}
     </div>
   );
 }
