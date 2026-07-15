@@ -4,9 +4,10 @@ import type { ScoredWord } from '../../types';
 import type { ResultsBoardConfig } from '../types';
 import { findWordPath } from '../../utils/findWordPath';
 import { RARITY_VAR } from '../../../pages/results/utils/wordRarity';
+import { WordsCard } from '../../../pages/results/components/WordsCard';
 import { Board } from './Board';
 import { ReplayScrubber } from './ReplayScrubber';
-import { buildTimeline, formatClock, formatDelta, type TimelineMark } from '../timeline';
+import { buildTimeline, formatClock, type TimelineMark } from '../timeline';
 
 interface TimelineProps {
   board: string[][];
@@ -21,6 +22,10 @@ interface TimelineProps {
 const MIN_REPLAY_MS = 3500;
 const MAX_REPLAY_MS = 9000;
 const MS_PER_WORD = 550;
+
+// Faster than the board's default tap cadence so a word's whole path lights
+// before the playhead reaches the next find, even in a tight cluster.
+const REPLAY_STEP_MS = 32;
 
 export function Timeline({ board, foundWords, config }: TimelineProps) {
   const model = useMemo(
@@ -56,6 +61,16 @@ export function Timeline({ board, foundWords, config }: TimelineProps) {
     return map;
   }, [foundWords, board]);
 
+  const seekToWord = useCallback(
+    (word: string | null) => {
+      if (!word) return;
+      const target = word.toUpperCase();
+      const mark = marks.find((m) => m.word === target);
+      if (mark) seek(mark.xPct / 100);
+    },
+    [marks, seek],
+  );
+
   if (!model.hasData) return null;
 
   const current = currentIndex >= 0 ? marks[currentIndex] : null;
@@ -73,33 +88,43 @@ export function Timeline({ board, foundWords, config }: TimelineProps) {
           highlightColor={highlightColor}
           config={config}
           compact
+          stepMs={REPLAY_STEP_MS}
         />
       </div>
 
       <NowPlaying mark={current} />
 
-      <ReplayScrubber
-        marks={marks}
-        breaks={model.breaks}
-        endSeconds={endSeconds}
-        playhead={playhead}
-        currentIndex={currentIndex}
-        onScrub={seek}
-      />
+      <div className="shrink-0 flex items-center gap-2">
+        <TransportButton
+          label={playing ? 'Pause replay' : 'Play replay'}
+          onClick={toggle}
+          primary
+        >
+          {playing ? <PauseIcon /> : atEnd ? <ReplayIcon /> : <PlayIcon />}
+        </TransportButton>
+        <div className="flex-1 min-w-0">
+          <ReplayScrubber
+            marks={marks}
+            breaks={model.breaks}
+            endSeconds={endSeconds}
+            playhead={playhead}
+            currentIndex={currentIndex}
+            onScrub={seek}
+          />
+        </div>
+        <TransportButton label="Restart replay" onClick={() => seek(0)}>
+          <RestartIcon />
+        </TransportButton>
+      </div>
 
-      <Transport playing={playing} atEnd={atEnd} onToggle={toggle} onRestart={() => seek(0)} />
-
-      <div className="flex-1 min-h-0 overflow-y-auto -mr-1 pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <ol className="flex flex-col gap-1 list-none m-0 p-0">
-          {marks.map((mark, i) => (
-            <ReplayRow
-              key={mark.word}
-              mark={mark}
-              active={i === currentIndex}
-              onSelect={() => seek(mark.xPct / 100)}
-            />
-          ))}
-        </ol>
+      <div className="flex-1 min-h-0 flex flex-col">
+        <WordsCard
+          foundWords={foundWords}
+          missedWords={[]}
+          showMissedTab={false}
+          highlightedWord={current?.word ?? null}
+          onHighlightWord={seekToWord}
+        />
       </div>
     </div>
   );
@@ -178,108 +203,64 @@ function NowPlaying({ mark }: { mark: TimelineMark | null }) {
   );
 }
 
-function Transport({
-  playing,
-  atEnd,
-  onToggle,
-  onRestart,
+function TransportButton({
+  label,
+  onClick,
+  primary = false,
+  children,
 }: {
-  playing: boolean;
-  atEnd: boolean;
-  onToggle: () => void;
-  onRestart: () => void;
+  label: string;
+  onClick: () => void;
+  primary?: boolean;
+  children: React.ReactNode;
 }) {
   return (
-    <div className="shrink-0 flex items-center justify-center gap-4">
-      <button
-        type="button"
-        onClick={onRestart}
-        aria-label="Restart replay"
-        className="flex items-center justify-center h-9 w-9 rounded-full border-0 bg-transparent text-[color:var(--ink-muted)] cursor-pointer"
-        style={{ WebkitTapHighlightColor: 'transparent' }}
-      >
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="1 4 1 10 7 10" />
-          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-        </svg>
-      </button>
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-label={playing ? 'Pause replay' : 'Play replay'}
-        className="flex items-center justify-center h-12 w-12 rounded-full border-0 bg-[var(--accent)] text-[color:var(--ink-inverse)] cursor-pointer"
-        style={{ WebkitTapHighlightColor: 'transparent' }}
-      >
-        {playing ? (
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-            <rect x="6" y="5" width="4" height="14" rx="1" />
-            <rect x="14" y="5" width="4" height="14" rx="1" />
-          </svg>
-        ) : (
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-            {/* Replay icon at the end, otherwise a play triangle. */}
-            {atEnd ? (
-              <path d="M12 5V2L7 7l5 5V8a5 5 0 1 1-5 5H5a7 7 0 1 0 7-8z" />
-            ) : (
-              <polygon points="7 4 20 12 7 20" />
-            )}
-          </svg>
-        )}
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className={`shrink-0 flex items-center justify-center h-9 w-9 rounded-full border-0 cursor-pointer ${
+        primary
+          ? 'bg-[var(--accent)] text-[color:var(--ink-inverse)]'
+          : 'bg-transparent text-[color:var(--ink-muted)]'
+      }`}
+      style={{ WebkitTapHighlightColor: 'transparent' }}
+    >
+      {children}
+    </button>
   );
 }
 
-function ReplayRow({
-  mark,
-  active,
-  onSelect,
-}: {
-  mark: TimelineMark;
-  active: boolean;
-  onSelect: () => void;
-}) {
-  const ref = useRef<HTMLButtonElement | null>(null);
-  useEffect(() => {
-    if (active) ref.current?.scrollIntoView({ block: 'nearest' });
-  }, [active]);
-
+function PlayIcon() {
   return (
-    <li>
-      {mark.breakBefore && mark.deltaSeconds !== null && (
-        <div className="flex items-center gap-2 px-1 py-0.5 text-label-xs text-[color:var(--ink-faint)] font-[family-name:var(--font-ui)]">
-          <span className="flex-1 border-t border-dashed border-[color:var(--ink-faint)]" />
-          <span>{formatClock(mark.deltaSeconds)} break</span>
-          <span className="flex-1 border-t border-dashed border-[color:var(--ink-faint)]" />
-        </div>
-      )}
-      <button
-        ref={ref}
-        type="button"
-        onClick={onSelect}
-        className="w-full flex items-center gap-2 rounded-lg py-1 pr-2 text-left border-0"
-        style={{
-          background: active ? 'var(--you-highlight-bg-hi)' : 'transparent',
-          borderLeft: `3px solid ${RARITY_VAR[mark.rarity]}`,
-          paddingLeft: 8,
-          WebkitTapHighlightColor: 'transparent',
-        }}
-      >
-        <span className="tabular-nums text-caption text-[color:var(--ink-soft)] font-[family-name:var(--font-ui)] w-9 shrink-0">
-          {formatClock(mark.timeSeconds)}
-        </span>
-        <span className="flex-1 min-w-0 truncate text-body text-[color:var(--ink)] font-[family-name:var(--font-ui)]">
-          {mark.word}
-        </span>
-        {mark.deltaSeconds !== null && !mark.breakBefore && (
-          <span className="tabular-nums text-label-xs text-[color:var(--ink-faint)] font-[family-name:var(--font-ui)]">
-            {formatDelta(mark.deltaSeconds)}
-          </span>
-        )}
-        <span className="tabular-nums text-caption text-[color:var(--ink-muted)] font-[family-name:var(--font-ui)] w-6 text-right shrink-0">
-          {mark.score}
-        </span>
-      </button>
-    </li>
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+      <polygon points="7 4 20 12 7 20" />
+    </svg>
+  );
+}
+
+function PauseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+      <rect x="6" y="5" width="4" height="14" rx="1" />
+      <rect x="14" y="5" width="4" height="14" rx="1" />
+    </svg>
+  );
+}
+
+function ReplayIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+      <path d="M12 5V2L7 7l5 5V8a5 5 0 1 1-5 5H5a7 7 0 1 0 7-8z" />
+    </svg>
+  );
+}
+
+function RestartIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="1 4 1 10 7 10" />
+      <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+    </svg>
   );
 }
