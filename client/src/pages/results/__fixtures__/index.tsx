@@ -42,6 +42,19 @@ const MISSED_WORDS: ScoredWord[] = [
   { word: 'PRESIDED', score: 13, path: [] },
 ];
 
+// A long find list (empty paths — this fixture exercises list scrolling, not
+// the board replay) so the timeline's auto-scroll-to-top behaviour is visible.
+const MANY_WORDS: ScoredWord[] = (
+  [
+    ['CAT', 1, 2], ['DOG', 1, 5], ['TREE', 2, 9], ['OPEN', 2, 13], ['STONE', 3, 17],
+    ['RIVER', 3, 22], ['PLANET', 5, 27], ['GARDEN', 5, 33], ['TEACHER', 8, 39],
+    ['MONSTER', 8, 45],
+    ['ELEPHANT', 13, 71], ['DIAMOND', 8, 74], ['ORANGE', 5, 77], ['SILVER', 5, 80],
+    ['CANDLE', 5, 82], ['WINDOW', 5, 84], ['ROCK', 2, 86], ['LAMP', 2, 87],
+    ['PEN', 1, 88], ['CUP', 1, 89],
+  ] as const
+).map(([word, score, timeSeconds]) => ({ word, score, timeSeconds, path: [] }));
+
 const ROSTER: ResultsRosterEntry[] = [
   { id: 'you', rank: 1, displayName: 'You', points: 32, isYou: true },
   { id: 'op-1', rank: 2, displayName: 'Pat', points: 22, isYou: false },
@@ -79,6 +92,24 @@ export const RESULTS_FIXTURES: Record<string, () => ReactNode> = {
       config={{ boardSize: 4, minWordLength: 3, timeLimit: 90 }}
       roster={ROSTER}
       loadOpponent={loadOpponent}
+      topbarLabel="MOCK"
+      topbarOnClose={() => {}}
+      topbarOnShare={() => {}}
+      bottomActions={<div className="h-10" />}
+    />
+  ),
+  timeline: () => (
+    <ResultsView
+      me={{
+        displayName: 'You',
+        points: MANY_WORDS.reduce((s, w) => s + w.score, 0),
+        wordCount: MANY_WORDS.length,
+        foundWords: MANY_WORDS,
+        missedWords: [],
+      }}
+      board={BOARD_4x4}
+      config={{ boardSize: 4, minWordLength: 3, timeLimit: 90 }}
+      roster={[ROSTER[0]]}
       topbarLabel="MOCK"
       topbarOnClose={() => {}}
       topbarOnShare={() => {}}

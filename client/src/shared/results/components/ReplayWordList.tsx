@@ -19,9 +19,22 @@ interface ReplayWordListProps {
  */
 export function ReplayWordList({ marks, currentIndex, onSelect }: ReplayWordListProps) {
   const total = marks.reduce((sum, m) => sum + m.score, 0);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const activeRowRef = useRef<HTMLDivElement | null>(null);
+
+  // Keep the current word pinned to the top of the list as the replay advances.
+  // scrollTo clamps to the max offset, so once the list can't scroll further the
+  // highlight simply walks down the remaining rows instead of forcing the top.
+  useEffect(() => {
+    const container = scrollRef.current;
+    const row = activeRowRef.current;
+    if (!container || !row) return;
+    const delta = row.getBoundingClientRect().top - container.getBoundingClientRect().top;
+    container.scrollTo({ top: container.scrollTop + delta, behavior: 'smooth' });
+  }, [currentIndex]);
 
   return (
-    <div className="flex flex-col min-h-0 rounded-xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] overflow-hidden">
+    <div className="flex flex-col h-full min-h-0 rounded-xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] overflow-hidden">
       <div
         className="flex justify-between items-center px-3 py-[9px] text-label-xs uppercase tracking-[0.08em] text-[color:var(--ink-muted)] bg-[var(--ink-whisper)] leading-none font-[family-name:var(--font-structure)]"
         style={{ fontWeight: 700 }}
@@ -32,13 +45,20 @@ export function ReplayWordList({ marks, currentIndex, onSelect }: ReplayWordList
         <span className="tabular-nums">{total}</span>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
         {marks.map((mark, i) => (
           <ReplayWordRow
             key={mark.word}
             mark={mark}
             first={i === 0}
             active={i === currentIndex}
+            rowRef={
+              i === currentIndex
+                ? (el) => {
+                    activeRowRef.current = el;
+                  }
+                : undefined
+            }
             onClick={() => onSelect(i)}
           />
         ))}
@@ -51,18 +71,15 @@ function ReplayWordRow({
   mark,
   first,
   active,
+  rowRef,
   onClick,
 }: {
   mark: TimelineMark;
   first: boolean;
   active: boolean;
+  rowRef?: (el: HTMLDivElement | null) => void;
   onClick: () => void;
 }) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    if (active) ref.current?.scrollIntoView({ block: 'nearest' });
-  }, [active]);
-
   return (
     <>
       {mark.breakBefore && mark.deltaSeconds !== null && (
@@ -73,7 +90,7 @@ function ReplayWordRow({
         </div>
       )}
       <div
-        ref={ref}
+        ref={rowRef}
         onClick={onClick}
         className={[
           'relative flex items-center gap-2.5 py-[7px] pr-3 pl-[14px] text-xs cursor-pointer transition-colors duration-150 font-[family-name:var(--font-ui)]',

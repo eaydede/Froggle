@@ -17,6 +17,7 @@ export interface CarouselPanel {
  */
 export function ResultsCarousel({ panels }: { panels: CarouselPanel[] }) {
   const trackRef = useRef<HTMLDivElement | null>(null);
+  const panelRefs = useRef<(HTMLElement | null)[]>([]);
   const [active, setActive] = useState(0);
 
   const goTo = (index: number) => {
@@ -26,12 +27,24 @@ export function ResultsCarousel({ panels }: { panels: CarouselPanel[] }) {
     track.scrollTo({ left: clamped * track.clientWidth, behavior: 'smooth' });
   };
 
+  // Fade a panel out as it slides away so the two views' word lists don't read
+  // as one continuous list at the seam mid-swipe. Applied imperatively off the
+  // scroll position (not React state) so dragging never re-renders the panel
+  // contents — the replay's animation loop keeps running smoothly underneath.
+  const paintOpacity = (progress: number) => {
+    panelRefs.current.forEach((el, i) => {
+      if (el) el.style.opacity = String(Math.max(0.1, 1 - Math.abs(progress - i) * 1.5));
+    });
+  };
+
   // Derive the active panel from scroll position so a swipe, an arrow key, and
   // a dot tap all converge on one source of truth.
   const handleScroll = () => {
     const track = trackRef.current;
     if (!track || track.clientWidth === 0) return;
-    const index = Math.round(track.scrollLeft / track.clientWidth);
+    const progress = track.scrollLeft / track.clientWidth;
+    paintOpacity(progress);
+    const index = Math.round(progress);
     setActive((prev) => (prev === index ? prev : index));
   };
 
@@ -57,6 +70,13 @@ export function ResultsCarousel({ panels }: { panels: CarouselPanel[] }) {
     return () => window.removeEventListener('resize', onResize);
   }, [active]);
 
+  // Seed the fade so off-screen panels start dimmed before the first swipe.
+  useEffect(() => {
+    paintOpacity(active);
+    // Only on mount — thereafter handleScroll drives opacity from live scroll.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <>
       <div
@@ -66,9 +86,12 @@ export function ResultsCarousel({ panels }: { panels: CarouselPanel[] }) {
         tabIndex={0}
         className="flex-1 min-h-0 flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory outline-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        {panels.map((panel) => (
+        {panels.map((panel, i) => (
           <section
             key={panel.key}
+            ref={(el) => {
+              panelRefs.current[i] = el;
+            }}
             aria-label={panel.label}
             className="w-full h-full shrink-0 snap-center flex flex-col min-h-0 overflow-hidden gap-3"
           >

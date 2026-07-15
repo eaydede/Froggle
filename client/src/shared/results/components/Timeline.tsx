@@ -5,9 +5,10 @@ import type { ResultsBoardConfig } from '../types';
 import { findWordPath } from '../../utils/findWordPath';
 import { RARITY_VAR } from '../../../pages/results/utils/wordRarity';
 import { Board } from './Board';
+import { ResultsHero } from './ResultsHero';
 import { ReplayScrubber } from './ReplayScrubber';
 import { ReplayWordList } from './ReplayWordList';
-import { buildTimeline, formatClock, type TimelineMark } from '../timeline';
+import { buildTimeline, formatClock } from '../timeline';
 
 interface TimelineProps {
   board: string[][];
@@ -69,8 +70,24 @@ export function Timeline({ board, foundWords, config }: TimelineProps) {
   const endSeconds =
     config.timeLimit > 0 ? config.timeLimit : marks[marks.length - 1].timeSeconds;
 
+  // Score + word count accumulated up to the playhead, so the hero climbs as
+  // the replay progresses and lands on the game's real total at the end.
+  const pointsSoFar = marks
+    .slice(0, currentIndex + 1)
+    .reduce((sum, m) => sum + m.score, 0);
+  const wordsSoFar = currentIndex + 1;
+
   return (
     <div className="flex flex-col min-h-0 h-full gap-2">
+      <ResultsHero
+        me={{ displayName: 'You', points: pointsSoFar, wordCount: wordsSoFar }}
+        myRank={1}
+        totalPlayers={1}
+        opponent={null}
+        oppRank={null}
+        compact
+      />
+
       <div className="shrink-0 flex justify-center">
         <Board
           board={board}
@@ -82,44 +99,41 @@ export function Timeline({ board, foundWords, config }: TimelineProps) {
         />
       </div>
 
-      <NowPlaying mark={current} />
-
-      <div className="shrink-0">
-        <div className="flex items-center gap-2">
-          <TransportButton
-            label={playing ? 'Pause replay' : 'Play replay'}
-            onClick={toggle}
-            primary
-          >
-            {playing ? <PauseIcon /> : atEnd ? <ReplayIcon /> : <PlayIcon />}
-          </TransportButton>
-          <div className="flex-1 min-w-0">
-            <ReplayScrubber
-              marks={marks}
-              breaks={model.breaks}
-              playhead={playhead}
-              currentIndex={currentIndex}
-              onScrub={seek}
-            />
-          </div>
-          <TransportButton label="Restart replay" onClick={() => seek(0)}>
-            <RestartIcon />
-          </TransportButton>
-        </div>
-        {/* Axis labels align under the track, clearing the flanking buttons
-            (w-9 + gap-2 = 44px = px-11) so the buttons center on the bar. */}
-        <div className="flex justify-between mt-1 px-11 text-label-xs tabular-nums text-[color:var(--ink-faint)] font-[family-name:var(--font-ui)]">
-          <span>0:00</span>
-          <span>{formatClock(endSeconds)}</span>
-        </div>
-      </div>
-
       <div className="flex-1 min-h-0 flex flex-col">
         <ReplayWordList
           marks={marks}
           currentIndex={currentIndex}
           onSelect={(i) => seek(marks[i].xPct / 100)}
         />
+      </div>
+
+      {/* Scrubber sits directly above the transport, below the list — the
+          primary point of interaction lands within easy thumb reach. */}
+      <div className="shrink-0">
+        <ReplayScrubber
+          marks={marks}
+          breaks={model.breaks}
+          playhead={playhead}
+          currentIndex={currentIndex}
+          onScrub={seek}
+        />
+        <div className="flex justify-between mt-1 text-label-xs tabular-nums text-[color:var(--ink-faint)] font-[family-name:var(--font-ui)]">
+          <span>0:00</span>
+          <span>{formatClock(endSeconds)}</span>
+        </div>
+      </div>
+
+      <div className="shrink-0 flex items-center justify-center gap-5">
+        <TransportButton label="Restart replay" onClick={() => seek(0)}>
+          <RestartIcon />
+        </TransportButton>
+        <TransportButton
+          label={playing ? 'Pause replay' : 'Play replay'}
+          onClick={toggle}
+          primary
+        >
+          {playing ? <PauseIcon /> : atEnd ? <ReplayIcon /> : <PlayIcon />}
+        </TransportButton>
       </div>
     </div>
   );
@@ -169,37 +183,6 @@ function useReplay(durationMs: number) {
   }, [playing, playhead]);
 
   return { playhead, playing, atEnd: playhead >= 1, toggle, seek };
-}
-
-// Fixed-height regardless of state so starting playback never reflows the
-// scrubber and list below it. (A bare <p> would also add default browser
-// margin — preflight isn't fully imported here — compounding the shift.)
-function NowPlaying({ mark }: { mark: TimelineMark | null }) {
-  return (
-    <div className="shrink-0 h-6 flex items-center justify-center gap-2">
-      {mark ? (
-        <>
-          <span
-            className="h-2.5 w-2.5 rounded-full"
-            style={{ background: RARITY_VAR[mark.rarity] }}
-          />
-          <span
-            className="text-body text-[color:var(--ink)] font-[family-name:var(--font-ui)]"
-            style={{ fontWeight: 600 }}
-          >
-            {mark.word}
-          </span>
-          <span className="text-caption text-[color:var(--ink-soft)] tabular-nums font-[family-name:var(--font-ui)]">
-            {formatClock(mark.timeSeconds)}
-          </span>
-        </>
-      ) : (
-        <span className="text-caption text-[color:var(--ink-faint)] font-[family-name:var(--font-ui)]">
-          Press play to replay your finds
-        </span>
-      )}
-    </div>
-  );
 }
 
 function TransportButton({
