@@ -173,12 +173,13 @@ dailyZenRouter.get('/results/:date', requireAuth, async (req, res) => {
     // canonical path per word, which is good enough for results-page
     // highlighting.
     const pathByWord = new Map(allWords.map((w) => [w.word, w.path]));
-    const foundWords = session.found_words.map((w) => {
+    const foundWords = session.found_words.map((w, i) => {
       const upper = w.toUpperCase();
       return {
         word: upper,
         path: pathByWord.get(upper) ?? [],
         score: scoreWord(upper),
+        timeSeconds: session.word_times[i] ?? null,
       };
     });
     const missedWords = allWords

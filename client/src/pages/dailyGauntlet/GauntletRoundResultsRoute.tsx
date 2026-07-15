@@ -92,11 +92,12 @@ export function GauntletRoundResultsRoute() {
   // we re-derive against the stored board. findWordPath returns null
   // for words it can't trace, which is acceptable — they just won't
   // animate, same as the daily today.
-  const foundWords = result.found_words.map((word) => ({
+  const foundWords = result.found_words.map((word, i) => ({
     word,
     path: findWordPath(result.board, word) ?? [],
     score: scoreGauntletWord(word, modifier),
     bonus: bonusFor(word),
+    timeSeconds: result.word_times?.[i] ?? null,
   }));
   const missedWords = result.missed_words.map((m) => ({
     word: m.word,

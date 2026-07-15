@@ -155,6 +155,8 @@ export interface GauntletRoundResultResponse {
   config: { boardSize: number; timeLimit: number; minWordLength: number };
   board: string[][];
   found_words: string[];
+  /** Per-word find offsets in seconds, index-aligned to `found_words`. */
+  word_times?: (number | null)[];
   points: number;
   word_count: number;
   longest_word: string;

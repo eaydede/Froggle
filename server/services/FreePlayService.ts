@@ -424,7 +424,7 @@ async function getMostRecentFreePlaySession(
 // of the session row plus the dictionary.
 export function buildFreePlayResults(session: FreePlaySession): {
   board: string[][];
-  foundWords: { word: string; path: Position[]; score: number }[];
+  foundWords: { word: string; path: Position[]; score: number; timeSeconds: number | null }[];
   missedWords: { word: string; path: Position[]; score: number }[];
 } {
   const allWords = findAllWords(session.board, dictionary, session.min_word_length);
@@ -437,12 +437,17 @@ export function buildFreePlayResults(session: FreePlaySession): {
   // replay rather than fabricating a path.
   const pathByWord = new Map(allWords.map((w) => [w.word, w.path]));
   const foundWords = session.found_words
-    .map((w) => {
+    .map((w, i) => {
       const upper = w.toUpperCase();
       const path = pathByWord.get(upper);
-      return path ? { word: upper, path, score: scoreWord(upper) } : null;
+      return path
+        ? { word: upper, path, score: scoreWord(upper), timeSeconds: session.word_times[i] ?? null }
+        : null;
     })
-    .filter((w): w is { word: string; path: Position[]; score: number } => w !== null);
+    .filter(
+      (w): w is { word: string; path: Position[]; score: number; timeSeconds: number | null } =>
+        w !== null,
+    );
 
   const missedWords = allWords
     .filter((w) => !foundSet.has(w.word))

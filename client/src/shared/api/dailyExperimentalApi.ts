@@ -96,6 +96,8 @@ export interface ExperimentalResultResponse {
   board: string[][];
   state: ExperimentalModeState;
   found_words: string[];
+  /** Per-word find offsets in seconds, index-aligned to `found_words`. */
+  word_times?: (number | null)[];
   missed_words: ExperimentalMissedWord[];
   points: number;
   word_count: number;

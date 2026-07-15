@@ -313,10 +313,16 @@ export interface DailyResultMissedWord {
   word: string;
   path: { row: number; col: number }[];
   score: number;
+  /** Present on found-word lists (zen) that carry find-time capture; absent
+   *  on missed words, which were never found. */
+  timeSeconds?: number | null;
 }
 
 export interface DailyResultResponse {
   found_words: string[];
+  /** Per-word find offsets in seconds, index-aligned to `found_words`.
+   *  `null` for words captured before timing existed; absent on old results. */
+  word_times?: (number | null)[];
   board: string[][];
   /** Computed server-side at read time; absent in very old stored results
    *  but always present from the current endpoint. */
@@ -470,7 +476,7 @@ export interface FreePlaySessionResponse {
   seed: number | null;
   completedAt: string;
   board: string[][];
-  foundWords: { word: string; path: { row: number; col: number }[]; score: number }[];
+  foundWords: { word: string; path: { row: number; col: number }[]; score: number; timeSeconds?: number | null }[];
   missedWords: { word: string; path: { row: number; col: number }[]; score: number }[];
   config: { boardSize: number; timeLimit: number; minWordLength: number };
 }
@@ -542,7 +548,7 @@ export interface FreePlayChallengePlayer {
   wordCount: number;
   longestWord: string;
   completedAt: string;
-  foundWords: { word: string; score: number }[];
+  foundWords: { word: string; score: number; timeSeconds?: number | null }[];
   isOwner: boolean;
   isYou: boolean;
 }

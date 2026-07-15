@@ -9,6 +9,11 @@ export interface ScoredWord {
    *  to flag words that picked up the multiplier; left blank for modes
    *  that don't have a per-word bonus. */
   bonus?: string | null;
+  /** Elapsed play seconds (from game start) at which this word was found.
+   *  Drives the results-page timeline. `null`/absent when the game predates
+   *  find-time capture or the source has no timing (e.g. an opponent's list
+   *  reconstructed for compare mode). */
+  timeSeconds?: number | null;
 }
 
 export interface GameResults {

@@ -114,10 +114,11 @@ export function RoomResults({
       displayName: me.displayName,
       points: me.points,
       wordCount: me.wordCount,
-      foundWords: me.foundWords.map((word) => ({
+      foundWords: me.foundWords.map((word, i) => ({
         word,
         score: scoreWord(word),
         path: findWordPath(board.board, word) ?? [],
+        timeSeconds: me.foundWordTimes?.[i] ?? null,
       })),
       // Every found-able word the viewer didn't get. Paths + scores are
       // derived client-side (same as found words) so the word list shows
@@ -410,6 +411,7 @@ interface RankedPlayer {
   points: number;
   wordCount: number;
   foundWords: string[];
+  foundWordTimes: number[];
   left: boolean;
 }
 
@@ -420,6 +422,7 @@ function rankByPoints(
     points: number;
     wordCount: number;
     foundWords: string[];
+    foundWordTimes: number[];
     left: boolean;
   }[],
 ): RankedPlayer[] {
@@ -431,6 +434,7 @@ function rankByPoints(
     points: p.points,
     wordCount: p.wordCount,
     foundWords: p.foundWords,
+    foundWordTimes: p.foundWordTimes,
     left: p.left,
   }));
 }

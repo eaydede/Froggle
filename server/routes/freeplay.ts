@@ -8,6 +8,7 @@ import { cachePrivate } from '../httpCache.js';
 import { dictionary } from '../services/dictionary.js';
 import { getDisplayNames } from '../services/displayNames.js';
 import { computeChallengeNewResults } from '../services/FreePlayService.js';
+import { parseWordTimes } from '../services/wordTiming.js';
 import { assignCompetitionRanks } from 'models/ranking';
 import { getDailyConfig } from '../services/dailyConfig.js';
 
@@ -249,10 +250,19 @@ freeplayRouter.get('/session/:sessionId', requireAuth, async (req, res) => {
       : row.found_words;
 
     const foundSet = new Set(foundWords.map((w) => w.toUpperCase()));
+    const wordTimes = parseWordTimes(row.word_times);
+    const timeByWord = new Map(
+      foundWords.map((w, i) => [w.toUpperCase(), wordTimes[i] ?? null]),
+    );
     const all = findAllWords(board, dictionary, row.min_word_length);
     const found = all
       .filter((w) => foundSet.has(w.word))
-      .map((w) => ({ word: w.word, path: w.path, score: scoreWord(w.word) }))
+      .map((w) => ({
+        word: w.word,
+        path: w.path,
+        score: scoreWord(w.word),
+        timeSeconds: timeByWord.get(w.word) ?? null,
+      }))
       .sort((a, b) => b.score - a.score || b.word.length - a.word.length);
     const missed = all
       .filter((w) => !foundSet.has(w.word))
@@ -452,6 +462,7 @@ freeplayRouter.get('/challenge/:challengeId', requireAuth, async (req, res) => {
       const words: string[] = typeof r.found_words === 'string'
         ? JSON.parse(r.found_words)
         : r.found_words;
+      const wordTimes = parseWordTimes(r.word_times);
       return {
         userId: r.user_id,
         displayName: r.user_id ? nameMap.get(r.user_id) ?? 'Anonymous' : 'Guest',
@@ -460,7 +471,11 @@ freeplayRouter.get('/challenge/:challengeId', requireAuth, async (req, res) => {
         wordCount: r.word_count,
         longestWord: r.longest_word,
         completedAt: r.completed_at.toISOString(),
-        foundWords: words.map((word) => ({ word, score: scoreWord(word) })),
+        foundWords: words.map((word, i) => ({
+          word,
+          score: scoreWord(word),
+          timeSeconds: wordTimes[i] ?? null,
+        })),
         isOwner: r.id === challengeId,
         isYou: r.user_id === req.userId!,
       };

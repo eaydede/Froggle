@@ -14,24 +14,26 @@ const BOARD_4x4: string[][] = [
 ];
 
 // Mock words spanning every rarity tier so the board preview animation
-// exercises each rarity color when the cells are tapped.
+// exercises each rarity color when the cells are tapped. The find times trace
+// an early cluster, a ~50s break, then two late finds — so the timeline panel
+// shows a cluster, a flagged break, and time left on the clock.
 const ME_WORDS: ScoredWord[] = [
-  { word: 'TEAR', score: 2, path: [
+  { word: 'TEAR', score: 2, timeSeconds: 6, path: [
     { row: 0, col: 0 }, { row: 1, col: 0 }, { row: 0, col: 2 }, { row: 1, col: 1 },
   ]},
-  { word: 'STORE', score: 3, path: [
+  { word: 'STORE', score: 3, timeSeconds: 11, path: [
     { row: 1, col: 1 }, { row: 0, col: 1 }, { row: 0, col: 2 }, { row: 1, col: 2 }, { row: 1, col: 0 },
   ]},
-  { word: 'STREAM', score: 5, path: [
+  { word: 'STREAM', score: 5, timeSeconds: 18, path: [
     { row: 1, col: 1 }, { row: 0, col: 1 }, { row: 0, col: 0 }, { row: 1, col: 0 }, { row: 0, col: 2 }, { row: 3, col: 3 },
   ]},
-  { word: 'PARSED', score: 8, path: [
+  { word: 'PARSED', score: 8, timeSeconds: 68, path: [
     { row: 0, col: 3 }, { row: 0, col: 2 }, { row: 0, col: 1 }, { row: 1, col: 1 }, { row: 0, col: 0 }, { row: 2, col: 2 },
   ]},
-  { word: 'MIDDLES', score: 13, path: [
+  { word: 'MIDDLES', score: 13, timeSeconds: 74, path: [
     { row: 3, col: 3 }, { row: 2, col: 1 }, { row: 2, col: 2 }, { row: 2, col: 2 }, { row: 1, col: 3 }, { row: 2, col: 3 }, { row: 1, col: 1 },
   ]},
-  { word: 'NIT', score: 1, path: [
+  { word: 'NIT', score: 1, timeSeconds: 3, path: [
     { row: 2, col: 0 }, { row: 2, col: 1 }, { row: 0, col: 0 },
   ]},
 ];

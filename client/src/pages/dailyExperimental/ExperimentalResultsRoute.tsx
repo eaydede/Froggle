@@ -99,12 +99,13 @@ export function ExperimentalResultsRoute() {
   // Golden Ticket found words might have been reached via the wildcard, so
   // fall through the golden-aware path finder — it tries each A..Z at the
   // center when a plain trace fails. Other modes use the plain finder.
-  const foundWords = activeResult.found_words.map((word) => ({
+  const foundWords = activeResult.found_words.map((word, i) => ({
     word,
     path: (isGolden
       ? findGoldenWordPath(activeResult.board, word)
       : findWordPath(activeResult.board, word)) ?? [],
     score: scoreWord(word),
+    timeSeconds: activeResult.word_times?.[i] ?? null,
   }));
   const missedWords = activeResult.missed_words.map((m) => ({
     word: m.word,

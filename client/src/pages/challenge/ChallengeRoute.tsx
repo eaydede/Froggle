@@ -116,6 +116,7 @@ function ChallengeResultsView({
         word: w.word,
         score: w.score,
         path: pathByWord.get(w.word.toUpperCase()) ?? [],
+        timeSeconds: w.timeSeconds ?? null,
       })),
     [me.foundWords, pathByWord],
   );

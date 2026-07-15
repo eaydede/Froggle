@@ -11,6 +11,8 @@ import { ResultsHero } from './components/ResultsHero';
 import { Standings } from './components/Standings';
 import { Placeholders } from './components/Placeholders';
 import { WordList, type DisplayWordRow } from './components/WordList';
+import { Timeline } from './components/Timeline';
+import { ResultsCarousel } from './components/ResultsCarousel';
 import type {
   LoadOpponentError,
   LoadOpponentResult,
@@ -205,26 +207,17 @@ export function ResultsView({
     ? roster.find((r) => r.id === opponent.id) ?? null
     : null;
 
-  return (
-    <div className="fixed inset-0 flex justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] overflow-hidden">
-      <main
-        className="w-full max-w-[360px] box-border flex flex-col p-4 gap-3"
-        style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}
-      >
-        {topbar ?? (
-          <DefaultTopbar
-            label={topbarLabel ?? ''}
-            onClose={topbarOnClose ?? (() => {})}
-            onShare={topbarOnShare ?? (() => {})}
-            shareCopied={!!topbarShareCopied}
-            onLabelClick={topbarOnLabelClick}
-          />
-        )}
+  // Only offer the timeline swipe when the viewer's game actually carries
+  // find-times — a legacy game (or an untimed source that never captured them)
+  // renders exactly as before, with no empty second panel.
+  const hasTimeline = me.foundWords.some((w) => w.timeSeconds != null);
 
-        <div
-          key={opponent ? 'hero-versus' : 'hero-solo'}
-          className="shrink-0 results-region-fade-in"
-        >
+  const resultsRegions = (
+    <>
+      <div
+        key={opponent ? 'hero-versus' : 'hero-solo'}
+        className="shrink-0 results-region-fade-in"
+      >
           {opponent && meRow && opponentRosterRow ? (
             <ResultsHero
               me={{
@@ -359,6 +352,47 @@ export function ResultsView({
             )}
           </div>
         </section>
+    </>
+  );
+
+  return (
+    <div className="fixed inset-0 flex justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] overflow-hidden">
+      <main
+        className="w-full max-w-[360px] box-border flex flex-col p-4 gap-3"
+        style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}
+      >
+        {topbar ?? (
+          <DefaultTopbar
+            label={topbarLabel ?? ''}
+            onClose={topbarOnClose ?? (() => {})}
+            onShare={topbarOnShare ?? (() => {})}
+            shareCopied={!!topbarShareCopied}
+            onLabelClick={topbarOnLabelClick}
+          />
+        )}
+
+        {hasTimeline ? (
+          <ResultsCarousel
+            panels={[
+              { key: 'results', label: 'Results', node: resultsRegions },
+              {
+                key: 'timeline',
+                label: 'Timeline',
+                node: (
+                  <Timeline
+                    board={board}
+                    foundWords={me.foundWords}
+                    timeLimit={config.timeLimit}
+                    highlightedWord={highlightedWord}
+                    onSelectWord={handleHighlight}
+                  />
+                ),
+              },
+            ]}
+          />
+        ) : (
+          resultsRegions
+        )}
 
         <div className="shrink-0">{bottomActions}</div>
       </main>
