@@ -379,13 +379,7 @@ export function ResultsView({
                 key: 'timeline',
                 label: 'Timeline',
                 node: (
-                  <Timeline
-                    board={board}
-                    foundWords={me.foundWords}
-                    timeLimit={config.timeLimit}
-                    highlightedWord={highlightedWord}
-                    onSelectWord={handleHighlight}
-                  />
+                  <Timeline board={board} foundWords={me.foundWords} config={config} />
                 ),
               },
             ]}
