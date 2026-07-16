@@ -27,9 +27,11 @@ const MIN_REPLAY_MS = 3500;
 const MAX_REPLAY_MS = 9000;
 const MS_PER_WORD = 550;
 
-// Faster than the board's default tap cadence so a word's whole path lights
-// before the playhead reaches the next find, even in a tight cluster.
-const REPLAY_STEP_MS = 32;
+// Fast playback lights each word's path quicker than the board's default tap
+// cadence, so the whole path finishes before the playhead reaches the next find
+// in a tight cluster. Realtime playback keeps the board's original cadence —
+// there's ample time between finds, and the slower draw reads better.
+const REPLAY_FAST_STEP_MS = 32;
 
 export function Timeline({ board, foundWords, config }: TimelineProps) {
   const model = useMemo(
@@ -106,7 +108,7 @@ export function Timeline({ board, foundWords, config }: TimelineProps) {
           highlightColor={highlightColor}
           config={config}
           compact
-          stepMs={REPLAY_STEP_MS}
+          stepMs={mode === 'fast' ? REPLAY_FAST_STEP_MS : undefined}
         />
       </div>
 
@@ -183,7 +185,9 @@ function advance(
 function useReplay(fastDurationMs: number, segments: TimelineSegment[]) {
   const [playhead, setPlayhead] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [mode, setMode] = useState<ReplayMode>('fast');
+  // Default to realtime so scrubbing before playback uses the original board
+  // cadence; fast is opt-in via its button.
+  const [mode, setMode] = useState<ReplayMode>('realtime');
   const rafRef = useRef<number | null>(null);
   const lastRef = useRef<number | null>(null);
 

@@ -100,6 +100,10 @@ export function ResultsCarousel({ panels }: { panels: CarouselPanel[] }) {
         ))}
       </div>
 
+      {/* The pager doubles as the view indicator: the active panel expands into
+          a labelled pill so the current view is named, while the others stay as
+          dots. Reuses the row the dots already occupied — no extra height beyond
+          the pill itself. */}
       <div className="shrink-0 flex items-center justify-center gap-2" role="tablist">
         {panels.map((panel, i) => {
           const isActive = i === active;
@@ -111,11 +115,15 @@ export function ResultsCarousel({ panels }: { panels: CarouselPanel[] }) {
               aria-selected={isActive}
               aria-label={panel.label}
               onClick={() => goTo(i)}
-              className={`block h-1.5 rounded-full transition-all duration-200 border-none p-0 cursor-pointer ${
-                isActive ? 'w-8 bg-[var(--accent)]' : 'w-4 bg-[var(--ink-trace)]'
+              className={`flex items-center justify-center rounded-full transition-all duration-200 border-none cursor-pointer ${
+                isActive
+                  ? 'h-5 px-2.5 bg-[var(--accent)] text-[color:var(--ink-inverse)] uppercase text-label-xs tracking-[0.08em] font-[family-name:var(--font-structure)]'
+                  : 'h-1.5 w-4 p-0 bg-[var(--ink-trace)]'
               }`}
-              style={{ WebkitTapHighlightColor: 'transparent' }}
-            />
+              style={{ fontWeight: 700, WebkitTapHighlightColor: 'transparent' }}
+            >
+              {isActive ? panel.label : null}
+            </button>
           );
         })}
       </div>
