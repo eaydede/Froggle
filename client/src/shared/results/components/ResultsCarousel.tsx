@@ -100,11 +100,12 @@ export function ResultsCarousel({ panels }: { panels: CarouselPanel[] }) {
         ))}
       </div>
 
-      {/* The pager doubles as the view indicator: the active panel expands into
-          a labelled pill so the current view is named, while the others stay as
-          dots. Reuses the row the dots already occupied — no extra height beyond
-          the pill itself. */}
-      <div className="shrink-0 flex items-center justify-center gap-2" role="tablist">
+      {/* The pager doubles as the view indicator: the active panel is a labelled
+          pill so the current view is named, while the others stay as dots. The
+          row is a fixed height and only the colours transition (never the pill's
+          size), so a swap can't reflow the content above it or briefly clip the
+          growing label. */}
+      <div className="shrink-0 h-6 flex items-center justify-center gap-2" role="tablist">
         {panels.map((panel, i) => {
           const isActive = i === active;
           return (
@@ -115,7 +116,7 @@ export function ResultsCarousel({ panels }: { panels: CarouselPanel[] }) {
               aria-selected={isActive}
               aria-label={panel.label}
               onClick={() => goTo(i)}
-              className={`flex items-center justify-center rounded-full transition-all duration-200 border-none cursor-pointer ${
+              className={`flex items-center justify-center rounded-full transition-colors duration-200 border-none cursor-pointer ${
                 isActive
                   ? 'h-5 px-2.5 bg-[var(--accent)] text-[color:var(--ink-inverse)] uppercase text-label-xs tracking-[0.08em] font-[family-name:var(--font-structure)]'
                   : 'h-1.5 w-4 p-0 bg-[var(--ink-trace)]'
