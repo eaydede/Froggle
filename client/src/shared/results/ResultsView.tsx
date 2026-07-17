@@ -122,6 +122,14 @@ export function ResultsView({
   // carousel so the shared top knows who drives it.
   const [activeView, setActiveView] = useState(0);
 
+  // Reset the replay to its end state on every view change, so the shared hero
+  // never carries a mid-replay score across the swap (which would read as a
+  // value-change animation). Persisted per-view replay state can come later.
+  const resetReplay = replay.seek;
+  useEffect(() => {
+    resetReplay(1);
+  }, [activeView, resetReplay]);
+
   const meRow = roster.find((r) => r.isYou) ?? null;
   const isMulti = roster.length > 1;
 
@@ -256,7 +264,10 @@ export function ResultsView({
       />
     )
   );
-  const heroKey = timelineActive ? 'hero-timeline' : opponent ? 'hero-versus' : 'hero-solo';
+  // Solo and timeline share a key so swapping between them doesn't re-run the
+  // hero's fade-in — only the versus layout is a distinct enough change to
+  // warrant the transition.
+  const heroKey = opponent ? 'hero-versus' : 'hero-single';
 
   // The lower half — the only region that swipes. Its own compare/definition
   // two-column layout is unchanged; it's just no longer wrapped with the hero
