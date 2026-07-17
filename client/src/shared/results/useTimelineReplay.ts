@@ -48,50 +48,47 @@ const REPLAY_MISS_COLOR = 'var(--color-invalid)';
 
 export type ReplayMode = 'fast' | 'realtime';
 
-// Fast mode sweeps the whole compressed axis in this window regardless of game
-// length, paced by word count and clamped. Realtime advances at the game's true
-// pace instead (see advance()).
-const MIN_REPLAY_MS = 3500;
-const MAX_REPLAY_MS = 9000;
-const MS_PER_WORD = 550;
+// Both modes advance at the game's true pace along the timeline; fast just runs
+// at this multiple of real time (a 90s game replays in ~45s). Breaks are
+// honoured in both — fast crawls through them at 2×, not by skipping.
+const FAST_SPEED = 4;
 
 // Fast playback lights each word's path quicker than the board's default tap
 // cadence so the path finishes before the next find; realtime keeps the
 // original cadence.
 const REPLAY_FAST_STEP_MS = 32;
 
-// Advance the 0–1 playhead one frame. Fast sweeps the compressed axis uniformly
-// (narrow breaks pass quickly); realtime advances by real seconds scaled to the
-// local compression slope, so the playhead crawls across a break for its full
-// real duration.
+// Advance the 0–1 playhead one frame by real elapsed time, scaled to the local
+// compression slope so the playhead crawls across a break for its (real)
+// duration. Fast multiplies that rate by FAST_SPEED.
 function advance(
   fraction: number,
   dtMs: number,
   mode: ReplayMode,
-  fastDurationMs: number,
   segments: TimelineSegment[],
 ): number {
-  if (mode === 'fast') return Math.min(1, fraction + dtMs / fastDurationMs);
+  const speed = mode === 'fast' ? FAST_SPEED : 1;
   const seg = segments.find((s) => fraction < s.xEnd);
   if (!seg || seg.seconds <= 0) {
-    return Math.min(1, fraction + dtMs / fastDurationMs);
+    // No timed span here (degenerate single find): finish promptly.
+    return Math.min(1, fraction + speed * (dtMs / 1000));
   }
   const fractionPerSecond = (seg.xEnd - seg.xStart) / seg.seconds;
-  return Math.min(1, fraction + (dtMs / 1000) * fractionPerSecond);
+  return Math.min(1, fraction + speed * (dtMs / 1000) * fractionPerSecond);
 }
 
 // Playback clock. Starts at the end so the shared board/hero show the finished
 // game on entry (no jump from the Results view); pressing a mode's button
 // restarts from 0 and plays. Seeking pauses and jumps.
-function useReplay(fastDurationMs: number, segments: TimelineSegment[]) {
+function useReplay(segments: TimelineSegment[]) {
   const [playhead, setPlayhead] = useState(1);
   const [playing, setPlaying] = useState(false);
   const [mode, setMode] = useState<ReplayMode>('realtime');
   const rafRef = useRef<number | null>(null);
   const lastRef = useRef<number | null>(null);
 
-  const params = useRef({ mode, fastDurationMs, segments });
-  params.current = { mode, fastDurationMs, segments };
+  const params = useRef({ mode, segments });
+  params.current = { mode, segments };
 
   useEffect(() => {
     if (!playing) return;
@@ -100,7 +97,7 @@ function useReplay(fastDurationMs: number, segments: TimelineSegment[]) {
       const dt = ts - lastRef.current;
       lastRef.current = ts;
       const p = params.current;
-      setPlayhead((f) => advance(f, dt, p.mode, p.fastDurationMs, p.segments));
+      setPlayhead((f) => advance(f, dt, p.mode, p.segments));
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
@@ -197,12 +194,7 @@ export function useTimelineReplay(
     }));
   }, [invalidSubmissions, model]);
 
-  const durationMs = Math.max(
-    MIN_REPLAY_MS,
-    Math.min(MAX_REPLAY_MS, marks.length * MS_PER_WORD),
-  );
   const { playhead, playing, mode, atEnd, playMode, seek } = useReplay(
-    durationMs,
     model.segments,
   );
 

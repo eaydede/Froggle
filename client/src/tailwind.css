@@ -565,6 +565,18 @@ button, input, select, textarea {
   .results-region-fade-in { animation: none; }
 }
 
+/* Quick fade for the replay's inline current word as it swaps to the next. */
+@keyframes word-swap-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.word-swap-in {
+  animation: word-swap-in 180ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .word-swap-in { animation: none; }
+}
+
 /* Floating card treatment shared by the Free Play lobby sections (room
    card, rules card). Matches the mock's panel: card surface that sits a
    half-shade off the page, hairline edge, soft drop shadow. */
