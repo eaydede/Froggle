@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { RARITY_VAR } from '../../../pages/results/utils/wordRarity';
+import type { ReplayAttempt } from '../useTimelineReplay';
 import { formatClock, type TimelineBreak, type TimelineMark } from '../timeline';
 
 interface ReplayScrubberProps {
@@ -9,6 +10,9 @@ interface ReplayScrubberProps {
   playhead: number;
   /** Index of the word currently lit (or -1 before the first). */
   currentIndex: number;
+  /** Rejected attempts to overlay when `showAttempts` is on. */
+  attempts: ReplayAttempt[];
+  showAttempts: boolean;
   /** Called with a 0–1 position when the user drags/taps the track. */
   onScrub: (fraction: number) => void;
 }
@@ -25,6 +29,8 @@ export function ReplayScrubber({
   breaks,
   playhead,
   currentIndex,
+  attempts,
+  showAttempts,
   onScrub,
 }: ReplayScrubberProps) {
   const trackRef = useRef<HTMLDivElement | null>(null);
@@ -84,6 +90,21 @@ export function ReplayScrubber({
       ))}
 
       <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-[var(--ink-faint)]" />
+
+      {/* Rejected attempts ride a thin lane along the bottom, so a lull that was
+          actually full of failed tries reads as activity without competing with
+          the found-word dots above. */}
+      {showAttempts &&
+        attempts.map((attempt, i) => (
+          <div
+            key={`attempt-${i}`}
+            className="absolute bottom-[3px] w-px h-[7px] -translate-x-1/2 bg-[var(--ink-faint)]"
+            title={`${formatClock(attempt.timeSeconds)} · ${
+              attempt.reason === 'repeat' ? 'repeat' : 'not a word'
+            }${attempt.word ? ` (${attempt.word})` : ''}`}
+            style={{ left: `${leftOf(attempt.xPct)}%` }}
+          />
+        ))}
 
       {/* Elapsed fill up to the playhead. */}
       <div

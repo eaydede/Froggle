@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { InvalidSubmission } from 'models';
 import { ResultsView } from '../../../shared/results/ResultsView';
 import type {
   LoadOpponentResult,
@@ -40,6 +41,17 @@ const ME_WORDS: ScoredWord[] = [
 
 const MISSED_WORDS: ScoredWord[] = [
   { word: 'PRESIDED', score: 13, path: [] },
+];
+
+// Rejected attempts — several land during the 18→68s lull, so toggling them on
+// reveals the "quiet" stretch was actually full of failed tries.
+const ME_ATTEMPTS: InvalidSubmission[] = [
+  { word: 'TREE', reason: 'invalid', t: 9, path: [] },
+  { word: 'STOR', reason: 'invalid', t: 14, path: [] },
+  { word: 'AER', reason: 'invalid', t: 31, path: [] },
+  { word: 'PARSE', reason: 'invalid', t: 44, path: [] },
+  { word: 'TEAR', reason: 'repeat', t: 57, path: [] },
+  { word: 'MDDLE', reason: 'invalid', t: 71, path: [] },
 ];
 
 // A long find list (empty paths — this fixture exercises list scrolling, not
@@ -87,6 +99,7 @@ export const RESULTS_FIXTURES: Record<string, () => ReactNode> = {
         wordCount: ME_WORDS.length,
         foundWords: ME_WORDS,
         missedWords: MISSED_WORDS,
+        invalidSubmissions: ME_ATTEMPTS,
       }}
       board={BOARD_4x4}
       config={{ boardSize: 4, minWordLength: 3, timeLimit: 90 }}

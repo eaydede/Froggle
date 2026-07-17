@@ -189,6 +189,26 @@ export function buildTimeline(
   };
 }
 
+/**
+ * Maps a real elapsed-seconds value onto the compressed axis (0–1), using the
+ * same segment mapping realtime playback advances along. Lets off-timeline
+ * events — rejected attempts — be placed on the scrubber at the right spot,
+ * crawling through a break just like the finds around them.
+ */
+export function fractionAtTime(segments: TimelineSegment[], t: number): number {
+  if (segments.length === 0) return 0;
+  if (t <= 0) return segments[0].xStart;
+  let acc = 0;
+  for (const seg of segments) {
+    if (t <= acc + seg.seconds) {
+      const within = seg.seconds > 0 ? (t - acc) / seg.seconds : 0;
+      return seg.xStart + (seg.xEnd - seg.xStart) * Math.max(0, Math.min(1, within));
+    }
+    acc += seg.seconds;
+  }
+  return segments[segments.length - 1].xEnd;
+}
+
 /** mm:ss for an elapsed-seconds value (rounds to whole seconds). */
 export function formatClock(seconds: number): string {
   const total = Math.max(0, Math.round(seconds));

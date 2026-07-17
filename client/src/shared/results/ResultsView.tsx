@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Position } from 'models';
+import type { InvalidSubmission } from 'models';
 import type { ScoredWord } from '../types';
 import { IconAction } from '../components/IconAction';
 import { findWordPath } from '../utils/findWordPath';
@@ -130,9 +131,18 @@ export function ResultsView({
     }
     return me.foundWords;
   }, [opponent, me.foundWords]);
+  const subjectInvalidSubmissions = useMemo<InvalidSubmission[]>(
+    () => (opponent ? opponent.invalidSubmissions ?? [] : me.invalidSubmissions ?? []),
+    [opponent, me.invalidSubmissions],
+  );
   // Lives above the swipe so the shared board + hero can be driven by the
   // playhead while the timeline view is active.
-  const replay = useTimelineReplay(subjectFoundWords, board, config.timeLimit);
+  const replay = useTimelineReplay(
+    subjectFoundWords,
+    subjectInvalidSubmissions,
+    board,
+    config.timeLimit,
+  );
 
   // Which lower panel is showing (0 = Results, 1 = Timeline). Reported up by the
   // carousel so the shared top knows who drives it.

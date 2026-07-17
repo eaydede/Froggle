@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildTimeline, formatClock, formatDelta } from './timeline';
+import { buildTimeline, formatClock, formatDelta, fractionAtTime } from './timeline';
 import type { ScoredWord } from '../types';
 
 const word = (w: string, score: number, timeSeconds: number | null): ScoredWord => ({
@@ -95,6 +95,26 @@ describe('buildTimeline', () => {
     const axisShare = breakSeg.xEnd - breakSeg.xStart;
     const timeShare = 90 / 120;
     expect(axisShare).toBeLessThan(timeShare);
+  });
+
+  it('fractionAtTime places a time on the compressed axis, inside its segment', () => {
+    // Brisk 3s cadence, then a 90s stall before the last word (a break).
+    const model = buildTimeline(
+      [word('A', 1, 3), word('B', 1, 6), word('C', 1, 9), word('D', 1, 99)],
+      120,
+    );
+    expect(fractionAtTime(model.segments, 0)).toBeCloseTo(model.segments[0].xStart);
+    expect(fractionAtTime(model.segments, 500)).toBeCloseTo(1);
+    // Monotonic non-decreasing.
+    expect(fractionAtTime(model.segments, 60)).toBeGreaterThanOrEqual(
+      fractionAtTime(model.segments, 30),
+    );
+    // A time mid-break lands within the break's compressed span, not sprawled
+    // across the axis in proportion to its real duration.
+    const breakSeg = model.segments.find((s) => s.seconds === 90)!;
+    const midBreak = fractionAtTime(model.segments, 9 + 45);
+    expect(midBreak).toBeGreaterThanOrEqual(breakSeg.xStart);
+    expect(midBreak).toBeLessThanOrEqual(breakSeg.xEnd);
   });
 });
 

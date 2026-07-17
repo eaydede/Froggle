@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { Position } from 'models';
+import type { InvalidSubmission, Position } from 'models';
 import type { ScoredWord } from '../types';
 
 export interface ResultsBoardConfig {
@@ -15,6 +15,9 @@ export interface ResultsViewer {
   wordCount: number;
   foundWords: ScoredWord[];
   missedWords: ScoredWord[];
+  /** Rejected attempts, for the timeline's opt-in activity overlay. Optional —
+   *  absent on modes/rows that don't carry them. */
+  invalidSubmissions?: InvalidSubmission[];
 }
 
 /** A row in the standings panel. Drives the solo vs multi UI: roster.length === 1
@@ -42,6 +45,8 @@ export interface ResultsOpponent {
    *  un-threaded mode still compares word lists; when present it powers the
    *  opponent's replay timeline. */
   foundWords: { word: string; score: number; timeSeconds?: number | null }[];
+  /** Rejected attempts, for the opponent's timeline activity overlay. */
+  invalidSubmissions?: InvalidSubmission[];
 }
 
 export type LoadOpponentError =

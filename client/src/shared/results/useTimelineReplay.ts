@@ -1,14 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Position } from 'models';
+import type { InvalidReason, InvalidSubmission, Position } from 'models';
 import type { ScoredWord } from '../types';
 import { findWordPath } from '../utils/findWordPath';
 import { RARITY_VAR } from '../../pages/results/utils/wordRarity';
 import {
   buildTimeline,
+  fractionAtTime,
   type TimelineMark,
   type TimelineModel,
   type TimelineSegment,
 } from './timeline';
+
+/** A rejected attempt placed on the compressed axis for the scrubber overlay. */
+export interface ReplayAttempt {
+  word: string;
+  reason: InvalidReason;
+  timeSeconds: number;
+  /** Position along the compressed axis, 0–100. */
+  xPct: number;
+}
 
 export type ReplayMode = 'fast' | 'realtime';
 
@@ -112,6 +122,8 @@ export interface TimelineReplay {
   seek: (fraction: number) => void;
   currentIndex: number;
   current: TimelineMark | null;
+  /** Rejected attempts placed on the axis — opt-in overlay on the scrubber. */
+  attempts: ReplayAttempt[];
   /** Board highlight for the word the playhead has reached. */
   boardHighlightPath: Position[] | null;
   boardHighlightColor: string | null;
@@ -129,6 +141,7 @@ export interface TimelineReplay {
 // timeline view is active.
 export function useTimelineReplay(
   foundWords: ScoredWord[],
+  invalidSubmissions: InvalidSubmission[],
   board: string[][],
   timeLimit: number,
 ): TimelineReplay {
@@ -137,6 +150,16 @@ export function useTimelineReplay(
     [foundWords, timeLimit],
   );
   const marks = model.marks;
+
+  const attempts = useMemo<ReplayAttempt[]>(() => {
+    if (!model.hasData) return [];
+    return invalidSubmissions.map((a) => ({
+      word: a.word,
+      reason: a.reason,
+      timeSeconds: a.t,
+      xPct: fractionAtTime(model.segments, a.t) * 100,
+    }));
+  }, [invalidSubmissions, model]);
 
   const durationMs = Math.max(
     MIN_REPLAY_MS,
@@ -194,6 +217,7 @@ export function useTimelineReplay(
     seek,
     currentIndex,
     current,
+    attempts,
     boardHighlightPath,
     boardHighlightColor,
     boardStepMs,

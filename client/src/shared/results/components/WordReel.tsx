@@ -10,9 +10,6 @@ interface WordReelProps {
 // Uniform row height keeps the roll a single translate — the current word is
 // emphasised by weight/size/colour rather than a taller row.
 const ROW_H = 40;
-// Rows above + below the current one that stay visible before the edge fade.
-const VISIBLE_EACH_SIDE = 1.5;
-const VIEWPORT_H = ROW_H * (1 + VISIBLE_EACH_SIDE * 2);
 
 /**
  * The replay's focal word visual: the current find sits large and centred, the
@@ -27,9 +24,8 @@ export function WordReel({ marks, currentIndex }: WordReelProps) {
 
   return (
     <div
-      className="relative w-full overflow-hidden"
+      className="relative w-full h-full overflow-hidden"
       style={{
-        height: VIEWPORT_H,
         WebkitMaskImage:
           'linear-gradient(to bottom, transparent, black 22%, black 78%, transparent)',
         maskImage:

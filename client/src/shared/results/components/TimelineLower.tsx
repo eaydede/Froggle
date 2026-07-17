@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { formatClock } from '../timeline';
 import type { TimelineReplay } from '../useTimelineReplay';
 import { ReplayScrubber } from './ReplayScrubber';
@@ -24,11 +25,13 @@ export function TimelineLower({
     playing,
     mode,
     currentIndex,
+    attempts,
     endSeconds,
     playMode,
     seek,
   } = replay;
 
+  const [showAttempts, setShowAttempts] = useState(false);
   const isOpponent = subjectName !== 'You';
 
   if (!hasData) {
@@ -48,9 +51,28 @@ export function TimelineLower({
           {subjectName}'s replay
         </div>
       )}
-      <div className="flex-1 min-h-0 flex items-center justify-center">
+      <div className="flex-1 min-h-0">
         <WordReel marks={marks} currentIndex={currentIndex} />
       </div>
+
+      {attempts.length > 0 && (
+        <div className="shrink-0 flex justify-end">
+          <button
+            type="button"
+            onClick={() => setShowAttempts((v) => !v)}
+            aria-pressed={showAttempts}
+            className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-label-xs uppercase tracking-[0.06em] font-[family-name:var(--font-structure)] border cursor-pointer ${
+              showAttempts
+                ? 'bg-[var(--ink-whisper)] border-[var(--ink-border-subtle)] text-[color:var(--ink-muted)]'
+                : 'bg-transparent border-transparent text-[color:var(--ink-faint)]'
+            }`}
+            style={{ fontWeight: 700, WebkitTapHighlightColor: 'transparent' }}
+          >
+            <span className="w-1 h-1 rounded-full bg-[var(--ink-faint)]" aria-hidden />
+            {attempts.length} {attempts.length === 1 ? 'miss' : 'misses'}
+          </button>
+        </div>
+      )}
 
       <div className="shrink-0">
         <div className="flex items-center gap-2">
@@ -60,6 +82,8 @@ export function TimelineLower({
               breaks={model.breaks}
               playhead={playhead}
               currentIndex={currentIndex}
+              attempts={attempts}
+              showAttempts={showAttempts}
               onScrub={seek}
             />
           </div>
