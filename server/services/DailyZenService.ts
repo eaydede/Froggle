@@ -1,5 +1,5 @@
 import { sql, type Kysely } from 'kysely';
-import type { Position } from 'models';
+import type { InvalidSubmission, Position } from 'models';
 import { assignCompetitionRanks } from 'models/ranking';
 import { scoreWord } from 'engine/scoring.js';
 import { findAllWords } from 'engine/solver.js';
@@ -19,12 +19,14 @@ import {
   getDailyZenNumber,
 } from './dailyZenConfig.js';
 import { appendWordTimes, elapsedSeconds, parseWordTimes } from './wordTiming.js';
+import { appendInvalidSubmission, parseInvalidSubmissions } from './invalidSubmissions.js';
 
 export interface ZenSession {
   date: string;
   board: string[][];
   found_words: string[];
   word_times: (number | null)[];
+  invalid_submissions: InvalidSubmission[];
   started_at: Date;
   last_active_at: Date;
   ended_at: Date | null;
@@ -54,6 +56,7 @@ function parseSession(row: {
   date: string;
   found_words: unknown;
   word_times: unknown;
+  invalid_submissions: unknown;
   board: unknown;
   started_at: Date;
   last_active_at: Date;
@@ -75,6 +78,7 @@ function parseSession(row: {
     board,
     found_words: foundWords,
     word_times: parseWordTimes(row.word_times),
+    invalid_submissions: parseInvalidSubmissions(row.invalid_submissions),
     started_at: row.started_at,
     last_active_at: row.last_active_at,
     ended_at: row.ended_at,
@@ -164,7 +168,22 @@ export async function submitWord(
     scoreWord,
     score: scoreResult,
   });
-  if (!result.valid) return { valid: false, reason: result.reason };
+  if (!result.valid) {
+    const attempts = appendInvalidSubmission(session.invalid_submissions, {
+      word: result.word ?? '',
+      reason: result.reason,
+      t: elapsedSeconds(session.started_at),
+      path,
+    });
+    await db
+      .updateTable('daily_zen_results')
+      .set({ invalid_submissions: JSON.stringify(attempts) })
+      .where('user_id', '=', userId)
+      .where('date', '=', date)
+      .where('ended_at', 'is', null)
+      .execute();
+    return { valid: false, reason: result.reason };
+  }
 
   // Gap-capped active-time accumulation: credit min(elapsed, CAP) seconds
   // for the gap since the last word submission. The cap prevents long

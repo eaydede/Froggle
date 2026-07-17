@@ -6,6 +6,7 @@ export interface DailyResultsTable {
   date: string;
   found_words: Generated<string>; // JSON string
   word_times: string | null; // JSON string — per-word find offsets (seconds), parallel to found_words
+  invalid_submissions: string | null; // JSON string — rejected attempts { word, reason, t, path }
   board: string; // JSON string
   completed_at: Generated<Date>;
   points: Generated<number>;
@@ -24,6 +25,7 @@ export interface DailyZenResultsTable {
   date: string;
   found_words: Generated<string>;
   word_times: string | null; // JSON string — per-word find offsets (seconds), parallel to found_words
+  invalid_submissions: string | null; // JSON string — rejected attempts { word, reason, t, path }
   board: string;
   started_at: Generated<Date>;
   last_active_at: Generated<Date>;
@@ -43,6 +45,7 @@ export interface FreePlaySessionsTable {
   date: string;
   found_words: Generated<string>;
   word_times: string | null; // JSON string — per-word find offsets (seconds), parallel to found_words
+  invalid_submissions: string | null; // JSON string — rejected attempts { word, reason, t, path }
   board: string;
   started_at: Generated<Date>;
   completed_at: Date | null;
@@ -74,6 +77,7 @@ export interface DailyGauntletResultsTable {
   modifier: string; // JSON string
   found_words: Generated<string>; // JSON string
   word_times: string | null; // JSON string — per-word find offsets (seconds), parallel to found_words
+  invalid_submissions: string | null; // JSON string — rejected attempts { word, reason, t, path }
   points: Generated<number>;
   word_count: Generated<number>;
   longest_word: Generated<string>;
@@ -94,6 +98,7 @@ export interface ExperimentalResultsTable {
   state: Generated<string>; // JSON string — mode-specific bookkeeping
   found_words: Generated<string>; // JSON string
   word_times: string | null; // JSON string — per-word find offsets (seconds), parallel to found_words
+  invalid_submissions: string | null; // JSON string — rejected attempts { word, reason, t, path }
   points: Generated<number>;
   word_count: Generated<number>;
   longest_word: Generated<string>;

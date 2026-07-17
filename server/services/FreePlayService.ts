@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import type { Kysely } from 'kysely';
-import { generateSalt, hashWord, type Position } from 'models';
+import { generateSalt, hashWord, type InvalidSubmission, type Position } from 'models';
 import { findAllWords } from 'engine/solver.js';
 import { scoreWord } from 'engine/scoring.js';
 import { generateSeededBoard } from 'engine/board.js';
@@ -13,6 +13,7 @@ import { getDailyDatePST } from './dailyConfig.js';
 import { scoreResult } from './DailyService.js';
 import { isTimedSessionExpired, timedExpiryInstant } from './sessionTiming.js';
 import { appendWordTimes, elapsedSeconds, parseWordTimes } from './wordTiming.js';
+import { appendInvalidSubmission, parseInvalidSubmissions } from './invalidSubmissions.js';
 
 // Counts challenge participants whose completions are unseen by the
 // originator. A row counts as "unseen" when it isn't the originator's
@@ -71,6 +72,7 @@ export interface FreePlaySession {
   board: string[][];
   found_words: string[];
   word_times: (number | null)[];
+  invalid_submissions: InvalidSubmission[];
   started_at: Date;
   completed_at: Date | null;
   points: number;
@@ -98,6 +100,7 @@ function parseFreePlaySession(row: {
   board: unknown;
   found_words: unknown;
   word_times: unknown;
+  invalid_submissions: unknown;
   started_at: Date;
   completed_at: Date | null;
   points: number;
@@ -118,6 +121,7 @@ function parseFreePlaySession(row: {
     board,
     found_words: foundWords,
     word_times: parseWordTimes(row.word_times),
+    invalid_submissions: parseInvalidSubmissions(row.invalid_submissions),
     started_at: row.started_at,
     completed_at: row.completed_at,
     points: row.points,
@@ -153,6 +157,7 @@ const SESSION_COLUMNS = [
   'board',
   'found_words',
   'word_times',
+  'invalid_submissions',
   'started_at',
   'completed_at',
   'points',
@@ -329,7 +334,21 @@ export async function submitFreePlayWord(
       scoreWord,
       score: scoreResult,
     });
-    if (!result.valid) return { valid: false, reason: result.reason };
+    if (!result.valid) {
+      const attempts = appendInvalidSubmission(session.invalid_submissions, {
+        word: result.word ?? '',
+        reason: result.reason,
+        t: elapsedSeconds(session.started_at),
+        path,
+      });
+      await trx
+        .updateTable('free_play_sessions')
+        .set({ invalid_submissions: JSON.stringify(attempts) })
+        .where('id', '=', session.id)
+        .where('completed_at', 'is', null)
+        .execute();
+      return { valid: false, reason: result.reason };
+    }
 
     const wordTimes = appendWordTimes(
       session.word_times,

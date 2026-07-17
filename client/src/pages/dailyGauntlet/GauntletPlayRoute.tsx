@@ -146,7 +146,11 @@ export function GauntletPlayRoute() {
 
       const local = validator.validate(word);
       flashFeedback(path, local, local.valid ? computeWordBonus(word) : null);
-      if (!local.valid) return;
+      if (!local.valid) {
+        // Record the rejected attempt server-side (fire-and-forget).
+        submitGauntletWord(current.date, roundIndex, path).catch(() => {});
+        return;
+      }
 
       validator.recordSubmitted(word);
       const score = scoreGauntletWord(word, current.modifier);

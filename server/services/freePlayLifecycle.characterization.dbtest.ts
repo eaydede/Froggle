@@ -81,6 +81,35 @@ describe.runIf(dockerAvailable())('free-play lifecycle (characterization, DB)', 
     expect(res).toEqual({ valid: false, reason: 'invalid' });
   });
 
+  it('records rejected attempts (repeat + invalid) with reason, time, and path', async () => {
+    const { board, words } = boardWithWords(BOARD_SIZE, MIN_WORD_LENGTH);
+    const userId = randomUUID();
+    await start(userId, board);
+
+    await submitFreePlayWord(h.db, userId, words[0].path); // valid
+    await submitFreePlayWord(h.db, userId, words[0].path); // repeat
+    await submitFreePlayWord(h.db, userId, [words[0].path[0]]); // too short → invalid
+
+    const row = await h.db
+      .selectFrom('free_play_sessions')
+      .select(['invalid_submissions'])
+      .where('user_id', '=', userId)
+      .where('completed_at', 'is', null)
+      .executeTakeFirstOrThrow();
+    const attempts = row.invalid_submissions as unknown as Array<{
+      word: string;
+      reason: string;
+      t: number;
+      path: unknown[];
+    }>;
+    expect(attempts).toHaveLength(2);
+    expect(attempts[0]).toMatchObject({ word: words[0].word, reason: 'repeat' });
+    expect(attempts[0].path).toEqual(words[0].path);
+    expect(typeof attempts[0].t).toBe('number');
+    expect(attempts[1].reason).toBe('invalid');
+    expect(attempts[1].path).toHaveLength(1);
+  });
+
   it('auto-finalizes an expired session on submit, capped at started_at + time_limit', async () => {
     const { board, words } = boardWithWords(BOARD_SIZE, MIN_WORD_LENGTH);
     const userId = randomUUID();
