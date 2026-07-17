@@ -410,14 +410,6 @@ export function ResultsView({
             playhead on Timeline, taps/compare on Results. */}
         <div key={heroKey} className="shrink-0 results-region-fade-in">
           {heroNode}
-          {timelineActive && replay.totalPoints > 0 && (
-            <div className="mx-auto mt-1 h-1 w-full max-w-[200px] overflow-hidden rounded-full bg-[var(--ink-trace)]">
-              <div
-                className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-200 ease-out"
-                style={{ width: `${(replay.pointsSoFar / replay.totalPoints) * 100}%` }}
-              />
-            </div>
-          )}
         </div>
 
         <section className="flex items-stretch gap-2 shrink-0 box-border">

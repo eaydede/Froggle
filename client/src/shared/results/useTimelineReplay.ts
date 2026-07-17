@@ -6,6 +6,7 @@ import { RARITY_VAR } from '../../pages/results/utils/wordRarity';
 import {
   buildTimeline,
   fractionAtTime,
+  timeAtFraction,
   type TimelineMark,
   type TimelineModel,
   type TimelineSegment,
@@ -158,10 +159,12 @@ export interface TimelineReplay {
   boardStepMs: number | undefined;
   /** Axis end in seconds (deadline, or last find when untimed). */
   endSeconds: number;
+  /** Real elapsed seconds at the playhead, for the moving time readout. */
+  currentTimeSeconds: number;
   /** Score + word count accumulated up to the playhead, for the climbing hero. */
   pointsSoFar: number;
   wordsSoFar: number;
-  /** The subject's final points, for the hero progress bar. */
+  /** The subject's final points. */
   totalPoints: number;
 }
 
@@ -267,6 +270,7 @@ export function useTimelineReplay(
       : marks.length > 0
         ? marks[marks.length - 1].timeSeconds
         : 0;
+  const currentTimeSeconds = timeAtFraction(model.segments, playhead);
   // Only finds score; misses don't move the hero.
   const findsSoFar = events
     .slice(0, currentIndex + 1)
@@ -293,6 +297,7 @@ export function useTimelineReplay(
     boardHighlightColor,
     boardStepMs,
     endSeconds,
+    currentTimeSeconds,
     pointsSoFar,
     wordsSoFar,
     totalPoints,

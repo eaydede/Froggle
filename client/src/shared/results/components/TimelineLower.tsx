@@ -30,6 +30,7 @@ export function TimelineLower({
     currentIndex,
     attempts,
     endSeconds,
+    currentTimeSeconds,
     playMode,
     seek,
   } = replay;
@@ -107,11 +108,25 @@ export function TimelineLower({
             {playing && mode === 'fast' ? <PauseIcon /> : <FastForwardIcon />}
           </TransportButton>
         </div>
-        {/* Labels align under the track; pr clears the two trailing buttons
-            (2 × w-9 + 2 × gap-2 = 88px). */}
-        <div className="flex justify-between mt-1 pr-[88px] text-label-xs tabular-nums text-[color:var(--ink-faint)] font-[family-name:var(--font-ui)]">
-          <span>0:00</span>
-          <span>{formatClock(endSeconds)}</span>
+        {/* Axis labels + a live current-time readout under the playhead. The
+            row mirrors the scrubber row's flex (flex-1 track + two w-9 buttons)
+            so the flex-1 here is exactly the track width and the readout can be
+            positioned by playhead fraction to sit under the playhead line. */}
+        <div className="flex items-start gap-2 mt-1">
+          <div className="relative flex-1 min-w-0 h-3.5 text-label-xs tabular-nums font-[family-name:var(--font-ui)]">
+            <span className="absolute left-0 top-0 text-[color:var(--ink-faint)]">0:00</span>
+            <span className="absolute right-0 top-0 text-[color:var(--ink-faint)]">
+              {formatClock(endSeconds)}
+            </span>
+            <span
+              className="absolute top-0 -translate-x-1/2 text-[color:var(--accent)] [font-weight:700]"
+              style={{ left: `${playhead * 100}%` }}
+            >
+              {formatClock(currentTimeSeconds)}
+            </span>
+          </div>
+          <div className="w-9 shrink-0" aria-hidden />
+          <div className="w-9 shrink-0" aria-hidden />
         </div>
       </div>
     </div>

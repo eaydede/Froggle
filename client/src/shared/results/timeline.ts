@@ -209,6 +209,24 @@ export function fractionAtTime(segments: TimelineSegment[], t: number): number {
   return segments[segments.length - 1].xEnd;
 }
 
+/**
+ * Inverse of fractionAtTime: the real elapsed seconds at a 0–1 position on the
+ * compressed axis. Drives the moving current-time readout under the playhead.
+ */
+export function timeAtFraction(segments: TimelineSegment[], fraction: number): number {
+  if (segments.length === 0) return 0;
+  let accSeconds = 0;
+  for (const seg of segments) {
+    if (fraction <= seg.xEnd) {
+      const span = seg.xEnd - seg.xStart;
+      const within = span > 0 ? (fraction - seg.xStart) / span : 0;
+      return accSeconds + seg.seconds * Math.max(0, Math.min(1, within));
+    }
+    accSeconds += seg.seconds;
+  }
+  return accSeconds;
+}
+
 /** mm:ss for an elapsed-seconds value (rounds to whole seconds). */
 export function formatClock(seconds: number): string {
   const total = Math.max(0, Math.round(seconds));

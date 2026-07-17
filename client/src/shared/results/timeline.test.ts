@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildTimeline, formatClock, formatDelta, fractionAtTime } from './timeline';
+import {
+  buildTimeline,
+  formatClock,
+  formatDelta,
+  fractionAtTime,
+  timeAtFraction,
+} from './timeline';
 import type { ScoredWord } from '../types';
 
 const word = (w: string, score: number, timeSeconds: number | null): ScoredWord => ({
@@ -115,6 +121,19 @@ describe('buildTimeline', () => {
     const midBreak = fractionAtTime(model.segments, 9 + 45);
     expect(midBreak).toBeGreaterThanOrEqual(breakSeg.xStart);
     expect(midBreak).toBeLessThanOrEqual(breakSeg.xEnd);
+  });
+
+  it('timeAtFraction inverts fractionAtTime across the axis', () => {
+    const model = buildTimeline(
+      [word('A', 1, 3), word('B', 1, 6), word('C', 1, 9), word('D', 1, 99)],
+      120,
+    );
+    expect(timeAtFraction(model.segments, 0)).toBeCloseTo(0);
+    expect(timeAtFraction(model.segments, 1)).toBeCloseTo(120);
+    for (const t of [3, 30, 60, 99]) {
+      const f = fractionAtTime(model.segments, t);
+      expect(timeAtFraction(model.segments, f)).toBeCloseTo(t, 1);
+    }
   });
 });
 
