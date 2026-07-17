@@ -46,12 +46,24 @@ const MISSED_WORDS: ScoredWord[] = [
 // Rejected attempts — several land during the 18→68s lull, so toggling them on
 // reveals the "quiet" stretch was actually full of failed tries.
 const ME_ATTEMPTS: InvalidSubmission[] = [
-  { word: 'TREE', reason: 'invalid', t: 9, path: [] },
-  { word: 'STOR', reason: 'invalid', t: 14, path: [] },
-  { word: 'AER', reason: 'invalid', t: 31, path: [] },
-  { word: 'PARSE', reason: 'invalid', t: 44, path: [] },
-  { word: 'TEAR', reason: 'repeat', t: 57, path: [] },
-  { word: 'MDDLE', reason: 'invalid', t: 71, path: [] },
+  { word: 'TREE', reason: 'invalid', t: 9, path: [
+    { row: 0, col: 0 }, { row: 0, col: 1 }, { row: 1, col: 0 }, { row: 2, col: 3 },
+  ]},
+  { word: 'STOR', reason: 'invalid', t: 14, path: [
+    { row: 1, col: 1 }, { row: 0, col: 0 }, { row: 1, col: 2 }, { row: 0, col: 1 },
+  ]},
+  { word: 'AER', reason: 'invalid', t: 31, path: [
+    { row: 0, col: 2 }, { row: 1, col: 0 }, { row: 0, col: 1 },
+  ]},
+  { word: 'PARSE', reason: 'invalid', t: 44, path: [
+    { row: 0, col: 3 }, { row: 0, col: 2 }, { row: 0, col: 1 }, { row: 1, col: 1 }, { row: 1, col: 0 },
+  ]},
+  { word: 'TEAR', reason: 'repeat', t: 57, path: [
+    { row: 0, col: 0 }, { row: 1, col: 0 }, { row: 0, col: 2 }, { row: 0, col: 1 },
+  ]},
+  { word: 'MDDLE', reason: 'invalid', t: 71, path: [
+    { row: 3, col: 3 }, { row: 2, col: 2 }, { row: 2, col: 3 }, { row: 1, col: 3 },
+  ]},
 ];
 
 // A long find list (empty paths — this fixture exercises list scrolling, not

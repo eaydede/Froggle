@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { formatClock } from '../timeline';
 import type { TimelineReplay } from '../useTimelineReplay';
 import { ReplayScrubber } from './ReplayScrubber';
@@ -12,18 +11,22 @@ import { WordReel } from './WordReel';
 export function TimelineLower({
   replay,
   subjectName,
+  showMisses,
+  onToggleMisses,
 }: {
   replay: TimelineReplay;
   /** Whose replay this is — "You" or an opponent's name. */
   subjectName: string;
+  showMisses: boolean;
+  onToggleMisses: () => void;
 }) {
   const {
     model,
-    marks,
     hasData,
     playhead,
     playing,
     mode,
+    events,
     currentIndex,
     attempts,
     endSeconds,
@@ -31,7 +34,6 @@ export function TimelineLower({
     seek,
   } = replay;
 
-  const [showAttempts, setShowAttempts] = useState(false);
   const isOpponent = subjectName !== 'You';
 
   if (!hasData) {
@@ -46,57 +48,61 @@ export function TimelineLower({
 
   return (
     <div className="flex flex-col min-h-0 h-full gap-2">
-      {isOpponent && (
-        <div className="shrink-0 text-center uppercase text-label-xs tracking-[0.08em] text-[color:var(--ink-soft)] font-[family-name:var(--font-structure)] [font-weight:700]">
-          {subjectName}'s replay
-        </div>
-      )}
-      <div className="flex-1 min-h-0">
-        <WordReel marks={marks} currentIndex={currentIndex} />
-      </div>
-
-      {attempts.length > 0 && (
-        <div className="shrink-0 flex justify-end">
+      <div className="shrink-0 flex items-center justify-between gap-2 min-h-[22px]">
+        <span className="uppercase text-label-xs tracking-[0.08em] text-[color:var(--ink-soft)] font-[family-name:var(--font-structure)] [font-weight:700] truncate">
+          {isOpponent ? `${subjectName}'s replay` : ''}
+        </span>
+        {attempts.length > 0 && (
           <button
             type="button"
-            onClick={() => setShowAttempts((v) => !v)}
-            aria-pressed={showAttempts}
-            className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-label-xs uppercase tracking-[0.06em] font-[family-name:var(--font-structure)] border cursor-pointer ${
-              showAttempts
-                ? 'bg-[var(--ink-whisper)] border-[var(--ink-border-subtle)] text-[color:var(--ink-muted)]'
-                : 'bg-transparent border-transparent text-[color:var(--ink-faint)]'
+            onClick={onToggleMisses}
+            aria-pressed={showMisses}
+            className={`shrink-0 flex items-center gap-1.5 rounded-full pl-1.5 pr-2.5 py-1 text-label-xs uppercase tracking-[0.06em] font-[family-name:var(--font-structure)] border cursor-pointer transition-colors ${
+              showMisses
+                ? 'bg-[var(--color-invalid)] border-transparent text-[color:var(--ink-inverse)]'
+                : 'bg-transparent border-[var(--ink-border-subtle)] text-[color:var(--ink-muted)]'
             }`}
             style={{ fontWeight: 700, WebkitTapHighlightColor: 'transparent' }}
           >
-            <span className="w-1 h-1 rounded-full bg-[var(--ink-faint)]" aria-hidden />
-            {attempts.length} {attempts.length === 1 ? 'miss' : 'misses'}
+            <span
+              aria-hidden
+              className="h-2 w-2 rounded-full"
+              style={{
+                background: showMisses ? 'var(--ink-inverse)' : 'var(--color-invalid)',
+              }}
+            />
+            {showMisses ? 'Hide' : 'Show'} misses · {attempts.length}
           </button>
-        </div>
-      )}
+        )}
+      </div>
+
+      <div className="flex-1 min-h-0">
+        <WordReel events={events} currentIndex={currentIndex} />
+      </div>
 
       <div className="shrink-0">
         <div className="flex items-center gap-2">
           <div className="flex-1 min-w-0">
             <ReplayScrubber
-              marks={marks}
+              marks={model.marks}
               breaks={model.breaks}
               playhead={playhead}
-              currentIndex={currentIndex}
               attempts={attempts}
-              showAttempts={showAttempts}
+              showAttempts={showMisses}
               onScrub={seek}
             />
           </div>
           <TransportButton
             label={playing && mode === 'realtime' ? 'Pause replay' : 'Play at real speed'}
             onClick={() => playMode('realtime')}
-            primary
+            primary={playing && mode === 'realtime'}
           >
             {playing && mode === 'realtime' ? <PauseIcon /> : <PlayIcon />}
           </TransportButton>
           <TransportButton
             label={playing && mode === 'fast' ? 'Pause replay' : 'Play fast'}
             onClick={() => playMode('fast')}
+            primary={playing && mode === 'fast'}
           >
             {playing && mode === 'fast' ? <PauseIcon /> : <FastForwardIcon />}
           </TransportButton>

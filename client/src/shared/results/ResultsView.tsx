@@ -135,6 +135,9 @@ export function ResultsView({
     () => (opponent ? opponent.invalidSubmissions ?? [] : me.invalidSubmissions ?? []),
     [opponent, me.invalidSubmissions],
   );
+  // Weave rejected attempts into the replay (board + reel + scrubber), toggled
+  // from the timeline panel. Lives here because it drives the shared board.
+  const [showMisses, setShowMisses] = useState(false);
   // Lives above the swipe so the shared board + hero can be driven by the
   // playhead while the timeline view is active.
   const replay = useTimelineReplay(
@@ -142,6 +145,7 @@ export function ResultsView({
     subjectInvalidSubmissions,
     board,
     config.timeLimit,
+    showMisses,
   );
 
   // Which lower panel is showing (0 = Results, 1 = Timeline). Reported up by the
@@ -406,6 +410,14 @@ export function ResultsView({
             playhead on Timeline, taps/compare on Results. */}
         <div key={heroKey} className="shrink-0 results-region-fade-in">
           {heroNode}
+          {timelineActive && replay.totalPoints > 0 && (
+            <div className="mx-auto mt-1 h-1 w-full max-w-[200px] overflow-hidden rounded-full bg-[var(--ink-trace)]">
+              <div
+                className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-200 ease-out"
+                style={{ width: `${(replay.pointsSoFar / replay.totalPoints) * 100}%` }}
+              />
+            </div>
+          )}
         </div>
 
         <section className="flex items-stretch gap-2 shrink-0 box-border">
@@ -444,7 +456,14 @@ export function ResultsView({
               {
                 key: 'timeline',
                 label: 'Timeline',
-                node: <TimelineLower replay={replay} subjectName={subjectName} />,
+                node: (
+                  <TimelineLower
+                    replay={replay}
+                    subjectName={subjectName}
+                    showMisses={showMisses}
+                    onToggleMisses={() => setShowMisses((v) => !v)}
+                  />
+                ),
               },
             ]}
           />

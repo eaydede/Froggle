@@ -8,8 +8,6 @@ interface ReplayScrubberProps {
   breaks: TimelineBreak[];
   /** Playhead position, 0–1 along the compressed axis. */
   playhead: number;
-  /** Index of the word currently lit (or -1 before the first). */
-  currentIndex: number;
   /** Rejected attempts to overlay when `showAttempts` is on. */
   attempts: ReplayAttempt[];
   showAttempts: boolean;
@@ -28,12 +26,16 @@ export function ReplayScrubber({
   marks,
   breaks,
   playhead,
-  currentIndex,
   attempts,
   showAttempts,
   onScrub,
 }: ReplayScrubberProps) {
   const trackRef = useRef<HTMLDivElement | null>(null);
+  // Which find dots the playhead has reached, and which is the latest.
+  const activeIndex = marks.reduce(
+    (last, m, i) => (m.xPct <= playhead * 100 ? i : last),
+    -1,
+  );
 
   const seekFromEvent = (clientX: number) => {
     const track = trackRef.current;
@@ -58,7 +60,13 @@ export function ReplayScrubber({
       className="relative h-11 w-full rounded-xl bg-[var(--surface-card)] overflow-hidden touch-none cursor-pointer"
       style={{ boxShadow: 'inset 0 0 0 1px var(--ink-border-subtle)' }}
       onPointerDown={(e) => {
-        e.currentTarget.setPointerCapture(e.pointerId);
+        // setPointerCapture can throw for stale/synthetic pointers; the seek
+        // shouldn't depend on capture succeeding.
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch {
+          /* no-op */
+        }
         seekFromEvent(e.clientX);
       }}
       onPointerMove={(e) => {
@@ -113,7 +121,7 @@ export function ReplayScrubber({
       />
 
       {marks.map((mark, i) => {
-        const active = i === currentIndex;
+        const active = i === activeIndex;
         return (
           <div
             key={mark.word}
@@ -124,7 +132,7 @@ export function ReplayScrubber({
               height: active ? 10 : 6,
               transform: 'translate(-50%, -50%)',
               background: RARITY_VAR[mark.rarity],
-              opacity: active ? 1 : i <= currentIndex ? 0.85 : 0.4,
+              opacity: active ? 1 : i <= activeIndex ? 0.85 : 0.4,
               boxShadow: active ? '0 0 0 2px var(--surface-card)' : undefined,
             }}
           />
