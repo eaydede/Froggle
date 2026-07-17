@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from 'react';
 import { formatClock } from '../timeline';
 import type { TimelineReplay } from '../useTimelineReplay';
 import { ReplayScrubber } from './ReplayScrubber';
@@ -36,6 +37,27 @@ export function TimelineLower({
   } = replay;
 
   const isOpponent = subjectName !== 'You';
+
+  // Hide a fixed range label while the moving readout overlaps it, restoring it
+  // once the readout has cleared. Needs the track's pixel width to know when the
+  // readout (centred on the playhead) collides with a label pinned to an edge.
+  const labelsRef = useRef<HTMLDivElement | null>(null);
+  const [labelsWidth, setLabelsWidth] = useState(0);
+  useLayoutEffect(() => {
+    const el = labelsRef.current;
+    if (!el) return;
+    const measure = () => setLabelsWidth(el.clientWidth);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  // ~half the readout width + a fixed label's width; overlap when the readout's
+  // near edge crosses into the label's zone.
+  const OVERLAP_PX = 42;
+  const readoutPx = playhead * labelsWidth;
+  const hideStart = labelsWidth > 0 && readoutPx < OVERLAP_PX;
+  const hideEnd = labelsWidth > 0 && readoutPx > labelsWidth - OVERLAP_PX;
 
   if (!hasData) {
     return (
@@ -113,9 +135,20 @@ export function TimelineLower({
             so the flex-1 here is exactly the track width and the readout can be
             positioned by playhead fraction to sit under the playhead line. */}
         <div className="flex items-start gap-2 mt-1">
-          <div className="relative flex-1 min-w-0 h-3.5 text-label-xs tabular-nums font-[family-name:var(--font-ui)]">
-            <span className="absolute left-0 top-0 text-[color:var(--ink-faint)]">0:00</span>
-            <span className="absolute right-0 top-0 text-[color:var(--ink-faint)]">
+          <div
+            ref={labelsRef}
+            className="relative flex-1 min-w-0 h-3.5 text-label-xs tabular-nums font-[family-name:var(--font-ui)]"
+          >
+            <span
+              className="absolute left-0 top-0 text-[color:var(--ink-faint)] transition-opacity duration-150"
+              style={{ opacity: hideStart ? 0 : 1 }}
+            >
+              0:00
+            </span>
+            <span
+              className="absolute right-0 top-0 text-[color:var(--ink-faint)] transition-opacity duration-150"
+              style={{ opacity: hideEnd ? 0 : 1 }}
+            >
               {formatClock(endSeconds)}
             </span>
             <span
