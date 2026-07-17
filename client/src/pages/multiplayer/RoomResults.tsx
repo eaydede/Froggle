@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { InvalidSubmission } from 'models';
 import type { MultiplayerRoom } from 'models/multiplayer';
 import { assignCompetitionRanks } from 'models/ranking';
 import { ActionButton } from '../../shared/results/components/ActionButton';
@@ -133,6 +134,7 @@ export function RoomResults({
             path: findWordPath(board.board, word) ?? [],
           }));
       })(),
+      invalidSubmissions: me.invalidSubmissions,
     };
   }, [me, board, allWords]);
 
@@ -169,6 +171,7 @@ export function RoomResults({
           score: scoreWord(word),
           timeSeconds: opp.foundWordTimes[i] ?? null,
         })),
+        invalidSubmissions: opp.invalidSubmissions,
       },
     };
   };
@@ -413,6 +416,7 @@ interface RankedPlayer {
   wordCount: number;
   foundWords: string[];
   foundWordTimes: number[];
+  invalidSubmissions: InvalidSubmission[];
   left: boolean;
 }
 
@@ -424,6 +428,7 @@ function rankByPoints(
     wordCount: number;
     foundWords: string[];
     foundWordTimes: number[];
+    invalidSubmissions: InvalidSubmission[];
     left: boolean;
   }[],
 ): RankedPlayer[] {
@@ -436,6 +441,7 @@ function rankByPoints(
     wordCount: p.wordCount,
     foundWords: p.foundWords,
     foundWordTimes: p.foundWordTimes,
+    invalidSubmissions: p.invalidSubmissions,
     left: p.left,
   }));
 }

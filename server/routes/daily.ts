@@ -18,6 +18,7 @@ import {
 } from '../services/DailyService.js';
 import { getTimedDailyWordPercents } from '../services/dailyWordStats.js';
 import { parseWordTimes } from '../services/wordTiming.js';
+import { parseInvalidSubmissions } from '../services/invalidSubmissions.js';
 import { getDisplayNames } from '../services/displayNames.js';
 import {
   DAILY_LAUNCH_DATE,
@@ -236,6 +237,7 @@ dailyRouter.get('/results/:date', requireAuth, async (req, res) => {
         date: result.date,
         found_words: foundWords,
         word_times: parseWordTimes(result.word_times),
+        invalid_submissions: parseInvalidSubmissions(result.invalid_submissions),
         board,
         missed_words: missedWords,
         completed_at: result.completed_at,

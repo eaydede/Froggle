@@ -186,6 +186,7 @@ function ChallengeResultsView({
         wordCount: me.wordCount,
         foundWords: myFoundScored,
         missedWords: myMissedScored,
+        invalidSubmissions: me.invalidSubmissions,
       }}
       board={data.board}
       config={data.config}

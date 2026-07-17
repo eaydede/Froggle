@@ -116,6 +116,7 @@ function RealResultsRoute() {
         wordCount: results.foundWords.length,
         foundWords: results.foundWords,
         missedWords: results.missedWords,
+        invalidSubmissions: results.invalidSubmissions,
       }}
       board={results.board}
       config={{

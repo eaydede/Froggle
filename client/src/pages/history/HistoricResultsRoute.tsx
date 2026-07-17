@@ -95,6 +95,7 @@ export function HistoricResultsRoute() {
         wordCount: data.foundWords.length,
         foundWords: data.foundWords,
         missedWords: data.missedWords,
+        invalidSubmissions: data.invalidSubmissions,
       }}
       board={data.board}
       config={data.config}

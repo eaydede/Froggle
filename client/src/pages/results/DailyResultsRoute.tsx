@@ -164,6 +164,7 @@ export function DailyResultsRoute() {
           path: m.path,
           score: m.score,
         })),
+        invalidSubmissions: serverResult.invalid_submissions,
       }
     : null);
 
@@ -219,6 +220,7 @@ export function DailyResultsRoute() {
           wordCount: displayed.foundWords.length,
           foundWords: displayed.foundWords,
           missedWords: displayed.missedWords,
+          invalidSubmissions: displayed.invalidSubmissions,
         }}
         board={displayed.board}
         config={{

@@ -445,6 +445,7 @@ export function buildFreePlayResults(session: FreePlaySession): {
   board: string[][];
   foundWords: { word: string; path: Position[]; score: number; timeSeconds: number | null }[];
   missedWords: { word: string; path: Position[]; score: number }[];
+  invalidSubmissions: InvalidSubmission[];
 } {
   const allWords = findAllWords(session.board, dictionary, session.min_word_length);
   const foundSet = new Set(session.found_words.map((w) => w.toUpperCase()));
@@ -475,7 +476,12 @@ export function buildFreePlayResults(session: FreePlaySession): {
   foundWords.sort((a, b) => b.score - a.score || b.word.length - a.word.length);
   missedWords.sort((a, b) => b.score - a.score || b.word.length - a.word.length);
 
-  return { board: session.board, foundWords, missedWords };
+  return {
+    board: session.board,
+    foundWords,
+    missedWords,
+    invalidSubmissions: session.invalid_submissions,
+  };
 }
 
 // ─── Multiplayer room → history bridge ────────────────────────────────────

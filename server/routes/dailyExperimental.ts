@@ -294,6 +294,7 @@ dailyExperimentalRouter.get('/:mode/results/:date', requireAuth, async (req, res
         state: session.state,
         found_words: session.found_words,
         word_times: session.word_times,
+        invalid_submissions: session.invalid_submissions,
         missed_words: missedWords,
         points: session.points,
         word_count: session.word_count,

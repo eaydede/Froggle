@@ -195,6 +195,7 @@ export function GauntletRoundResultsRoute() {
         wordCount: foundWords.length,
         foundWords,
         missedWords,
+        invalidSubmissions: result.invalid_submissions,
       }}
       board={result.board}
       boardCellBadge={boardCellBadge}

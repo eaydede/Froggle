@@ -168,6 +168,7 @@ export function ExperimentalResultsRoute() {
         wordCount: foundWords.length,
         foundWords,
         missedWords,
+        invalidSubmissions: activeResult.invalid_submissions,
       }}
       board={activeResult.board}
       boardCellOverlay={boardCellOverlay}

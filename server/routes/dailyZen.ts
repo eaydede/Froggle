@@ -198,6 +198,7 @@ dailyZenRouter.get('/results/:date', requireAuth, async (req, res) => {
       result: {
         date: session.date,
         found_words: foundWords,
+        invalid_submissions: session.invalid_submissions,
         board: session.board,
         missed_words: missedWords,
         ended_at: session.ended_at,

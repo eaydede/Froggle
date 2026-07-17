@@ -9,6 +9,7 @@ import { dictionary } from '../services/dictionary.js';
 import { getDisplayNames } from '../services/displayNames.js';
 import { computeChallengeNewResults } from '../services/FreePlayService.js';
 import { parseWordTimes } from '../services/wordTiming.js';
+import { parseInvalidSubmissions } from '../services/invalidSubmissions.js';
 import { assignCompetitionRanks } from 'models/ranking';
 import { getDailyConfig } from '../services/dailyConfig.js';
 
@@ -278,6 +279,7 @@ freeplayRouter.get('/session/:sessionId', requireAuth, async (req, res) => {
       board,
       foundWords: found,
       missedWords: missed,
+      invalidSubmissions: parseInvalidSubmissions(row.invalid_submissions),
       config: {
         boardSize: row.board_size,
         timeLimit: row.time_limit,
@@ -476,6 +478,7 @@ freeplayRouter.get('/challenge/:challengeId', requireAuth, async (req, res) => {
           score: scoreWord(word),
           timeSeconds: wordTimes[i] ?? null,
         })),
+        invalidSubmissions: parseInvalidSubmissions(r.invalid_submissions),
         isOwner: r.id === challengeId,
         isYou: r.user_id === req.userId!,
       };

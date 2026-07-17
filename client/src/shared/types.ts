@@ -1,4 +1,4 @@
-import type { Position } from 'models';
+import type { InvalidSubmission, Position } from 'models';
 
 export interface ScoredWord {
   word: string;
@@ -24,4 +24,6 @@ export interface GameResults {
   // Used by the share button to mint a challenge link. Null for daily
   // results and when the server-side insert hadn't dispatched yet.
   freePlaySessionId?: string | null;
+  /** Rejected attempts, for the timeline activity overlay. */
+  invalidSubmissions?: InvalidSubmission[];
 }

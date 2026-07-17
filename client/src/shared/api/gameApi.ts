@@ -1,4 +1,4 @@
-import { Position, Game, Word } from 'models';
+import { Position, Game, Word, type InvalidSubmission } from 'models';
 import type { GameResults } from '../types';
 import { supabase } from '../supabase';
 
@@ -323,6 +323,8 @@ export interface DailyResultResponse {
   /** Per-word find offsets in seconds, index-aligned to `found_words`.
    *  `null` for words captured before timing existed; absent on old results. */
   word_times?: (number | null)[];
+  /** Rejected attempts, for the timeline activity overlay. */
+  invalid_submissions?: InvalidSubmission[];
   board: string[][];
   /** Computed server-side at read time; absent in very old stored results
    *  but always present from the current endpoint. */
@@ -481,6 +483,7 @@ export interface FreePlaySessionResponse {
   board: string[][];
   foundWords: { word: string; path: { row: number; col: number }[]; score: number; timeSeconds?: number | null }[];
   missedWords: { word: string; path: { row: number; col: number }[]; score: number }[];
+  invalidSubmissions?: InvalidSubmission[];
   config: { boardSize: number; timeLimit: number; minWordLength: number };
 }
 
@@ -552,6 +555,7 @@ export interface FreePlayChallengePlayer {
   longestWord: string;
   completedAt: string;
   foundWords: { word: string; score: number; timeSeconds?: number | null }[];
+  invalidSubmissions?: InvalidSubmission[];
   isOwner: boolean;
   isYou: boolean;
 }
@@ -689,6 +693,7 @@ export const endDailyZenSession = async (
 export interface DailyZenResultResponse {
   date: string;
   found_words: DailyResultMissedWord[];
+  invalid_submissions?: InvalidSubmission[];
   board: string[][];
   missed_words: DailyResultMissedWord[];
   ended_at: string;

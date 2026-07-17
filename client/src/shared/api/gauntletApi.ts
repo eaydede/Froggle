@@ -1,4 +1,4 @@
-import type { Position } from 'models';
+import type { InvalidSubmission, Position } from 'models';
 import type {
   GauntletEntry,
   GauntletModifier,
@@ -157,6 +157,7 @@ export interface GauntletRoundResultResponse {
   found_words: string[];
   /** Per-word find offsets in seconds, index-aligned to `found_words`. */
   word_times?: (number | null)[];
+  invalid_submissions?: InvalidSubmission[];
   points: number;
   word_count: number;
   longest_word: string;

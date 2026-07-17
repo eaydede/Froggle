@@ -183,6 +183,7 @@ export function ZenResultsRoute() {
           wordCount: result.found_words.length,
           foundWords: result.found_words,
           missedWords: result.missed_words,
+          invalidSubmissions: result.invalid_submissions,
         }}
         board={result.board}
         config={{
