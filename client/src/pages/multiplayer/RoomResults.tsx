@@ -164,9 +164,10 @@ export function RoomResults({
         displayName: opp.displayName,
         points: opp.points,
         wordCount: opp.wordCount,
-        foundWords: opp.foundWords.map((word) => ({
+        foundWords: opp.foundWords.map((word, i) => ({
           word,
           score: scoreWord(word),
+          timeSeconds: opp.foundWordTimes[i] ?? null,
         })),
       },
     };

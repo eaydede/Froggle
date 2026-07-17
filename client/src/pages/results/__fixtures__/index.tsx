@@ -70,9 +70,9 @@ async function loadOpponent(id: string): Promise<LoadOpponentResult> {
       points: 22,
       wordCount: 3,
       foundWords: [
-        { word: 'TEAR', score: 2 },
-        { word: 'STORE', score: 3 },
-        { word: 'MIDDLES', score: 13 },
+        { word: 'TEAR', score: 2, timeSeconds: 8 },
+        { word: 'STORE', score: 3, timeSeconds: 20 },
+        { word: 'MIDDLES', score: 13, timeSeconds: 55 },
       ],
     },
   };

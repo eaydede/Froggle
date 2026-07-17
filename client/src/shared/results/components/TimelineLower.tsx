@@ -8,10 +8,18 @@ import { WordReel } from './WordReel';
  * inline realtime / fast transport. The shared board + hero above are driven by
  * the same replay controller, so this panel owns no board of its own.
  */
-export function TimelineLower({ replay }: { replay: TimelineReplay }) {
+export function TimelineLower({
+  replay,
+  subjectName,
+}: {
+  replay: TimelineReplay;
+  /** Whose replay this is — "You" or an opponent's name. */
+  subjectName: string;
+}) {
   const {
     model,
     marks,
+    hasData,
     playhead,
     playing,
     mode,
@@ -21,8 +29,25 @@ export function TimelineLower({ replay }: { replay: TimelineReplay }) {
     seek,
   } = replay;
 
+  const isOpponent = subjectName !== 'You';
+
+  if (!hasData) {
+    return (
+      <div className="flex flex-col min-h-0 h-full items-center justify-center text-center px-6">
+        <p className="text-caption text-[color:var(--ink-soft)] font-[family-name:var(--font-display)] italic leading-[1.4]">
+          No find times recorded for {isOpponent ? subjectName : 'this game'}.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-0 h-full gap-2">
+      {isOpponent && (
+        <div className="shrink-0 text-center uppercase text-label-xs tracking-[0.08em] text-[color:var(--ink-soft)] font-[family-name:var(--font-structure)] [font-weight:700]">
+          {subjectName}'s replay
+        </div>
+      )}
       <div className="flex-1 min-h-0 flex items-center justify-center">
         <WordReel marks={marks} currentIndex={currentIndex} />
       </div>

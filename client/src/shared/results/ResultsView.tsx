@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Position } from 'models';
+import type { ScoredWord } from '../types';
 import { IconAction } from '../components/IconAction';
 import { findWordPath } from '../utils/findWordPath';
 import { WordsCard } from '../../pages/results/components/WordsCard';
@@ -115,20 +116,35 @@ export function ResultsView({
   const [opponentError, setOpponentError] = useState<LoadOpponentError | null>(null);
   const loadedInitialRef = useRef<string | null>(null);
 
-  // The replay controller lives here (above the swipe) so the shared board +
-  // hero can be driven by the playhead while the timeline view is active.
-  const replay = useTimelineReplay(me.foundWords, board, config.timeLimit);
+  // The replay follows the selected subject — you, or an opponent picked in the
+  // standings — so switching to the Timeline view with a player selected shows
+  // THEIR replay. Opponent words arrive without paths; the replay solves them.
+  const subjectFoundWords = useMemo<ScoredWord[]>(() => {
+    if (opponent) {
+      return opponent.foundWords.map((w) => ({
+        word: w.word,
+        score: w.score,
+        path: [],
+        timeSeconds: w.timeSeconds ?? null,
+      }));
+    }
+    return me.foundWords;
+  }, [opponent, me.foundWords]);
+  // Lives above the swipe so the shared board + hero can be driven by the
+  // playhead while the timeline view is active.
+  const replay = useTimelineReplay(subjectFoundWords, board, config.timeLimit);
+
   // Which lower panel is showing (0 = Results, 1 = Timeline). Reported up by the
   // carousel so the shared top knows who drives it.
   const [activeView, setActiveView] = useState(0);
 
-  // Reset the replay to its end state on every view change, so the shared hero
-  // never carries a mid-replay score across the swap (which would read as a
-  // value-change animation). Persisted per-view replay state can come later.
+  // Reset the replay to its end state whenever the view or the selected subject
+  // changes, so the shared hero never carries a mid-replay score across the swap
+  // and a freshly-picked player's replay opens at their finished game.
   const resetReplay = replay.seek;
   useEffect(() => {
     resetReplay(1);
-  }, [activeView, resetReplay]);
+  }, [activeView, opponentId, resetReplay]);
 
   const meRow = roster.find((r) => r.isYou) ?? null;
   const isMulti = roster.length > 1;
@@ -223,16 +239,28 @@ export function ResultsView({
     ? roster.find((r) => r.id === opponent.id) ?? null
     : null;
 
+  // The timeline swipe is offered whenever the viewer's own game carries
+  // find-times; a selected opponent's replay rides the same swipe.
+  const meHasTimeline = me.foundWords.some((w) => w.timeSeconds != null);
+  const subjectName = opponent ? opponent.displayName : 'You';
+
   // When the timeline view is active, the playhead drives the shared board +
-  // hero; otherwise word taps / compare do (the original behaviour).
-  const timelineActive = replay.hasData && activeView === 1;
+  // hero; otherwise word taps / compare do (the original behaviour). The hero
+  // falls back to the subject's final totals when their game wasn't timed.
+  const timelineActive = meHasTimeline && activeView === 1;
+  const timelinePoints = replay.hasData
+    ? replay.pointsSoFar
+    : opponent?.points ?? me.points;
+  const timelineWords = replay.hasData
+    ? replay.wordsSoFar
+    : opponent?.wordCount ?? me.wordCount;
   const boardHighlightPath = timelineActive ? replay.boardHighlightPath : activeHighlightPath;
   const boardHighlightColor = timelineActive ? replay.boardHighlightColor : highlightColor;
   const boardStepMs = timelineActive ? replay.boardStepMs : undefined;
 
   const heroNode = timelineActive ? (
     <ResultsHero
-      me={{ displayName: 'You', points: replay.pointsSoFar, wordCount: replay.wordsSoFar }}
+      me={{ displayName: subjectName, points: timelinePoints, wordCount: timelineWords }}
       myRank={1}
       totalPlayers={1}
       opponent={null}
@@ -398,12 +426,16 @@ export function ResultsView({
         </section>
 
         {/* Only the lower half swipes. */}
-        {replay.hasData ? (
+        {meHasTimeline ? (
           <ResultsCarousel
             onActiveChange={setActiveView}
             panels={[
               { key: 'results', label: 'Results', node: resultsLower },
-              { key: 'timeline', label: 'Timeline', node: <TimelineLower replay={replay} /> },
+              {
+                key: 'timeline',
+                label: 'Timeline',
+                node: <TimelineLower replay={replay} subjectName={subjectName} />,
+              },
             ]}
           />
         ) : (

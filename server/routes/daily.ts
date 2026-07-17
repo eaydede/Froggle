@@ -293,7 +293,7 @@ dailyRouter.get('/compare/:date', requireAuth, async (req, res) => {
       const words: string[] = typeof r.found_words === 'string'
         ? JSON.parse(r.found_words)
         : r.found_words;
-      return { board, words };
+      return { board, words, wordTimes: parseWordTimes(r.word_times) };
     };
 
     const me = parse(mine);
@@ -306,14 +306,22 @@ dailyRouter.get('/compare/:date', requireAuth, async (req, res) => {
       displayName: meMeta,
       points: scoreWords(me.words),
       wordCount: me.words.length,
-      foundWords: me.words.map((word) => ({ word, score: scoreWord(word) })),
+      foundWords: me.words.map((word, i) => ({
+        word,
+        score: scoreWord(word),
+        timeSeconds: me.wordTimes[i] ?? null,
+      })),
     };
     const themPayload = {
       userId: otherUserId,
       displayName: themMeta,
       points: scoreWords(them.words),
       wordCount: them.words.length,
-      foundWords: them.words.map((word) => ({ word, score: scoreWord(word) })),
+      foundWords: them.words.map((word, i) => ({
+        word,
+        score: scoreWord(word),
+        timeSeconds: them.wordTimes[i] ?? null,
+      })),
     };
 
     const config = {

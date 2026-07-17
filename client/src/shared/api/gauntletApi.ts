@@ -220,14 +220,14 @@ export interface GauntletCompareResponse {
     displayName: string;
     points: number;
     wordCount: number;
-    foundWords: { word: string; score: number }[];
+    foundWords: { word: string; score: number; timeSeconds?: number | null }[];
   };
   them: {
     userId: string;
     displayName: string;
     points: number;
     wordCount: number;
-    foundWords: { word: string; score: number }[];
+    foundWords: { word: string; score: number; timeSeconds?: number | null }[];
   };
 }
 

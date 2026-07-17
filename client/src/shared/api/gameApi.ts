@@ -380,6 +380,9 @@ export const fetchLeaderboard = async (date: string): Promise<LeaderboardRespons
 export interface DailyCompareScoredWord {
   word: string;
   score: number;
+  /** Elapsed find-time offset (seconds), for the opponent's replay timeline.
+   *  Optional — absent on legacy rows written before timing capture. */
+  timeSeconds?: number | null;
 }
 
 export interface DailyComparePlayer {

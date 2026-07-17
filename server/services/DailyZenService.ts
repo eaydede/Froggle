@@ -438,7 +438,7 @@ export async function getZenCompare(
     const words: string[] = typeof r.found_words === 'string'
       ? JSON.parse(r.found_words)
       : (r.found_words as string[]);
-    return { board, words };
+    return { board, words, wordTimes: parseWordTimes(r.word_times) };
   };
 
   const me = parse(mine);
@@ -457,14 +457,22 @@ export async function getZenCompare(
         displayName: meName,
         points: scoreWords(me.words),
         wordCount: me.words.length,
-        foundWords: me.words.map((word) => ({ word, score: scoreWord(word) })),
+        foundWords: me.words.map((word, i) => ({
+          word,
+          score: scoreWord(word),
+          timeSeconds: me.wordTimes[i] ?? null,
+        })),
       },
       them: {
         userId: otherUserId,
         displayName: themName,
         points: scoreWords(them.words),
         wordCount: them.words.length,
-        foundWords: them.words.map((word) => ({ word, score: scoreWord(word) })),
+        foundWords: them.words.map((word, i) => ({
+          word,
+          score: scoreWord(word),
+          timeSeconds: them.wordTimes[i] ?? null,
+        })),
       },
       config: { boardSize: cfg.boardSize, minWordLength: cfg.minWordLength, timeLimit: 0 },
     },

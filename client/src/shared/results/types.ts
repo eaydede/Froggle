@@ -38,7 +38,10 @@ export interface ResultsOpponent {
   displayName: string;
   points: number;
   wordCount: number;
-  foundWords: { word: string; score: number }[];
+  /** `timeSeconds` (elapsed find-time offset) is optional so a legacy row or an
+   *  un-threaded mode still compares word lists; when present it powers the
+   *  opponent's replay timeline. */
+  foundWords: { word: string; score: number; timeSeconds?: number | null }[];
 }
 
 export type LoadOpponentError =
