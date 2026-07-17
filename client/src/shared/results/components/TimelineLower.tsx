@@ -55,9 +55,16 @@ export function TimelineLower({
   // ~half the readout width + a fixed label's width; overlap when the readout's
   // near edge crosses into the label's zone.
   const OVERLAP_PX = 42;
+  const READOUT_HALF_PX = 18;
   const readoutPx = playhead * labelsWidth;
   const hideStart = labelsWidth > 0 && readoutPx < OVERLAP_PX;
   const hideEnd = labelsWidth > 0 && readoutPx > labelsWidth - OVERLAP_PX;
+  // Keep the centred readout fully inside the track so it isn't clipped at the
+  // ends (it can drift a hair off the playhead line there, which reads fine).
+  const readoutLeftPx =
+    labelsWidth > 0
+      ? Math.max(READOUT_HALF_PX, Math.min(readoutPx, labelsWidth - READOUT_HALF_PX))
+      : null;
 
   if (!hasData) {
     return (
@@ -152,8 +159,8 @@ export function TimelineLower({
               {formatClock(endSeconds)}
             </span>
             <span
-              className="absolute top-0 -translate-x-1/2 text-[color:var(--accent)] [font-weight:700]"
-              style={{ left: `${playhead * 100}%` }}
+              className="absolute top-0 -translate-x-1/2 whitespace-nowrap text-[color:var(--accent)] [font-weight:700]"
+              style={{ left: readoutLeftPx != null ? `${readoutLeftPx}px` : `${playhead * 100}%` }}
             >
               {formatClock(currentTimeSeconds)}
             </span>
