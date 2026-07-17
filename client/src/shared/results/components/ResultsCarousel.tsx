@@ -15,10 +15,25 @@ export interface CarouselPanel {
  * "there's more →" affordance is discoverable and keyboard-navigable rather
  * than a hidden free-scroll.
  */
-export function ResultsCarousel({ panels }: { panels: CarouselPanel[] }) {
+export function ResultsCarousel({
+  panels,
+  onActiveChange,
+}: {
+  panels: CarouselPanel[];
+  /** Fires with the active panel index whenever it changes (and on mount), so
+   *  the parent can drive shared chrome (board/hero) off the current view. */
+  onActiveChange?: (index: number) => void;
+}) {
   const trackRef = useRef<HTMLDivElement | null>(null);
   const panelRefs = useRef<(HTMLElement | null)[]>([]);
   const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    onActiveChange?.(active);
+    // onActiveChange is a stable setter from the parent; keying on `active`
+    // alone avoids re-firing on unrelated re-renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
 
   const goTo = (index: number) => {
     const track = trackRef.current;
