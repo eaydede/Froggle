@@ -9,7 +9,7 @@
 // Reconnects are stable: clients persist a playerKey in localStorage and
 // the server treats it as the player's identity within the room.
 
-import type { Board, GameConfig } from './index.js';
+import type { Board, GameConfig, InvalidSubmission } from './index.js';
 
 export type RoomStatus = 'lobby' | 'playing' | 'results';
 
@@ -44,6 +44,10 @@ export interface MultiplayerPlayer {
    *  word in `foundWords` was found — parallel array, index-aligned. Feeds
    *  the results-page timeline; cleared alongside `foundWords` each board. */
   foundWordTimes: number[];
+  /** Rejected attempts (not-a-word / duplicate) this board, for the timeline's
+   *  activity view. Cleared alongside `foundWords` each board; capped in the
+   *  store. Only reliably broadcast in the board-end snapshot. */
+  invalidSubmissions: InvalidSubmission[];
   /** Whether the socket is currently connected. Disconnected players
    *  stay in the roster (key-based identity) so reconnects slot back in. */
   connected: boolean;

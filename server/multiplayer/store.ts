@@ -12,7 +12,7 @@ import { generateSeededBoard } from 'engine/board.js';
 import { findAllWords } from 'engine/solver.js';
 import { scoreWord } from 'engine/scoring.js';
 import { validateSubmission } from 'engine/submission.js';
-import { hashWord, generateSalt, type Position, type GameConfig } from 'models';
+import { hashWord, generateSalt, type Position, type GameConfig, type InvalidSubmission } from 'models';
 import { randomSeed } from 'models/seedCode';
 import type {
   MultiplayerBoard,
@@ -24,6 +24,7 @@ import type {
 import { dictionary } from '../services/dictionary.js';
 import { scoreResult } from '../services/DailyService.js';
 import { elapsedSeconds } from '../services/wordTiming.js';
+import { appendInvalidSubmission } from '../services/invalidSubmissions.js';
 
 const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/1/I/O ambiguity
 const ROOM_CODE_LENGTH = 5;
@@ -159,6 +160,7 @@ export interface RoomBoardCompletion {
     userId: string;
     foundWords: string[];
     foundWordTimes: number[];
+    invalidSubmissions: InvalidSubmission[];
     points: number;
     wordCount: number;
     longestWord: string;
@@ -213,6 +215,7 @@ function buildCompletion(entry: RoomEntry, board: MultiplayerBoard): RoomBoardCo
       userId,
       foundWords: [...player.foundWords],
       foundWordTimes: [...player.foundWordTimes],
+      invalidSubmissions: [...player.invalidSubmissions],
       points: player.points,
       wordCount: player.wordCount,
       longestWord: longestOf(player.foundWords),
@@ -433,6 +436,7 @@ export function joinRoom(
     wordCount: 0,
     foundWords: [],
     foundWordTimes: [],
+    invalidSubmissions: [],
     connected: true,
     left: false,
   };
@@ -631,6 +635,7 @@ export function startBoard(
     player.wordCount = 0;
     player.foundWords = [];
     player.foundWordTimes = [];
+    player.invalidSubmissions = [];
     player.status = player.connected ? 'playing' : 'lobby';
     if (player.status === 'playing') board.participantIds.push(player.id);
   }
@@ -923,6 +928,15 @@ export function submitWord(
     score: scoreResult,
   });
   if (!result.valid) {
+    // Record the rejected attempt for the results timeline. Mutation only — the
+    // socket layer skips the broadcast on invalid submits, so this doesn't bloat
+    // per-word snapshots; it rides the board-end broadcast + persistence.
+    player.invalidSubmissions = appendInvalidSubmission(player.invalidSubmissions, {
+      word: result.word ?? '',
+      reason: result.reason,
+      t: elapsedSeconds(new Date(board.startedAt)),
+      path,
+    });
     return { outcome: { valid: false, word: result.word, reason: result.reason }, room };
   }
 

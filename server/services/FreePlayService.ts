@@ -553,6 +553,7 @@ export async function persistRoomBoardResults(
         board: boardJson,
         found_words: JSON.stringify(p.foundWords),
         word_times: JSON.stringify(p.foundWordTimes),
+        invalid_submissions: JSON.stringify(p.invalidSubmissions),
         started_at: startedAt,
         completed_at: completedAt,
         points: p.points,
