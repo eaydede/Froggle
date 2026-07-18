@@ -4,6 +4,7 @@ import { scoreWord } from 'engine/scoring.js';
 import { isValidPath } from 'engine/adjacency.js';
 import { isValidWord } from 'engine/dictionary.js';
 import { validateSubmission } from 'engine/submission.js';
+import type { InvalidSubmission } from 'models';
 import { assignCompetitionRanks } from 'models/ranking';
 import {
   EXPERIMENTAL_MODES,
@@ -20,6 +21,7 @@ import { getDisplayNames } from './displayNames.js';
 import { isTimedSessionExpired, timedExpiryInstant } from './sessionTiming.js';
 import { prepareExperimentalBoard } from './experimentalConfig.js';
 import { appendWordTimes, elapsedSeconds, parseWordTimes } from './wordTiming.js';
+import { appendInvalidSubmission, parseInvalidSubmissions } from './invalidSubmissions.js';
 
 // Same buzzer-grace window the timed daily uses — a word fairly played as the
 // clock hits zero can reach the server a few hundred ms late.
@@ -32,6 +34,7 @@ export interface ExperimentalSession {
   state: ExperimentalModeState;
   found_words: string[];
   word_times: (number | null)[];
+  invalid_submissions: InvalidSubmission[];
   started_at: Date;
   ended_at: Date | null;
   points: number;
@@ -106,6 +109,7 @@ function parseSession(row: {
   state: unknown;
   found_words: unknown;
   word_times: unknown;
+  invalid_submissions: unknown;
   started_at: Date;
   ended_at: Date | null;
   points: number;
@@ -122,6 +126,7 @@ function parseSession(row: {
     state: parseJson<ExperimentalModeState>(row.state, {}),
     found_words: parseJson<string[]>(row.found_words, []),
     word_times: parseWordTimes(row.word_times),
+    invalid_submissions: parseInvalidSubmissions(row.invalid_submissions),
     started_at: row.started_at,
     ended_at: row.ended_at,
     points: row.points,
@@ -166,6 +171,7 @@ export async function getExperimentalSession(
       'state',
       'found_words',
       'word_times',
+      'invalid_submissions',
       'started_at',
       'ended_at',
       'points',
@@ -338,7 +344,23 @@ export async function submitExperimentalWord(
     ? processGoldenSubmission(session, path)
     : processNormalSubmission(session, path);
 
-  if (!branch.valid) return { valid: false, reason: branch.reason };
+  if (!branch.valid) {
+    const attempts = appendInvalidSubmission(session.invalid_submissions, {
+      word: '',
+      reason: branch.reason,
+      t: elapsedSeconds(session.started_at),
+      path,
+    });
+    await db
+      .updateTable('experimental_results')
+      .set({ invalid_submissions: JSON.stringify(attempts) })
+      .where('user_id', '=', userId)
+      .where('date', '=', date)
+      .where('mode_key', '=', modeKey)
+      .where('ended_at', 'is', null)
+      .execute();
+    return { valid: false, reason: branch.reason };
+  }
 
   const wordTimes = appendWordTimes(
     session.word_times,

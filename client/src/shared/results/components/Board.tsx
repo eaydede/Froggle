@@ -20,9 +20,13 @@ interface BoardProps {
    *  experimental mode to show which tiles were breakable (and their final
    *  cracked/broken state) on the results preview board. */
   cellOverlay?: (row: number, col: number, letter: string) => ReactNode;
+  /** Per-cell reveal cadence for the highlight animation, in ms. The replay
+   *  overrides the default with a faster step so a word's path finishes
+   *  lighting before the playhead moves on to the next find. */
+  stepMs?: number;
 }
 
-const STEP_MS = 70;
+const DEFAULT_STEP_MS = 70;
 
 export function Board({
   board,
@@ -32,6 +36,7 @@ export function Board({
   compact = false,
   cellBadge,
   cellOverlay,
+  stepMs = DEFAULT_STEP_MS,
 }: BoardProps) {
   const size = board.length;
   const [animatedCells, setAnimatedCells] = useState<Set<string>>(new Set());
@@ -47,11 +52,11 @@ export function Board({
           next.add(`${pos.row},${pos.col}`);
           return next;
         });
-      }, i * STEP_MS);
+      }, i * stepMs);
       timeouts.push(t);
     });
     return () => timeouts.forEach(clearTimeout);
-  }, [highlightPath]);
+  }, [highlightPath, stepMs]);
 
   return (
     <div className={`${compact ? 'w-[160px]' : 'w-[168px]'} shrink-0 flex flex-col items-center`}>

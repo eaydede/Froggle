@@ -28,6 +28,7 @@ import {
   submitGauntletWord,
 } from '../services/DailyGauntletService.js';
 import { getDisplayNames } from '../services/displayNames.js';
+import { parseWordTimes } from '../services/wordTiming.js';
 
 export const dailyGauntletRouter = Router();
 
@@ -298,6 +299,8 @@ dailyGauntletRouter.get('/:date/round/:round/results', requireAuth, async (req, 
         config: session.config,
         board: session.board,
         found_words: session.foundWords,
+        word_times: session.wordTimes,
+        invalid_submissions: session.invalidSubmissions,
         points: session.points,
         word_count: session.wordCount,
         longest_word: session.longestWord,
@@ -405,6 +408,8 @@ dailyGauntletRouter.get(
         typeof raw === 'string' ? JSON.parse(raw) : (raw as string[]);
       const myWords = parseWords(mine.found_words);
       const theirWords = parseWords(theirs.found_words);
+      const myTimes = parseWordTimes(mine.word_times);
+      const theirTimes = parseWordTimes(theirs.word_times);
       const board = (typeof mine.board === 'string'
         ? JSON.parse(mine.board)
         : mine.board) as string[][];
@@ -427,14 +432,20 @@ dailyGauntletRouter.get(
           displayName: names.get(meUserId) ?? 'Anonymous',
           points: mine.points,
           wordCount: mine.word_count,
-          foundWords: scoreFoundWords(myWords, modifier),
+          foundWords: scoreFoundWords(myWords, modifier).map((w, i) => ({
+            ...w,
+            timeSeconds: myTimes[i] ?? null,
+          })),
         },
         them: {
           userId: otherUserId,
           displayName: names.get(otherUserId) ?? 'Anonymous',
           points: theirs.points,
           wordCount: theirs.word_count,
-          foundWords: scoreFoundWords(theirWords, modifier),
+          foundWords: scoreFoundWords(theirWords, modifier).map((w, i) => ({
+            ...w,
+            timeSeconds: theirTimes[i] ?? null,
+          })),
         },
       });
     } catch (err) {

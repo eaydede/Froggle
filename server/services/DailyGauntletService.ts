@@ -1,7 +1,7 @@
 import { sql, type Kysely } from 'kysely';
 import { scoreGauntletWord } from 'engine/gauntletScoring.js';
 import { validateSubmission } from 'engine/submission.js';
-import type { Position } from 'models';
+import type { InvalidSubmission, Position } from 'models';
 import { assignCompetitionRanks } from 'models/ranking';
 import {
   GAUNTLET_ROUND_COUNT,
@@ -22,6 +22,7 @@ import {
   prepareGauntletRound,
 } from './dailyGauntletConfig.js';
 import { appendWordTimes, elapsedSeconds, parseWordTimes } from './wordTiming.js';
+import { appendInvalidSubmission, parseInvalidSubmissions } from './invalidSubmissions.js';
 
 // Same grace window as timed daily — a few hundred ms of client/server
 // clock drift shouldn't reject the last fairly-played word.
@@ -40,6 +41,7 @@ export interface GauntletRoundSession {
   };
   foundWords: string[];
   wordTimes: (number | null)[];
+  invalidSubmissions: InvalidSubmission[];
   points: number;
   wordCount: number;
   longestWord: string;
@@ -92,6 +94,7 @@ function parseSessionRow(row: {
   modifier: unknown;
   found_words: unknown;
   word_times: unknown;
+  invalid_submissions: unknown;
   points: number;
   word_count: number;
   longest_word: string;
@@ -122,6 +125,7 @@ function parseSessionRow(row: {
     },
     foundWords,
     wordTimes: parseWordTimes(row.word_times),
+    invalidSubmissions: parseInvalidSubmissions(row.invalid_submissions),
     points: row.points,
     wordCount: row.word_count,
     longestWord: row.longest_word,
@@ -183,6 +187,7 @@ export async function getGauntletRoundSession(
       'modifier',
       'found_words',
       'word_times',
+      'invalid_submissions',
       'points',
       'word_count',
       'longest_word',
@@ -219,6 +224,7 @@ async function getRoundsForUser(
       'modifier',
       'found_words',
       'word_times',
+      'invalid_submissions',
       'points',
       'word_count',
       'longest_word',
@@ -320,7 +326,23 @@ export async function submitGauntletWord(
     scoreWord: (w) => scoreGauntletWord(w, session.modifier),
     score: (words) => scoreGauntletResult(words, session.modifier),
   });
-  if (!result.valid) return { valid: false, reason: result.reason };
+  if (!result.valid) {
+    const attempts = appendInvalidSubmission(session.invalidSubmissions, {
+      word: result.word ?? '',
+      reason: result.reason,
+      t: elapsedSeconds(session.startedAt),
+      path,
+    });
+    await db
+      .updateTable('daily_gauntlet_results')
+      .set({ invalid_submissions: JSON.stringify(attempts) })
+      .where('user_id', '=', userId)
+      .where('date', '=', date)
+      .where('round_index', '=', roundIndex)
+      .where('ended_at', 'is', null)
+      .execute();
+    return { valid: false, reason: result.reason };
+  }
 
   const wordTimes = appendWordTimes(
     session.wordTimes,

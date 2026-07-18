@@ -192,7 +192,10 @@ export function attachMultiplayerSockets(io: Server): void {
           return;
         }
         ack?.(result.outcome);
-        emitState(io, data.roomCode);
+        // Only a valid word changes shared state worth broadcasting. Rejected
+        // attempts are acked (for the toast) and recorded server-side, but
+        // don't warrant pushing the room snapshot to everyone.
+        if (result.outcome.valid) emitState(io, data.roomCode);
       },
     );
 

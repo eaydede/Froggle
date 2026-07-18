@@ -52,4 +52,20 @@ describe('multiplayer submitWord (characterization)', () => {
     const res = submitWord(code, player.id, [{ row: 0, col: 0 }, { row: last, col: last }]);
     expect(res?.outcome).toEqual({ valid: false, reason: 'invalid' });
   });
+
+  it('records rejected attempts (repeat + invalid) on the player', () => {
+    const { code, player, board, words } = liveBoard();
+    submitWord(code, player.id, words[0].path); // valid
+    submitWord(code, player.id, words[0].path); // repeat
+    const last = board.config.boardSize - 1;
+    const invalidPath = [{ row: 0, col: 0 }, { row: last, col: last }];
+    submitWord(code, player.id, invalidPath); // invalid (non-adjacent)
+
+    expect(player.invalidSubmissions).toHaveLength(2);
+    expect(player.invalidSubmissions[0]).toMatchObject({ word: words[0].word, reason: 'repeat' });
+    expect(player.invalidSubmissions[0].path).toEqual(words[0].path);
+    expect(player.invalidSubmissions[1]).toMatchObject({ word: '', reason: 'invalid' });
+    expect(player.invalidSubmissions[1].path).toEqual(invalidPath);
+    expect(typeof player.invalidSubmissions[1].t).toBe('number');
+  });
 });

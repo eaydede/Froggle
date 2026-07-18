@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { InvalidSubmission } from 'models';
 import type { MultiplayerRoom } from 'models/multiplayer';
 import { assignCompetitionRanks } from 'models/ranking';
 import { ActionButton } from '../../shared/results/components/ActionButton';
@@ -114,10 +115,11 @@ export function RoomResults({
       displayName: me.displayName,
       points: me.points,
       wordCount: me.wordCount,
-      foundWords: me.foundWords.map((word) => ({
+      foundWords: me.foundWords.map((word, i) => ({
         word,
         score: scoreWord(word),
         path: findWordPath(board.board, word) ?? [],
+        timeSeconds: me.foundWordTimes?.[i] ?? null,
       })),
       // Every found-able word the viewer didn't get. Paths + scores are
       // derived client-side (same as found words) so the word list shows
@@ -132,6 +134,7 @@ export function RoomResults({
             path: findWordPath(board.board, word) ?? [],
           }));
       })(),
+      invalidSubmissions: me.invalidSubmissions,
     };
   }, [me, board, allWords]);
 
@@ -163,10 +166,12 @@ export function RoomResults({
         displayName: opp.displayName,
         points: opp.points,
         wordCount: opp.wordCount,
-        foundWords: opp.foundWords.map((word) => ({
+        foundWords: opp.foundWords.map((word, i) => ({
           word,
           score: scoreWord(word),
+          timeSeconds: opp.foundWordTimes[i] ?? null,
         })),
+        invalidSubmissions: opp.invalidSubmissions,
       },
     };
   };
@@ -410,6 +415,8 @@ interface RankedPlayer {
   points: number;
   wordCount: number;
   foundWords: string[];
+  foundWordTimes: number[];
+  invalidSubmissions: InvalidSubmission[];
   left: boolean;
 }
 
@@ -420,6 +427,8 @@ function rankByPoints(
     points: number;
     wordCount: number;
     foundWords: string[];
+    foundWordTimes: number[];
+    invalidSubmissions: InvalidSubmission[];
     left: boolean;
   }[],
 ): RankedPlayer[] {
@@ -431,6 +440,8 @@ function rankByPoints(
     points: p.points,
     wordCount: p.wordCount,
     foundWords: p.foundWords,
+    foundWordTimes: p.foundWordTimes,
+    invalidSubmissions: p.invalidSubmissions,
     left: p.left,
   }));
 }

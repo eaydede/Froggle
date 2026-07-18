@@ -624,7 +624,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
       const local = zenValidator.validate(word);
       flashFeedback(path, local);
 
-      if (!local.valid) return;
+      if (!local.valid) {
+        // The local result already drove the UI; still tell the server so the
+        // rejected attempt is recorded for the timeline. Fire-and-forget — we
+        // never wait on it.
+        submitDailyZenWord(session.date, path).catch(() => {});
+        return;
+      }
 
       zenValidator.recordSubmitted(word);
       const score = scoreWord(word);
@@ -696,7 +702,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
       const local = dailyValidator.validate(word);
       flashFeedback(path, local);
-      if (!local.valid) return;
+      if (!local.valid) {
+        // Record the rejected attempt server-side (fire-and-forget).
+        submitDailyTimedWord(session.date, path).catch(() => {});
+        return;
+      }
 
       dailyValidator.recordSubmitted(word);
       const score = scoreWord(word);

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Position } from 'models';
+import type { InvalidSubmission } from 'models';
+import type { ScoredWord } from '../types';
 import { IconAction } from '../components/IconAction';
 import { findWordPath } from '../utils/findWordPath';
 import { WordsCard } from '../../pages/results/components/WordsCard';
@@ -11,6 +13,9 @@ import { ResultsHero } from './components/ResultsHero';
 import { Standings } from './components/Standings';
 import { Placeholders } from './components/Placeholders';
 import { WordList, type DisplayWordRow } from './components/WordList';
+import { TimelineLower } from './components/TimelineLower';
+import { ResultsCarousel } from './components/ResultsCarousel';
+import { useTimelineReplay } from './useTimelineReplay';
 import type {
   LoadOpponentError,
   LoadOpponentResult,
@@ -112,6 +117,49 @@ export function ResultsView({
   const [opponentError, setOpponentError] = useState<LoadOpponentError | null>(null);
   const loadedInitialRef = useRef<string | null>(null);
 
+  // The replay follows the selected subject — you, or an opponent picked in the
+  // standings — so switching to the Timeline view with a player selected shows
+  // THEIR replay. Opponent words arrive without paths; the replay solves them.
+  const subjectFoundWords = useMemo<ScoredWord[]>(() => {
+    if (opponent) {
+      return opponent.foundWords.map((w) => ({
+        word: w.word,
+        score: w.score,
+        path: [],
+        timeSeconds: w.timeSeconds ?? null,
+      }));
+    }
+    return me.foundWords;
+  }, [opponent, me.foundWords]);
+  const subjectInvalidSubmissions = useMemo<InvalidSubmission[]>(
+    () => (opponent ? opponent.invalidSubmissions ?? [] : me.invalidSubmissions ?? []),
+    [opponent, me.invalidSubmissions],
+  );
+  // Weave rejected attempts into the replay (board + reel + scrubber), toggled
+  // from the timeline panel. Lives here because it drives the shared board.
+  const [showMisses, setShowMisses] = useState(false);
+  // Lives above the swipe so the shared board + hero can be driven by the
+  // playhead while the timeline view is active.
+  const replay = useTimelineReplay(
+    subjectFoundWords,
+    subjectInvalidSubmissions,
+    board,
+    config.timeLimit,
+    showMisses,
+  );
+
+  // Which lower panel is showing (0 = Results, 1 = Timeline). Reported up by the
+  // carousel so the shared top knows who drives it.
+  const [activeView, setActiveView] = useState(0);
+
+  // Reset the replay to its end state whenever the view or the selected subject
+  // changes, so the shared hero never carries a mid-replay score across the swap
+  // and a freshly-picked player's replay opens at their finished game.
+  const resetReplay = replay.seek;
+  useEffect(() => {
+    resetReplay(1);
+  }, [activeView, opponentId, resetReplay]);
+
   const meRow = roster.find((r) => r.isYou) ?? null;
   const isMulti = roster.length > 1;
 
@@ -205,88 +253,69 @@ export function ResultsView({
     ? roster.find((r) => r.id === opponent.id) ?? null
     : null;
 
-  return (
-    <div className="fixed inset-0 flex justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] overflow-hidden">
-      <main
-        className="w-full max-w-[360px] box-border flex flex-col p-4 gap-3"
-        style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}
-      >
-        {topbar ?? (
-          <DefaultTopbar
-            label={topbarLabel ?? ''}
-            onClose={topbarOnClose ?? (() => {})}
-            onShare={topbarOnShare ?? (() => {})}
-            shareCopied={!!topbarShareCopied}
-            onLabelClick={topbarOnLabelClick}
-          />
-        )}
+  // The timeline swipe is offered whenever the viewer's own game carries
+  // find-times; a selected opponent's replay rides the same swipe.
+  const meHasTimeline = me.foundWords.some((w) => w.timeSeconds != null);
+  const subjectName = opponent ? opponent.displayName : 'You';
 
-        <div
-          key={opponent ? 'hero-versus' : 'hero-solo'}
-          className="shrink-0 results-region-fade-in"
-        >
-          {opponent && meRow && opponentRosterRow ? (
-            <ResultsHero
-              me={{
-                displayName: 'You',
-                points: me.points,
-                wordCount: me.wordCount,
-              }}
-              myRank={meRow.rank}
-              totalPlayers={roster.length}
-              opponent={{
-                displayName: opponent.displayName,
-                points: opponent.points,
-                wordCount: opponent.wordCount,
-              }}
-              oppRank={opponentRosterRow.rank}
-              compact
-            />
-          ) : (
-            soloHero ?? (
-              <ResultsHero
-                me={{
-                  displayName: me.displayName,
-                  points: me.points,
-                  wordCount: me.wordCount,
-                }}
-                myRank={meRow?.rank ?? 1}
-                totalPlayers={roster.length}
-                opponent={null}
-                oppRank={null}
-                compact
-              />
-            )
-          )}
-        </div>
+  // When the timeline view is active, the playhead drives the shared board +
+  // hero; otherwise word taps / compare do (the original behaviour). The hero
+  // falls back to the subject's final totals when their game wasn't timed.
+  const timelineActive = meHasTimeline && activeView === 1;
+  const timelinePoints = replay.hasData
+    ? replay.pointsSoFar
+    : opponent?.points ?? me.points;
+  const timelineWords = replay.hasData
+    ? replay.wordsSoFar
+    : opponent?.wordCount ?? me.wordCount;
+  const boardHighlightPath = timelineActive ? replay.boardHighlightPath : activeHighlightPath;
+  const boardHighlightColor = timelineActive ? replay.boardHighlightColor : highlightColor;
+  const boardStepMs = timelineActive ? replay.boardStepMs : undefined;
 
-        <section className="flex items-stretch gap-2 shrink-0 box-border">
-          {isMulti && (
-            <Standings
-              rows={roster}
-              selectedId={opponentId}
-              onSelect={handleSelectOpponent}
-              header={standingsHeader}
-              compact
-              maxHeight="160px"
-              showBars={standingsShowBars}
-              formatValue={standingsFormatValue}
-            />
-          )}
-          <div className={isMulti ? '' : 'flex-1 flex justify-center'}>
-            <Board
-              board={board}
-              highlightPath={activeHighlightPath}
-              highlightColor={highlightColor}
-              config={config}
-              compact
-              cellBadge={boardCellBadge}
-              cellOverlay={boardCellOverlay}
-            />
-          </div>
-        </section>
+  const heroNode = timelineActive ? (
+    <ResultsHero
+      me={{ displayName: subjectName, points: timelinePoints, wordCount: timelineWords }}
+      myRank={1}
+      totalPlayers={1}
+      opponent={null}
+      oppRank={null}
+      compact
+    />
+  ) : opponent && meRow && opponentRosterRow ? (
+    <ResultsHero
+      me={{ displayName: 'You', points: me.points, wordCount: me.wordCount }}
+      myRank={meRow.rank}
+      totalPlayers={roster.length}
+      opponent={{
+        displayName: opponent.displayName,
+        points: opponent.points,
+        wordCount: opponent.wordCount,
+      }}
+      oppRank={opponentRosterRow.rank}
+      compact
+    />
+  ) : (
+    soloHero ?? (
+      <ResultsHero
+        me={{ displayName: me.displayName, points: me.points, wordCount: me.wordCount }}
+        myRank={meRow?.rank ?? 1}
+        totalPlayers={roster.length}
+        opponent={null}
+        oppRank={null}
+        compact
+      />
+    )
+  );
+  // Solo and timeline share a key so swapping between them doesn't re-run the
+  // hero's fade-in — only the versus layout is a distinct enough change to
+  // warrant the transition.
+  const heroKey = opponent ? 'hero-versus' : 'hero-single';
 
-        <section className="flex justify-between items-stretch gap-2 flex-1 min-h-0 box-border">
+  // The lower half — the only region that swipes. Its own compare/definition
+  // two-column layout is unchanged; it's just no longer wrapped with the hero
+  // and board, which are now shared above.
+  const resultsLower = (
+    <section className="flex justify-between items-stretch gap-2 flex-1 min-h-0 box-border">
           <div
             key={opponent ? 'opp-compare' : 'placeholders-solo'}
             className="w-1/2 flex flex-col min-h-0 results-region-fade-in"
@@ -359,6 +388,80 @@ export function ResultsView({
             )}
           </div>
         </section>
+  );
+
+  return (
+    <div className="fixed inset-0 flex justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] overflow-hidden">
+      <main
+        className="w-full max-w-[360px] box-border flex flex-col p-4 gap-3"
+        style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}
+      >
+        {topbar ?? (
+          <DefaultTopbar
+            label={topbarLabel ?? ''}
+            onClose={topbarOnClose ?? (() => {})}
+            onShare={topbarOnShare ?? (() => {})}
+            shareCopied={!!topbarShareCopied}
+            onLabelClick={topbarOnLabelClick}
+          />
+        )}
+
+        {/* Shared top — fixed across both views. Driven by the active view: the
+            playhead on Timeline, taps/compare on Results. */}
+        <div key={heroKey} className="shrink-0 results-region-fade-in">
+          {heroNode}
+        </div>
+
+        <section className="flex items-stretch gap-2 shrink-0 box-border">
+          {isMulti && (
+            <Standings
+              rows={roster}
+              selectedId={opponentId}
+              onSelect={handleSelectOpponent}
+              header={standingsHeader}
+              compact
+              maxHeight="160px"
+              showBars={standingsShowBars}
+              formatValue={standingsFormatValue}
+            />
+          )}
+          <div className={isMulti ? '' : 'flex-1 flex justify-center'}>
+            <Board
+              board={board}
+              highlightPath={boardHighlightPath}
+              highlightColor={boardHighlightColor}
+              config={config}
+              compact
+              stepMs={boardStepMs}
+              cellBadge={boardCellBadge}
+              cellOverlay={boardCellOverlay}
+            />
+          </div>
+        </section>
+
+        {/* Only the lower half swipes. */}
+        {meHasTimeline ? (
+          <ResultsCarousel
+            onActiveChange={setActiveView}
+            panels={[
+              { key: 'results', label: 'Results', node: resultsLower },
+              {
+                key: 'timeline',
+                label: 'Timeline',
+                node: (
+                  <TimelineLower
+                    replay={replay}
+                    subjectName={subjectName}
+                    showMisses={showMisses}
+                    onToggleMisses={() => setShowMisses((v) => !v)}
+                  />
+                ),
+              },
+            ]}
+          />
+        ) : (
+          resultsLower
+        )}
 
         <div className="shrink-0">{bottomActions}</div>
       </main>

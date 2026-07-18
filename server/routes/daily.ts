@@ -17,6 +17,8 @@ import {
   submitTimedDailyWord,
 } from '../services/DailyService.js';
 import { getTimedDailyWordPercents } from '../services/dailyWordStats.js';
+import { parseWordTimes } from '../services/wordTiming.js';
+import { parseInvalidSubmissions } from '../services/invalidSubmissions.js';
 import { getDisplayNames } from '../services/displayNames.js';
 import {
   DAILY_LAUNCH_DATE,
@@ -234,6 +236,8 @@ dailyRouter.get('/results/:date', requireAuth, async (req, res) => {
       result: {
         date: result.date,
         found_words: foundWords,
+        word_times: parseWordTimes(result.word_times),
+        invalid_submissions: parseInvalidSubmissions(result.invalid_submissions),
         board,
         missed_words: missedWords,
         completed_at: result.completed_at,
@@ -291,7 +295,7 @@ dailyRouter.get('/compare/:date', requireAuth, async (req, res) => {
       const words: string[] = typeof r.found_words === 'string'
         ? JSON.parse(r.found_words)
         : r.found_words;
-      return { board, words };
+      return { board, words, wordTimes: parseWordTimes(r.word_times) };
     };
 
     const me = parse(mine);
@@ -304,14 +308,22 @@ dailyRouter.get('/compare/:date', requireAuth, async (req, res) => {
       displayName: meMeta,
       points: scoreWords(me.words),
       wordCount: me.words.length,
-      foundWords: me.words.map((word) => ({ word, score: scoreWord(word) })),
+      foundWords: me.words.map((word, i) => ({
+        word,
+        score: scoreWord(word),
+        timeSeconds: me.wordTimes[i] ?? null,
+      })),
     };
     const themPayload = {
       userId: otherUserId,
       displayName: themMeta,
       points: scoreWords(them.words),
       wordCount: them.words.length,
-      foundWords: them.words.map((word) => ({ word, score: scoreWord(word) })),
+      foundWords: them.words.map((word, i) => ({
+        word,
+        score: scoreWord(word),
+        timeSeconds: them.wordTimes[i] ?? null,
+      })),
     };
 
     const config = {

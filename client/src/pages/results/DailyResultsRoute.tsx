@@ -153,16 +153,18 @@ export function DailyResultsRoute() {
   const displayed = liveDailyResults ?? (serverResult
     ? {
         board: serverResult.board,
-        foundWords: serverResult.found_words.map((word) => ({
+        foundWords: serverResult.found_words.map((word, i) => ({
           word,
           path: [] as { row: number; col: number }[],
           score: scoreWord(word),
+          timeSeconds: serverResult.word_times?.[i] ?? null,
         })),
         missedWords: (serverResult.missed_words ?? []).map((m) => ({
           word: m.word,
           path: m.path,
           score: m.score,
         })),
+        invalidSubmissions: serverResult.invalid_submissions,
       }
     : null);
 
@@ -218,6 +220,7 @@ export function DailyResultsRoute() {
           wordCount: displayed.foundWords.length,
           foundWords: displayed.foundWords,
           missedWords: displayed.missedWords,
+          invalidSubmissions: displayed.invalidSubmissions,
         }}
         board={displayed.board}
         config={{

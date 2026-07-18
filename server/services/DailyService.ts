@@ -1,5 +1,5 @@
 import { sql, type Kysely } from 'kysely';
-import type { Position } from 'models';
+import type { InvalidSubmission, Position } from 'models';
 import { scoreWord } from 'engine/scoring.js';
 import { validateSubmission } from 'engine/submission.js';
 import type { Database } from '../db/types.js';
@@ -7,6 +7,7 @@ import { dictionary } from './dictionary.js';
 import { getDailyConfig, type DailyConfig } from './dailyConfig.js';
 import { isTimedSessionExpired, timedExpiryInstant } from './sessionTiming.js';
 import { appendWordTimes, elapsedSeconds, parseWordTimes } from './wordTiming.js';
+import { appendInvalidSubmission, parseInvalidSubmissions } from './invalidSubmissions.js';
 
 export interface ScoredResult {
   points: number;
@@ -461,6 +462,7 @@ export interface TimedDailySession {
   board: string[][];
   found_words: string[];
   word_times: (number | null)[];
+  invalid_submissions: InvalidSubmission[];
   started_at: Date;
   ended_at: Date | null;
   points: number;
@@ -485,6 +487,7 @@ function parseTimedSession(row: {
   board: unknown;
   found_words: unknown;
   word_times: unknown;
+  invalid_submissions: unknown;
   started_at: Date;
   ended_at: Date | null;
   points: number;
@@ -501,6 +504,7 @@ function parseTimedSession(row: {
     board,
     found_words: foundWords,
     word_times: parseWordTimes(row.word_times),
+    invalid_submissions: parseInvalidSubmissions(row.invalid_submissions),
     started_at: row.started_at,
     ended_at: row.ended_at,
     points: row.points,
@@ -556,6 +560,7 @@ export async function getTimedDailySession(
       'board',
       'found_words',
       'word_times',
+      'invalid_submissions',
       'started_at',
       'ended_at',
       'points',
@@ -622,7 +627,22 @@ export async function submitTimedDailyWord(
     scoreWord,
     score: scoreResult,
   });
-  if (!result.valid) return { valid: false, reason: result.reason };
+  if (!result.valid) {
+    const attempts = appendInvalidSubmission(session.invalid_submissions, {
+      word: result.word ?? '',
+      reason: result.reason,
+      t: elapsedSeconds(session.started_at),
+      path,
+    });
+    await db
+      .updateTable('daily_results')
+      .set({ invalid_submissions: JSON.stringify(attempts) })
+      .where('user_id', '=', userId)
+      .where('date', '=', date)
+      .where('ended_at', 'is', null)
+      .execute();
+    return { valid: false, reason: result.reason };
+  }
 
   const wordTimes = appendWordTimes(
     session.word_times,

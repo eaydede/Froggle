@@ -116,6 +116,7 @@ function ChallengeResultsView({
         word: w.word,
         score: w.score,
         path: pathByWord.get(w.word.toUpperCase()) ?? [],
+        timeSeconds: w.timeSeconds ?? null,
       })),
     [me.foundWords, pathByWord],
   );
@@ -185,6 +186,7 @@ function ChallengeResultsView({
         wordCount: me.wordCount,
         foundWords: myFoundScored,
         missedWords: myMissedScored,
+        invalidSubmissions: me.invalidSubmissions,
       }}
       board={data.board}
       config={data.config}

@@ -49,6 +49,7 @@ function completion(
       userId,
       foundWords: ['CAB'],
       foundWordTimes: [5],
+      invalidSubmissions: [],
       points: 1,
       wordCount: 1,
       longestWord: 'CAB',
@@ -96,9 +97,9 @@ describe('persistRoomBoardResults', () => {
       endedAt: 61_000,
       hostUserId: 'user-1',
       participants: [
-        { userId: 'user-1', foundWords: ['CA'], foundWordTimes: [3], points: 2, wordCount: 1, longestWord: 'CA' },
-        { userId: 'user-1', foundWords: ['CAB', 'DAB'], foundWordTimes: [4, 9], points: 5, wordCount: 2, longestWord: 'CAB' },
-        { userId: 'user-2', foundWords: ['DAB'], foundWordTimes: [7], points: 3, wordCount: 1, longestWord: 'DAB' },
+        { userId: 'user-1', foundWords: ['CA'], foundWordTimes: [3], invalidSubmissions: [], points: 2, wordCount: 1, longestWord: 'CA' },
+        { userId: 'user-1', foundWords: ['CAB', 'DAB'], foundWordTimes: [4, 9], invalidSubmissions: [], points: 5, wordCount: 2, longestWord: 'CAB' },
+        { userId: 'user-2', foundWords: ['DAB'], foundWordTimes: [7], invalidSubmissions: [], points: 3, wordCount: 1, longestWord: 'DAB' },
       ],
     });
 

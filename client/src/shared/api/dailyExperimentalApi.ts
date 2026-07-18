@@ -1,4 +1,4 @@
-import type { Position } from 'models';
+import type { InvalidSubmission, Position } from 'models';
 import type {
   ExperimentalModeKey,
   ExperimentalModeState,
@@ -96,6 +96,9 @@ export interface ExperimentalResultResponse {
   board: string[][];
   state: ExperimentalModeState;
   found_words: string[];
+  /** Per-word find offsets in seconds, index-aligned to `found_words`. */
+  word_times?: (number | null)[];
+  invalid_submissions?: InvalidSubmission[];
   missed_words: ExperimentalMissedWord[];
   points: number;
   word_count: number;

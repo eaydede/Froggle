@@ -102,11 +102,18 @@ export function RoomPlay({
         : { valid: false as const, reason: 'invalid' as const };
       flashFeedback(path, local);
       if (!local.valid) {
-        if (!validator.isArmed() && !submittingRef.current) {
-          submittingRef.current = true;
-          const remote = await onSubmitWord(path);
-          submittingRef.current = false;
-          flashFeedback(path, remote);
+        if (!validator.isArmed()) {
+          // Validator not loaded yet: round-trip so the toast reflects the server.
+          if (!submittingRef.current) {
+            submittingRef.current = true;
+            const remote = await onSubmitWord(path);
+            submittingRef.current = false;
+            flashFeedback(path, remote);
+          }
+        } else {
+          // Armed: the local result already drove the toast; still record the
+          // rejected attempt server-side (fire-and-forget) for the timeline.
+          onSubmitWord(path).catch(() => {});
         }
         return;
       }

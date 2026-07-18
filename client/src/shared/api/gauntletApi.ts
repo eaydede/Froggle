@@ -1,4 +1,4 @@
-import type { Position } from 'models';
+import type { InvalidSubmission, Position } from 'models';
 import type {
   GauntletEntry,
   GauntletModifier,
@@ -155,6 +155,9 @@ export interface GauntletRoundResultResponse {
   config: { boardSize: number; timeLimit: number; minWordLength: number };
   board: string[][];
   found_words: string[];
+  /** Per-word find offsets in seconds, index-aligned to `found_words`. */
+  word_times?: (number | null)[];
+  invalid_submissions?: InvalidSubmission[];
   points: number;
   word_count: number;
   longest_word: string;
@@ -218,14 +221,14 @@ export interface GauntletCompareResponse {
     displayName: string;
     points: number;
     wordCount: number;
-    foundWords: { word: string; score: number }[];
+    foundWords: { word: string; score: number; timeSeconds?: number | null }[];
   };
   them: {
     userId: string;
     displayName: string;
     points: number;
     wordCount: number;
-    foundWords: { word: string; score: number }[];
+    foundWords: { word: string; score: number; timeSeconds?: number | null }[];
   };
 }
 

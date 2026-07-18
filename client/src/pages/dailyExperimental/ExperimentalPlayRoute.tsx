@@ -200,6 +200,8 @@ export function ExperimentalPlayRoute() {
         });
         if (!result) {
           flashFeedback(path, { valid: false, reason: 'invalid' });
+          // Record the rejected attempt server-side (fire-and-forget).
+          submitExperimentalWord(modeKey, current.date, path).catch(() => {});
           return;
         }
 
@@ -235,7 +237,11 @@ export function ExperimentalPlayRoute() {
 
       const local = validator.validate(word);
       flashFeedback(path, local);
-      if (!local.valid) return;
+      if (!local.valid) {
+        // Record the rejected attempt server-side (fire-and-forget).
+        submitExperimentalWord(modeKey, current.date, path).catch(() => {});
+        return;
+      }
 
       validator.recordSubmitted(word);
       acceptWords(current, [{ word, score: scoreWord(word) }]);

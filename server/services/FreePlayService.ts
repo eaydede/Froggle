@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import type { Kysely } from 'kysely';
-import { generateSalt, hashWord, type Position } from 'models';
+import { generateSalt, hashWord, type InvalidSubmission, type Position } from 'models';
 import { findAllWords } from 'engine/solver.js';
 import { scoreWord } from 'engine/scoring.js';
 import { generateSeededBoard } from 'engine/board.js';
@@ -13,6 +13,7 @@ import { getDailyDatePST } from './dailyConfig.js';
 import { scoreResult } from './DailyService.js';
 import { isTimedSessionExpired, timedExpiryInstant } from './sessionTiming.js';
 import { appendWordTimes, elapsedSeconds, parseWordTimes } from './wordTiming.js';
+import { appendInvalidSubmission, parseInvalidSubmissions } from './invalidSubmissions.js';
 
 // Counts challenge participants whose completions are unseen by the
 // originator. A row counts as "unseen" when it isn't the originator's
@@ -71,6 +72,7 @@ export interface FreePlaySession {
   board: string[][];
   found_words: string[];
   word_times: (number | null)[];
+  invalid_submissions: InvalidSubmission[];
   started_at: Date;
   completed_at: Date | null;
   points: number;
@@ -98,6 +100,7 @@ function parseFreePlaySession(row: {
   board: unknown;
   found_words: unknown;
   word_times: unknown;
+  invalid_submissions: unknown;
   started_at: Date;
   completed_at: Date | null;
   points: number;
@@ -118,6 +121,7 @@ function parseFreePlaySession(row: {
     board,
     found_words: foundWords,
     word_times: parseWordTimes(row.word_times),
+    invalid_submissions: parseInvalidSubmissions(row.invalid_submissions),
     started_at: row.started_at,
     completed_at: row.completed_at,
     points: row.points,
@@ -153,6 +157,7 @@ const SESSION_COLUMNS = [
   'board',
   'found_words',
   'word_times',
+  'invalid_submissions',
   'started_at',
   'completed_at',
   'points',
@@ -329,7 +334,21 @@ export async function submitFreePlayWord(
       scoreWord,
       score: scoreResult,
     });
-    if (!result.valid) return { valid: false, reason: result.reason };
+    if (!result.valid) {
+      const attempts = appendInvalidSubmission(session.invalid_submissions, {
+        word: result.word ?? '',
+        reason: result.reason,
+        t: elapsedSeconds(session.started_at),
+        path,
+      });
+      await trx
+        .updateTable('free_play_sessions')
+        .set({ invalid_submissions: JSON.stringify(attempts) })
+        .where('id', '=', session.id)
+        .where('completed_at', 'is', null)
+        .execute();
+      return { valid: false, reason: result.reason };
+    }
 
     const wordTimes = appendWordTimes(
       session.word_times,
@@ -424,8 +443,9 @@ async function getMostRecentFreePlaySession(
 // of the session row plus the dictionary.
 export function buildFreePlayResults(session: FreePlaySession): {
   board: string[][];
-  foundWords: { word: string; path: Position[]; score: number }[];
+  foundWords: { word: string; path: Position[]; score: number; timeSeconds: number | null }[];
   missedWords: { word: string; path: Position[]; score: number }[];
+  invalidSubmissions: InvalidSubmission[];
 } {
   const allWords = findAllWords(session.board, dictionary, session.min_word_length);
   const foundSet = new Set(session.found_words.map((w) => w.toUpperCase()));
@@ -437,12 +457,17 @@ export function buildFreePlayResults(session: FreePlaySession): {
   // replay rather than fabricating a path.
   const pathByWord = new Map(allWords.map((w) => [w.word, w.path]));
   const foundWords = session.found_words
-    .map((w) => {
+    .map((w, i) => {
       const upper = w.toUpperCase();
       const path = pathByWord.get(upper);
-      return path ? { word: upper, path, score: scoreWord(upper) } : null;
+      return path
+        ? { word: upper, path, score: scoreWord(upper), timeSeconds: session.word_times[i] ?? null }
+        : null;
     })
-    .filter((w): w is { word: string; path: Position[]; score: number } => w !== null);
+    .filter(
+      (w): w is { word: string; path: Position[]; score: number; timeSeconds: number | null } =>
+        w !== null,
+    );
 
   const missedWords = allWords
     .filter((w) => !foundSet.has(w.word))
@@ -451,7 +476,12 @@ export function buildFreePlayResults(session: FreePlaySession): {
   foundWords.sort((a, b) => b.score - a.score || b.word.length - a.word.length);
   missedWords.sort((a, b) => b.score - a.score || b.word.length - a.word.length);
 
-  return { board: session.board, foundWords, missedWords };
+  return {
+    board: session.board,
+    foundWords,
+    missedWords,
+    invalidSubmissions: session.invalid_submissions,
+  };
 }
 
 // ─── Multiplayer room → history bridge ────────────────────────────────────
@@ -529,6 +559,7 @@ export async function persistRoomBoardResults(
         board: boardJson,
         found_words: JSON.stringify(p.foundWords),
         word_times: JSON.stringify(p.foundWordTimes),
+        invalid_submissions: JSON.stringify(p.invalidSubmissions),
         started_at: startedAt,
         completed_at: completedAt,
         points: p.points,

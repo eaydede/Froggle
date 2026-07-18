@@ -1,4 +1,4 @@
-import type { Position } from 'models';
+import type { InvalidSubmission, Position } from 'models';
 
 export interface ScoredWord {
   word: string;
@@ -9,6 +9,11 @@ export interface ScoredWord {
    *  to flag words that picked up the multiplier; left blank for modes
    *  that don't have a per-word bonus. */
   bonus?: string | null;
+  /** Elapsed play seconds (from game start) at which this word was found.
+   *  Drives the results-page timeline. `null`/absent when the game predates
+   *  find-time capture or the source has no timing (e.g. an opponent's list
+   *  reconstructed for compare mode). */
+  timeSeconds?: number | null;
 }
 
 export interface GameResults {
@@ -19,4 +24,6 @@ export interface GameResults {
   // Used by the share button to mint a challenge link. Null for daily
   // results and when the server-side insert hadn't dispatched yet.
   freePlaySessionId?: string | null;
+  /** Rejected attempts, for the timeline activity overlay. */
+  invalidSubmissions?: InvalidSubmission[];
 }

@@ -11,6 +11,20 @@ export interface Word {
   submittedAt: number;
 }
 
+/** Why a submitted word was rejected — mirrors the engine's validation. */
+export type InvalidReason = 'invalid' | 'repeat';
+
+/** A rejected word attempt, captured for the results timeline. */
+export interface InvalidSubmission {
+  /** Derived word; empty when the drawn path wasn't a valid trace. */
+  word: string;
+  reason: InvalidReason;
+  /** Elapsed play seconds when attempted (from the session's start). */
+  t: number;
+  /** The path the player drew. */
+  path: Position[];
+}
+
 export interface Player {
   id: string;
   name: string;
