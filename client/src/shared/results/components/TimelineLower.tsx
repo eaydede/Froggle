@@ -28,6 +28,8 @@ export function TimelineLower({
     attempts,
     pointsSoFar,
     totalPoints,
+    currentTimeSeconds,
+    endSeconds,
     playMode,
     seek,
   } = replay;
@@ -71,6 +73,8 @@ export function TimelineLower({
         pointsSoFar={pointsSoFar}
         maxPoints={totalPoints}
         current={current}
+        currentTimeSeconds={currentTimeSeconds}
+        endSeconds={endSeconds}
         wordColPx={wordColPx}
       />
 

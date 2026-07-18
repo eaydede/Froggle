@@ -17,7 +17,7 @@ export function InlineWord({ current }: { current: TimelineEvent | null }) {
           <span
             className="truncate text-lg font-[family-name:var(--font-ui)] leading-none"
             style={{
-              color: current.color,
+              color: current.kind === 'miss' ? 'var(--color-invalid)' : 'var(--ink)',
               fontWeight: 800,
               textDecoration: current.kind === 'miss' ? 'line-through' : undefined,
             }}
@@ -26,7 +26,8 @@ export function InlineWord({ current }: { current: TimelineEvent | null }) {
           </span>
           {current.kind === 'find' && (
             <span
-              className="shrink-0 text-caption tabular-nums text-[color:var(--ink-soft)] font-[family-name:var(--font-structure)] leading-none [font-weight:700]"
+              className="shrink-0 text-caption tabular-nums font-[family-name:var(--font-structure)] leading-none [font-weight:800]"
+              style={{ color: current.color }}
             >
               +{current.score}
             </span>
