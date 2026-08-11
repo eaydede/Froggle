@@ -8,13 +8,13 @@ const entry: ChangelogEntry = {
   body: (
     <>
       <p>
-        A new daily on the landing page. You start with a one-minute clock,
-        and every word you find buys it more time — two seconds for each
-        point the word scores.
+        A new daily mode where the clock is the prize — every word you find
+        buys you more time!
       </p>
       <p>
-        Your result is the clock you bought, not the points behind it, so
-        the standings read in minutes and seconds.
+        You start with a minute, and each word adds two seconds for every
+        point it scores. Your result is the clock you bought, so the
+        standings count in minutes and seconds.
       </p>
     </>
   ),
