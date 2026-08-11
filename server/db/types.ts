@@ -5,7 +5,6 @@ export interface DailyResultsTable {
   user_id: string;
   date: string;
   found_words: Generated<string>; // JSON string
-  word_times: string | null; // JSON string — per-word find offsets (seconds), parallel to found_words
   board: string; // JSON string
   completed_at: Generated<Date>;
   points: Generated<number>;
@@ -23,7 +22,6 @@ export interface DailyZenResultsTable {
   user_id: string;
   date: string;
   found_words: Generated<string>;
-  word_times: string | null; // JSON string — per-word find offsets (seconds), parallel to found_words
   board: string;
   started_at: Generated<Date>;
   last_active_at: Generated<Date>;
@@ -42,7 +40,6 @@ export interface FreePlaySessionsTable {
   user_id: string | null;
   date: string;
   found_words: Generated<string>;
-  word_times: string | null; // JSON string — per-word find offsets (seconds), parallel to found_words
   board: string;
   started_at: Generated<Date>;
   completed_at: Date | null;
@@ -73,7 +70,6 @@ export interface DailyGauntletResultsTable {
   board: string; // JSON string
   modifier: string; // JSON string
   found_words: Generated<string>; // JSON string
-  word_times: string | null; // JSON string — per-word find offsets (seconds), parallel to found_words
   points: Generated<number>;
   word_count: Generated<number>;
   longest_word: Generated<string>;
@@ -85,15 +81,12 @@ export interface DailyGauntletResultsTable {
   completed_at: Date | null;
 }
 
-export interface ExperimentalResultsTable {
+export interface DailyTimeIsMoneyResultsTable {
   id: Generated<string>;
   user_id: string;
   date: string;
-  mode_key: string;
   board: string; // JSON string
-  state: Generated<string>; // JSON string — mode-specific bookkeeping
   found_words: Generated<string>; // JSON string
-  word_times: string | null; // JSON string — per-word find offsets (seconds), parallel to found_words
   points: Generated<number>;
   word_count: Generated<number>;
   longest_word: Generated<string>;
@@ -103,24 +96,13 @@ export interface ExperimentalResultsTable {
   started_at: Generated<Date>;
   ended_at: Date | null;
   completed_at: Date | null;
-}
-
-export interface ExperimentalVotesTable {
-  id: Generated<string>;
-  user_id: string;
-  date: string;
-  mode_key: string;
-  sentiment: string;
-  created_at: Generated<Date>;
-  updated_at: Generated<Date>;
 }
 
 export interface Database {
   daily_results: DailyResultsTable;
   daily_zen_results: DailyZenResultsTable;
   daily_gauntlet_results: DailyGauntletResultsTable;
+  daily_time_is_money_results: DailyTimeIsMoneyResultsTable;
   free_play_sessions: FreePlaySessionsTable;
   feedback: FeedbackTable;
-  experimental_results: ExperimentalResultsTable;
-  experimental_votes: ExperimentalVotesTable;
 }

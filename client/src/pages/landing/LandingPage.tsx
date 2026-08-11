@@ -6,9 +6,10 @@ import {
   GauntletDailyCard,
   NextDailyHeader,
   ThemeTogglePill,
+  TimeIsMoneyDailyCard,
   ZenDailyCard,
+  type TimeIsMoneyCardStatus,
 } from "./components";
-import { ExperimentalDailyCard } from "../dailyExperimental";
 import type { DailyResults } from "./types";
 import type { DailyZenSession, ProfileResponse, UpdateProfileResult } from "../../shared/api/gameApi";
 import type { GauntletEntry } from "models/gauntlet";
@@ -23,9 +24,8 @@ interface LandingPageProps {
   zenRank: number | null;
   gauntletEntry: GauntletEntry | null;
   onGauntletPlay: () => void;
-  experimentalPlayed?: number;
-  experimentalTotal?: number;
-  onExperimentalOpen: () => void;
+  timeIsMoneyStatus: TimeIsMoneyCardStatus;
+  onTimeIsMoneyPlay: () => void;
   displayName: string;
   nameProfile: ProfileResponse | null;
   onDisplayNameChange: (name: string) => Promise<UpdateProfileResult>;
@@ -54,9 +54,8 @@ export function LandingPage({
   zenRank,
   gauntletEntry,
   onGauntletPlay,
-  experimentalPlayed = 0,
-  experimentalTotal = 0,
-  onExperimentalOpen,
+  timeIsMoneyStatus,
+  onTimeIsMoneyPlay,
   displayName,
   nameProfile,
   onDisplayNameChange,
@@ -106,11 +105,7 @@ export function LandingPage({
             onSeeLeaderboard={onZenLeaderboard}
           />
           <GauntletDailyCard entry={gauntletEntry} onPlay={onGauntletPlay} />
-          <ExperimentalDailyCard
-            played={experimentalPlayed}
-            total={experimentalTotal}
-            onOpen={onExperimentalOpen}
-          />
+          <TimeIsMoneyDailyCard status={timeIsMoneyStatus} onPlay={onTimeIsMoneyPlay} />
           <FreePlayCard
             onClick={onFreePlayClick}
             onHistory={onFreePlayHistory}

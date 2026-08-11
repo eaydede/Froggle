@@ -9,9 +9,6 @@ import type { ReactNode } from 'react';
 export interface CellDecoration {
   badge?: ReactNode;
   accent?: CellAccent;
-  /** Full-cell adornment (frost + cracks for On Thin Ice's breakable tiles).
-   *  Forwarded to Cell's overlay slot. */
-  overlay?: ReactNode;
 }
 
 export type FeedbackType = 'valid' | 'invalid' | 'duplicate' | null;
@@ -214,7 +211,6 @@ export const Board = ({
                 onPointerLeave={() => setHoveredCell(null)}
                 badge={decoration?.badge}
                 accent={decoration?.accent ?? null}
-                overlay={decoration?.overlay}
               />
             );
           })}

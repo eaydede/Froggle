@@ -17,8 +17,8 @@ interface StandingsProps {
    *  daily/challenge leave it off. */
   showBars?: boolean;
   /** Format the trailing per-row value. Defaults to the raw points number.
-   *  The Time is Money experimental mode passes a formatter that turns the
-   *  points into the time survived (mm:ss), so the standings rank by time. */
+   *  Time is Money passes a formatter that turns the points into the clock
+   *  the run bought (mm:ss), so the standings read in time. */
   formatValue?: (points: number) => string;
 }
 
