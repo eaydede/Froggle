@@ -251,7 +251,7 @@ async function getUserPlayedDatesAcrossModes(
 ): Promise<Set<string>> {
   const dates = new Set<string>();
 
-  const [timed, zen, gauntlet] = await Promise.all([
+  const [timed, zen, gauntlet, timeIsMoney] = await Promise.all([
     db
       .selectFrom('daily_results')
       .select('date')
@@ -274,11 +274,22 @@ async function getUserPlayedDatesAcrossModes(
       .where('date', '>=', windowStart)
       .where('date', '<=', windowEnd)
       .execute(),
+    // Row existence, not `ended_at`, matching zen and gauntlet: the row is
+    // written when the player starts, and this set is a played-day signal
+    // rather than a completion one.
+    db
+      .selectFrom('daily_time_is_money_results')
+      .select('date')
+      .where('user_id', '=', userId)
+      .where('date', '>=', windowStart)
+      .where('date', '<=', windowEnd)
+      .execute(),
   ]);
 
   for (const row of timed) dates.add(row.date);
   for (const row of zen) dates.add(row.date);
   for (const row of gauntlet) dates.add(row.date);
+  for (const row of timeIsMoney) dates.add(row.date);
   return dates;
 }
 
