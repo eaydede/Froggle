@@ -7,6 +7,7 @@ import { GamePage } from '../game/GamePage';
 import { useFeedbackSounds, type FeedbackType } from '../game';
 import { useTimer } from '../../hooks/useTimer';
 import { useWordValidator } from '../../hooks/useWordValidator';
+import { toDeviceClock } from '../../shared/timing/serverClock';
 import { scoreWord } from '../../shared/utils/score';
 import { OverflowTimerBar } from './components/OverflowTimerBar';
 import {
@@ -158,7 +159,10 @@ export function TimeIsMoneyPlayRoute() {
     if (!session) return null;
     return {
       board: session.board,
-      startedAt: new Date(session.started_at).getTime(),
+      startedAt: toDeviceClock(
+        new Date(session.started_at).getTime(),
+        session.clock_offset_ms ?? 0,
+      ),
       status: session.ended_at ? GameState.Finished : GameState.InProgress,
       config: {
         durationSeconds: session.time_limit + session.points * TIME_IS_MONEY_SECONDS_PER_POINT,

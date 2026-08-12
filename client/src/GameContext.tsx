@@ -5,6 +5,7 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase } from './shared/supabase';
 import { useGameApi } from './hooks/useGameApi';
 import { useTimer } from './hooks/useTimer';
+import { toDeviceClock } from './shared/timing/serverClock';
 import { useWordValidator } from './hooks/useWordValidator';
 import { useFeedbackSounds } from './pages/game';
 import type { FeedbackType } from './pages/game';
@@ -724,7 +725,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (!cachedDailyTimedSession) return null;
     return {
       board: cachedDailyTimedSession.board,
-      startedAt: new Date(cachedDailyTimedSession.started_at).getTime(),
+      startedAt: toDeviceClock(
+        new Date(cachedDailyTimedSession.started_at).getTime(),
+        cachedDailyTimedSession.clock_offset_ms ?? 0,
+      ),
       status: cachedDailyTimedSession.ended_at ? GameState.Finished : GameState.InProgress,
       config: {
         durationSeconds: cachedDailyTimedSession.time_limit,

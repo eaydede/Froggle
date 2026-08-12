@@ -169,6 +169,7 @@ dailyGauntletRouter.get('/:date/round/:round', requireAuth, async (req, res) => 
         total_findable: totalFindable,
         salt,
         wordHashes,
+        server_now: Date.now(),
       },
     });
   } catch (err) {
@@ -201,7 +202,7 @@ dailyGauntletRouter.post('/:date/round/:round/start', requireAuth, async (req, r
     );
     noStore(res);
     res.json({
-      session: { ...result, total_findable: totalFindable, salt, wordHashes },
+      session: { ...result, total_findable: totalFindable, salt, wordHashes, server_now: Date.now() },
     });
   } catch (err) {
     console.error('Failed to start gauntlet round:', err);

@@ -91,6 +91,7 @@ dailyTimeIsMoneyRouter.get('/session/:date', requireAuth, async (req, res) => {
       session: {
         ...session,
         ...solveBoard(req.params.date, session.board, session.min_word_length),
+        server_now: Date.now(),
       },
     });
   } catch (err) {
@@ -108,7 +109,7 @@ dailyTimeIsMoneyRouter.post('/session/:date/start', requireAuth, async (req, res
     const session = await startTimeIsMoneySession(getDb(), req.userId!, date);
     noStore(res);
     res.json({
-      session: { ...session, ...solveBoard(date, session.board, session.min_word_length) },
+      session: { ...session, ...solveBoard(date, session.board, session.min_word_length), server_now: Date.now() },
     });
   } catch (err) {
     console.error('Failed to start Time is Money session:', err);

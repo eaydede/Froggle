@@ -1,5 +1,6 @@
 import type { Position } from 'models';
 import { supabase } from '../supabase';
+import { sampleClockOffset } from '../timing/serverClock';
 
 const BASE = '/api/daily/time-is-money';
 
@@ -34,6 +35,11 @@ export interface TimeIsMoneySession {
   time_limit: number;
   salt: string;
   wordHashes: string[];
+  /** Server clock at response time; paired with the local clock to correct
+   *  timer math for a skewed device clock. */
+  server_now?: number;
+  /** server − device clock offset, sampled by the client on receipt. */
+  clock_offset_ms?: number;
 }
 
 export interface TimeIsMoneyMissedWord {
@@ -79,7 +85,9 @@ export async function fetchTimeIsMoneySession(
   const res = await fetch(`${BASE}/session/${date}`, { headers: await authHeaders() });
   if (!res.ok) return null;
   const data = await res.json();
-  return data.session ?? null;
+  const session: TimeIsMoneySession | null = data.session ?? null;
+  if (session) session.clock_offset_ms = sampleClockOffset(session.server_now);
+  return session;
 }
 
 export async function startTimeIsMoneySession(
@@ -91,7 +99,9 @@ export async function startTimeIsMoneySession(
   });
   if (!res.ok) return null;
   const data = await res.json();
-  return data.session ?? null;
+  const session: TimeIsMoneySession | null = data.session ?? null;
+  if (session) session.clock_offset_ms = sampleClockOffset(session.server_now);
+  return session;
 }
 
 export async function submitTimeIsMoneyWord(
