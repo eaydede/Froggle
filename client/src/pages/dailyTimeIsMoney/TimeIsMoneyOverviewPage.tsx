@@ -1,11 +1,10 @@
-import type { ExperimentalModeMeta } from 'models/experimental';
+import { TIME_IS_MONEY_CONFIG } from 'models/timeIsMoney';
 import { InkButton } from '../../shared/components/InkButton';
 import { BackButton, ConfigCard } from '../dailyGauntlet/components';
 
-interface ExperimentalOverviewPageProps {
+interface TimeIsMoneyOverviewPageProps {
   dateLabel: string;
   puzzleNumber: number;
-  meta: ExperimentalModeMeta;
   state: 'unplayed' | 'in-progress' | 'completed';
   onStart: () => void;
   onResume: () => void;
@@ -13,20 +12,18 @@ interface ExperimentalOverviewPageProps {
   onBack: () => void;
 }
 
-// Start-gate screen for one experimental mode. Deliberately terse — matches
-// the density of the gauntlet confirm page (title + single-sentence rule +
-// config + start), not a tutorial. The mode's twist is a one-liner from the
-// registry; everything else is discovered in play.
-export function ExperimentalOverviewPage({
+// Start gate for Time is Money. Deliberately terse — matches the density of
+// the gauntlet confirm page (title + single-sentence rule + config + start),
+// not a tutorial. The twist is a one-liner; the rest is discovered in play.
+export function TimeIsMoneyOverviewPage({
   dateLabel,
   puzzleNumber,
-  meta,
   state,
   onStart,
   onResume,
   onSeeResults,
   onBack,
-}: ExperimentalOverviewPageProps) {
+}: TimeIsMoneyOverviewPageProps) {
   return (
     <div className="fixed inset-0 flex items-start justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] overflow-y-auto">
       <div className="w-full max-w-[360px] min-h-full flex flex-col px-[22px] pt-[24px] pb-[22px]">
@@ -40,33 +37,33 @@ export function ExperimentalOverviewPage({
               className="text-caption uppercase tracking-[0.08em] text-[color:var(--ink-soft)] leading-none mb-3 font-[family-name:var(--font-structure)]"
               style={{ fontWeight: 700 }}
             >
-              {dateLabel} · Experimental #{puzzleNumber}
+              {dateLabel} · Time is Money #{puzzleNumber}
             </div>
             <div
               className="text-display-sm italic leading-[1.1] tracking-[-0.015em] font-[family-name:var(--font-display)]"
               style={{ fontWeight: 500 }}
             >
-              {meta.name}
+              Time is Money
             </div>
             <div
               className="mt-1 text-caption uppercase tracking-[0.08em] text-[color:var(--ink-soft)] font-[family-name:var(--font-structure)]"
               style={{ fontWeight: 700 }}
             >
-              {meta.tagline}
+              Every word buys you more time.
             </div>
           </div>
 
-          <RuleCard rule={meta.rule} />
+          <RuleCard rule="Each word adds two seconds to the clock for every point it scores." />
 
           <ConfigCard
-            boardSize={meta.boardSize}
-            timeLimit={meta.timeLimit}
-            minWordLength={meta.minWordLength}
+            boardSize={TIME_IS_MONEY_CONFIG.boardSize}
+            timeLimit={TIME_IS_MONEY_CONFIG.timeLimit}
+            minWordLength={TIME_IS_MONEY_CONFIG.minWordLength}
           />
 
           <p className="text-small text-[color:var(--ink-muted)] text-center leading-[1.5]">
             {state === 'completed'
-              ? "You've already finished this one."
+              ? "You've already finished today's run."
               : 'One attempt. The timer starts when you tap start.'}
           </p>
 
@@ -86,9 +83,8 @@ export function ExperimentalOverviewPage({
 }
 
 // The single-sentence rule card. Mirrors the gauntlet's ModifierCard shape so
-// the two feel like the same style of start gate; the "Rule" header replaces
-// the gauntlet's "Scoring rule" since experimental twists aren't always about
-// scoring per se (e.g. Time is Money changes the clock).
+// the two feel like the same style of start gate; the header reads "Rule"
+// rather than "Scoring rule" because this twist is about the clock.
 function RuleCard({ rule }: { rule: string }) {
   return (
     <div className="rounded-2xl bg-[var(--surface-card)] border border-[var(--ink-border-subtle)] shadow-[var(--shadow-card)] px-4 py-4">

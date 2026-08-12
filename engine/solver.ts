@@ -9,8 +9,8 @@ export interface FoundWord {
 // (~1M string inserts for the standard ~170k-word list), so building it once
 // per dictionary instance and reusing it saves that cost on every subsequent
 // solve. Keyed by the dictionary Set itself — WeakMap lets the cache release
-// automatically if a dictionary is ever swapped out. This is the single
-// biggest cost inside the Golden Ticket solve, which runs findAllWords 26x.
+// automatically if a dictionary is ever swapped out. Rebuilding it per call
+// dominated the cost of every solve.
 const prefixCache = new WeakMap<Set<string>, Set<string>>();
 
 function getPrefixes(dictionary: Set<string>): Set<string> {

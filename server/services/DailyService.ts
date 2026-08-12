@@ -6,7 +6,6 @@ import type { Database } from '../db/types.js';
 import { dictionary } from './dictionary.js';
 import { getDailyConfig, type DailyConfig } from './dailyConfig.js';
 import { isTimedSessionExpired, timedExpiryInstant } from './sessionTiming.js';
-import { appendWordTimes, elapsedSeconds, parseWordTimes } from './wordTiming.js';
 
 export interface ScoredResult {
   points: number;
@@ -252,7 +251,7 @@ async function getUserPlayedDatesAcrossModes(
 ): Promise<Set<string>> {
   const dates = new Set<string>();
 
-  const [timed, zen, gauntlet] = await Promise.all([
+  const [timed, zen, gauntlet, timeIsMoney] = await Promise.all([
     db
       .selectFrom('daily_results')
       .select('date')
@@ -275,11 +274,22 @@ async function getUserPlayedDatesAcrossModes(
       .where('date', '>=', windowStart)
       .where('date', '<=', windowEnd)
       .execute(),
+    // Row existence, not `ended_at`, matching zen and gauntlet: the row is
+    // written when the player starts, and this set is a played-day signal
+    // rather than a completion one.
+    db
+      .selectFrom('daily_time_is_money_results')
+      .select('date')
+      .where('user_id', '=', userId)
+      .where('date', '>=', windowStart)
+      .where('date', '<=', windowEnd)
+      .execute(),
   ]);
 
   for (const row of timed) dates.add(row.date);
   for (const row of zen) dates.add(row.date);
   for (const row of gauntlet) dates.add(row.date);
+  for (const row of timeIsMoney) dates.add(row.date);
   return dates;
 }
 
@@ -460,7 +470,6 @@ export interface TimedDailySession {
   date: string;
   board: string[][];
   found_words: string[];
-  word_times: (number | null)[];
   started_at: Date;
   ended_at: Date | null;
   points: number;
@@ -484,7 +493,6 @@ function parseTimedSession(row: {
   date: string;
   board: unknown;
   found_words: unknown;
-  word_times: unknown;
   started_at: Date;
   ended_at: Date | null;
   points: number;
@@ -500,7 +508,6 @@ function parseTimedSession(row: {
     date: row.date,
     board,
     found_words: foundWords,
-    word_times: parseWordTimes(row.word_times),
     started_at: row.started_at,
     ended_at: row.ended_at,
     points: row.points,
@@ -555,7 +562,6 @@ export async function getTimedDailySession(
       'date',
       'board',
       'found_words',
-      'word_times',
       'started_at',
       'ended_at',
       'points',
@@ -624,18 +630,10 @@ export async function submitTimedDailyWord(
   });
   if (!result.valid) return { valid: false, reason: result.reason };
 
-  const wordTimes = appendWordTimes(
-    session.word_times,
-    session.found_words.length,
-    result.nextWords.length - session.found_words.length,
-    elapsedSeconds(session.started_at),
-  );
-
   await db
     .updateTable('daily_results')
     .set({
       found_words: JSON.stringify(result.nextWords),
-      word_times: JSON.stringify(wordTimes),
       points: result.aggregate.points,
       word_count: result.aggregate.wordCount,
       longest_word: result.aggregate.longestWord,
