@@ -1,4 +1,4 @@
-import { formatClock } from '../experimentalUtils';
+import { formatClock } from '../timeIsMoneyUtils';
 
 // Solo hero for Time is Money: the headline stat is the total time played
 // (base clock + banked seconds), with points/words as the supporting line.

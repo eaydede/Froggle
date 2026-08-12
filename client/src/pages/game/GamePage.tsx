@@ -1,5 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
-import type { ReactNode } from 'react';
+import { useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { Game, Position, Word } from 'models';
 import { Board, FeedbackType, computeFeedbackColors, type CellDecoration } from './components/Board';
 import { TimerBar } from './components/TimerBar';
@@ -44,16 +43,10 @@ interface GamePageProps {
    *  Board; used by gauntlet rounds to render Scrabble-style point values
    *  and flag the hot letter. */
   cellDecorations?: (row: number, col: number, letter: string) => CellDecoration | null;
-  /** Override for the default countdown bar. When set, replaces the plain
-   *  TimerBar — the Time is Money experimental mode uses this to render its
-   *  growing, multi-layer overflow bar. The numeric readout still comes from
-   *  `timeRemaining`. */
+  /** Override for the default countdown bar. Time is Money uses this to render
+   *  its growing, multi-layer overflow bar. The numeric readout still comes
+   *  from `timeRemaining`. */
   timerBar?: ReactNode;
-  /** Override for the current-word slot between the timer and the board. When
-   *  set, replaces the built-in word display for the duration it is rendered.
-   *  Golden Ticket uses this to show its reveal (the completed words + running
-   *  total) in the same visual slot without shifting the board. */
-  wordDisplayOverride?: ReactNode;
 }
 
 function formatTimer(seconds: number): string {
@@ -63,7 +56,7 @@ function formatTimer(seconds: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGame, muted, onToggleMute, dailyNumber, modeLabel: modeLabelOverride, cellDecorations, timerBar, wordDisplayOverride }: GamePageProps) => {
+export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGame, muted, onToggleMute, dailyNumber, modeLabel: modeLabelOverride, cellDecorations, timerBar }: GamePageProps) => {
   const boardSize = game.board.length;
   const [displayWord, setDisplayWord] = useState('');
   const [wordFeedback, setWordFeedback] = useState<FeedbackType>(null);
@@ -148,45 +141,39 @@ export const GamePage = ({ game, timeRemaining, feedback, onSubmitWord, onEndGam
         </button>
       </div>
 
-      {/* Current word display — fixed height so board doesn't shift. When the
-          caller provides a wordDisplayOverride (Golden Ticket reveal), it takes
-          this slot; the built-in banner is hidden underneath. */}
-      <div className="h-9 flex items-center justify-center my-2 relative">
-        {wordDisplayOverride ?? (
-          <div
-            className={`flex items-center justify-center tracking-wider transition-opacity duration-300 ${isFading ? 'opacity-0' : 'opacity-100'}`}
+      {/* Current word display — fixed height so board doesn't shift */}
+      <div
+        className={`h-9 flex items-center justify-center tracking-wider transition-opacity duration-300 my-2 ${isFading ? 'opacity-0' : 'opacity-100'}`}
+        style={{
+          color: getWordColor(),
+          animation: getWordAnimation(),
+          fontFamily: 'var(--font-cell)',
+          fontWeight: 800,
+          fontSize: '1.4rem',
+        }}
+      >
+        {wordFeedback === 'valid' && BOARD_STYLE.validAnim === 3
+          ? displayWord.toUpperCase().split('').map((letter, i) => (
+              <span key={i} className="inline-block" style={{ animation: 'letter-wave 0.4s ease both', animationDelay: `${i * 0.04}s` }}>
+                {letter}
+              </span>
+            ))
+          : displayWord.toUpperCase()
+        }
+        {wordFeedback === 'valid' && wordBonus && (
+          <span
+            className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs tabular-nums"
             style={{
-              color: getWordColor(),
-              animation: getWordAnimation(),
-              fontFamily: 'var(--font-cell)',
+              backgroundColor: 'var(--hot-letter-bg)',
+              color: 'var(--hot-letter-fg)',
+              boxShadow: '0 1px 4px var(--hot-letter-glow)',
               fontWeight: 800,
-              fontSize: '1.4rem',
+              animation: 'word-pulse 0.4s ease',
             }}
           >
-            {wordFeedback === 'valid' && BOARD_STYLE.validAnim === 3
-              ? displayWord.toUpperCase().split('').map((letter, i) => (
-                  <span key={i} className="inline-block" style={{ animation: 'letter-wave 0.4s ease both', animationDelay: `${i * 0.04}s` }}>
-                    {letter}
-                  </span>
-                ))
-              : displayWord.toUpperCase()
-            }
-            {wordFeedback === 'valid' && wordBonus && (
-              <span
-                className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs tabular-nums"
-                style={{
-                  backgroundColor: 'var(--hot-letter-bg)',
-                  color: 'var(--hot-letter-fg)',
-                  boxShadow: '0 1px 4px var(--hot-letter-glow)',
-                  fontWeight: 800,
-                  animation: 'word-pulse 0.4s ease',
-                }}
-              >
-                <span aria-hidden>✦</span>
-                {wordBonus}
-              </span>
-            )}
-          </div>
+            <span aria-hidden>✦</span>
+            {wordBonus}
+          </span>
         )}
       </div>
 

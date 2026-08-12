@@ -23,7 +23,6 @@ import type {
 } from 'models/multiplayer';
 import { dictionary } from '../services/dictionary.js';
 import { scoreResult } from '../services/DailyService.js';
-import { elapsedSeconds } from '../services/wordTiming.js';
 
 const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/1/I/O ambiguity
 const ROOM_CODE_LENGTH = 5;
@@ -158,7 +157,6 @@ export interface RoomBoardCompletion {
   participants: Array<{
     userId: string;
     foundWords: string[];
-    foundWordTimes: number[];
     points: number;
     wordCount: number;
     longestWord: string;
@@ -212,7 +210,6 @@ function buildCompletion(entry: RoomEntry, board: MultiplayerBoard): RoomBoardCo
     participants.push({
       userId,
       foundWords: [...player.foundWords],
-      foundWordTimes: [...player.foundWordTimes],
       points: player.points,
       wordCount: player.wordCount,
       longestWord: longestOf(player.foundWords),
@@ -432,7 +429,6 @@ export function joinRoom(
     points: 0,
     wordCount: 0,
     foundWords: [],
-    foundWordTimes: [],
     connected: true,
     left: false,
   };
@@ -630,7 +626,6 @@ export function startBoard(
     player.points = 0;
     player.wordCount = 0;
     player.foundWords = [];
-    player.foundWordTimes = [];
     player.status = player.connected ? 'playing' : 'lobby';
     if (player.status === 'playing') board.participantIds.push(player.id);
   }
@@ -927,7 +922,6 @@ export function submitWord(
   }
 
   player.foundWords.push(result.word);
-  player.foundWordTimes.push(elapsedSeconds(new Date(board.startedAt)));
   player.points = result.aggregate.points;
   player.wordCount = result.aggregate.wordCount;
   touch(entry);

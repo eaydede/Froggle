@@ -16,11 +16,10 @@ import {
   GauntletResultsRoute,
 } from './pages/dailyGauntlet';
 import {
-  ExperimentalHubRoute,
-  ExperimentalOverviewRoute,
-  ExperimentalPlayRoute,
-  ExperimentalResultsRoute,
-} from './pages/dailyExperimental';
+  TimeIsMoneyOverviewRoute,
+  TimeIsMoneyPlayRoute,
+  TimeIsMoneyResultsRoute,
+} from './pages/dailyTimeIsMoney';
 import { HistoryRoute, HistoricResultsRoute } from './pages/history';
 import { ChallengeRoute } from './pages/challenge';
 import { MultiplayerRoomRoute } from './pages/multiplayer';
@@ -99,10 +98,9 @@ function App() {
         <Route path="/daily/gauntlet/round/:round" element={<GauntletConfirmRoute />} />
         <Route path="/daily/gauntlet/round/:round/play" element={<GauntletPlayRoute />} />
         <Route path="/daily/gauntlet/round/:round/results" element={<GauntletRoundResultsRoute />} />
-        <Route path="/daily/experimental" element={<ExperimentalHubRoute />} />
-        <Route path="/daily/experimental/:mode" element={<ExperimentalOverviewRoute />} />
-        <Route path="/daily/experimental/:mode/play" element={<ExperimentalPlayRoute />} />
-        <Route path="/daily/experimental/:mode/results" element={<ExperimentalResultsRoute />} />
+        <Route path="/daily/time-is-money" element={<TimeIsMoneyOverviewRoute />} />
+        <Route path="/daily/time-is-money/play" element={<TimeIsMoneyPlayRoute />} />
+        <Route path="/daily/time-is-money/results" element={<TimeIsMoneyResultsRoute />} />
         <Route path="/history" element={<HistoryRoute />} />
         <Route path="/freeplay/results/:id" element={<HistoricResultsRoute />} />
         <Route path="/freeplay/challenge/:id" element={<ChallengeRoute />} />

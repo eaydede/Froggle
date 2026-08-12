@@ -57,7 +57,14 @@ function InContextWrapper({ completed }: { completed: boolean }) {
         zenRank={null}
         gauntletEntry={null}
         onGauntletPlay={() => {}}
-        onExperimentalOpen={() => {}}
+        timeIsMoneyStatus={{
+          state: 'unplayed',
+          points: null,
+          wordCount: null,
+          rank: null,
+          timeLimit: null,
+        }}
+        onTimeIsMoneyPlay={() => {}}
         displayName={name}
         nameProfile={null}
         onDisplayNameChange={async (n) => {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useGame } from '../../GameContext';
 import { LandingPage } from './LandingPage';
+import type { TimeIsMoneyCardStatus } from './components';
 import {
   fetchDaily,
   fetchDailyStats,
@@ -11,7 +12,7 @@ import {
   type DailyStatsResponse,
 } from '../../shared/api/gameApi';
 import { fetchGauntletStatus } from '../../shared/api/gauntletApi';
-import { fetchExperimentalStatus } from '../../shared/api/dailyExperimentalApi';
+import { fetchTimeIsMoneyStatus } from '../../shared/api/timeIsMoneyApi';
 import { createMultiplayerRoom, fetchPublicRooms } from '../../shared/api/multiplayerApi';
 import type { GauntletEntry } from 'models/gauntlet';
 import { scoreWord } from '../../shared/utils/score';
@@ -50,9 +51,12 @@ export function LandingRoute() {
   const [freePlayUnread, setFreePlayUnread] = useState(0);
   const [publicPlaying, setPublicPlaying] = useState(0);
   const [gauntletEntry, setGauntletEntry] = useState<GauntletEntry | null>(null);
-  const [experimentalSummary, setExperimentalSummary] = useState<{ played: number; total: number }>({
-    played: 0,
-    total: 0,
+  const [timeIsMoneyStatus, setTimeIsMoneyStatus] = useState<TimeIsMoneyCardStatus>({
+    state: 'unplayed',
+    points: null,
+    wordCount: null,
+    rank: null,
+    timeLimit: null,
   });
 
   // Dev-only fixture injection — `?mock=unplayed|completed|partial` renders
@@ -116,14 +120,12 @@ export function LandingRoute() {
   useEffect(() => {
     if (!authReady) return;
     let cancelled = false;
-    fetchExperimentalStatus()
-      .then((s) => {
-        if (cancelled) return;
-        const played = s.modes.filter((m) => m.state === 'completed').length;
-        setExperimentalSummary({ played, total: s.modes.length });
+    fetchTimeIsMoneyStatus()
+      .then(({ state, points, wordCount, rank, timeLimit }) => {
+        if (!cancelled) setTimeIsMoneyStatus({ state, points, wordCount, rank, timeLimit });
       })
       .catch(() => {
-        // Non-fatal: the card falls back to the generic nudge.
+        // Non-fatal: the card falls back to the unplayed nudge.
       });
     return () => {
       cancelled = true;
@@ -223,7 +225,7 @@ export function LandingRoute() {
 
   const handleGauntletPlay = () => navigate('/daily/gauntlet');
 
-  const handleExperimentalOpen = () => navigate('/daily/experimental');
+  const handleTimeIsMoneyPlay = () => navigate('/daily/time-is-money');
 
   const handleZenPlay = () => navigate('/daily/zen/play');
   const handleZenResume = () => navigate('/daily/zen/play');
@@ -248,7 +250,14 @@ export function LandingRoute() {
         zenRank={null}
         gauntletEntry={null}
         onGauntletPlay={() => {}}
-        onExperimentalOpen={() => {}}
+        timeIsMoneyStatus={{
+          state: 'unplayed',
+          points: null,
+          wordCount: null,
+          rank: null,
+          timeLimit: null,
+        }}
+        onTimeIsMoneyPlay={() => {}}
         displayName={mockFixture.displayName}
         nameProfile={null}
         onDisplayNameChange={async () => ({ ok: true as const, profile: {
@@ -311,9 +320,8 @@ export function LandingRoute() {
       zenRank={zenRank}
       gauntletEntry={gauntletEntry}
       onGauntletPlay={handleGauntletPlay}
-      experimentalPlayed={experimentalSummary.played}
-      experimentalTotal={experimentalSummary.total}
-      onExperimentalOpen={handleExperimentalOpen}
+      timeIsMoneyStatus={timeIsMoneyStatus}
+      onTimeIsMoneyPlay={handleTimeIsMoneyPlay}
       displayName={displayName}
       nameProfile={nameProfile}
       onDisplayNameChange={updateDisplayName}
