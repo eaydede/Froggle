@@ -66,7 +66,16 @@ export function TimeIsMoneyResultsRoute() {
             score: scoreWord(word),
             path: findWordPath(activeResult.board, word) ?? [],
           })),
-          { daily: { number: activeResult.number, mode: 'time-is-money' } },
+          {
+            daily: {
+              number: activeResult.number,
+              mode: 'time-is-money',
+              clockSeconds: timeSurvivedSeconds(
+                activeResult.config.timeLimit,
+                activeResult.points,
+              ),
+            },
+          },
         )
       : '',
   );

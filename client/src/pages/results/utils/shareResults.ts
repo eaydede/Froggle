@@ -21,7 +21,13 @@ const SCORE_TIERS: ScoreTier[] = [
 ];
 
 export interface ShareOptions {
-  daily?: { number: number; mode?: 'timed' | 'zen' | 'time-is-money' };
+  daily?: {
+    number: number;
+    mode?: 'timed' | 'zen' | 'time-is-money';
+    /** Total clock a run was worth, in seconds. Set by modes scored in time
+     *  rather than points — the headline becomes mm:ss instead of W/pts. */
+    clockSeconds?: number;
+  };
   gameLink?: string;
 }
 
@@ -34,6 +40,11 @@ const DAILY_MODE_PATH: Record<string, string> = {
   zen: '/daily/zen/play',
   'time-is-money': '/daily/time-is-money',
 };
+
+function formatClock(seconds: number): string {
+  const clamped = Math.max(0, Math.floor(seconds));
+  return `${Math.floor(clamped / 60)}:${String(clamped % 60).padStart(2, '0')}`;
+}
 
 function numberToEmojis(n: number): string {
   return String(n)
@@ -58,9 +69,17 @@ export function generateShareText(foundWords: ScoredWord[], options: ShareOption
   const lines: string[] = [];
 
   if (isDaily) {
-    const tag = DAILY_MODE_TAG[options.daily!.mode ?? 'timed'] ?? '';
-    const prefix = tag ? `Froggle ${tag} #${options.daily!.number}` : `Froggle #${options.daily!.number}`;
-    lines.push(`${prefix} ${totalWords}W ${totalPoints}pts`);
+    const daily = options.daily!;
+    const tag = DAILY_MODE_TAG[daily.mode ?? 'timed'] ?? '';
+    const prefix = tag ? `Froggle ${tag} #${daily.number}` : `Froggle #${daily.number}`;
+    // A mode scored in time headlines the clock it bought, mirroring its
+    // results hero. The rarity squares below still carry the word detail, so
+    // nothing is lost by dropping W/pts from this line.
+    lines.push(
+      daily.clockSeconds !== undefined
+        ? `${prefix} ${formatClock(daily.clockSeconds)} played`
+        : `${prefix} ${totalWords}W ${totalPoints}pts`,
+    );
   } else {
     lines.push(`Froggle ${totalWords}W ${totalPoints}pts`);
   }
