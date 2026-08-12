@@ -80,6 +80,41 @@ describe('generateShareText', () => {
     expect(zen).toContain('http://daily.test/daily/zen/play');
   });
 
+  it('headlines the clock for a time-scored daily, not words and points', () => {
+    vi.stubGlobal('window', { location: { origin: 'http://daily.test' } });
+
+    const words = [word('CARTOONS', 13)];
+    const out = generateShareText(words, {
+      daily: { number: 43, mode: 'time-is-money', clockSeconds: 86 },
+    });
+
+    expect(out).toContain('Froggle Time is Money #43 1:26 played');
+    expect(out).not.toContain('1W 13pts');
+    expect(out).toContain('http://daily.test/daily/time-is-money');
+    // The rarity squares still carry the word detail.
+    expect(out).toContain('🟧');
+  });
+
+  it('falls back to words and points when a daily has no clock', () => {
+    vi.stubGlobal('window', { location: { origin: 'http://daily.test' } });
+
+    const out = generateShareText([word('CARTOONS', 13)], {
+      daily: { number: 43, mode: 'time-is-money' },
+    });
+
+    expect(out).toContain('Froggle Time is Money #43 1W 13pts');
+  });
+
+  it('pads the clock seconds to two digits', () => {
+    vi.stubGlobal('window', { location: { origin: 'http://daily.test' } });
+
+    const out = generateShareText([word('CAT', 1)], {
+      daily: { number: 1, mode: 'time-is-money', clockSeconds: 65 },
+    });
+
+    expect(out).toContain('#1 1:05 played');
+  });
+
   it('omits the longest-word line when there are no words', () => {
     const out = generateShareText([], { gameLink: 'http://x.test/g' });
     const lines = out.split('\n');

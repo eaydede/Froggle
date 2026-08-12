@@ -7,6 +7,8 @@ import { ActionButton } from '../../shared/results/components/ActionButton';
 import { findWordPath } from '../../shared/utils/findWordPath';
 import { scoreWord } from '../../shared/utils/score';
 import type { ResultsRosterEntry } from '../../shared/results/types';
+import { useShareText } from '../results/hooks/useShareText';
+import { generateShareText } from '../results/utils/shareResults';
 import { TimeSurvivedHero } from './components/TimeSurvivedHero';
 import { formatClock } from './timeIsMoneyUtils';
 import { TIME_IS_MONEY_RESULT_FIXTURES } from './__fixtures__';
@@ -53,6 +55,30 @@ export function TimeIsMoneyResultsRoute() {
   }, [mockKey, loaded, result, navigate]);
 
   const activeResult = mockKey ? TIME_IS_MONEY_RESULT_FIXTURES[mockKey] ?? null : result;
+
+  // Declared before the loading early-return so the hook order stays stable.
+  // The text is built at click time, by which point activeResult is set.
+  const { copied, share } = useShareText(() =>
+    activeResult
+      ? generateShareText(
+          activeResult.found_words.map((word) => ({
+            word,
+            score: scoreWord(word),
+            path: findWordPath(activeResult.board, word) ?? [],
+          })),
+          {
+            daily: {
+              number: activeResult.number,
+              mode: 'time-is-money',
+              clockSeconds: timeSurvivedSeconds(
+                activeResult.config.timeLimit,
+                activeResult.points,
+              ),
+            },
+          },
+        )
+      : '',
+  );
 
   if ((!mockKey && !loaded) || !activeResult) {
     return (
@@ -116,18 +142,58 @@ export function TimeIsMoneyResultsRoute() {
       }
       topbarLabel="Time is Money"
       topbarOnClose={() => navigate('/')}
-      bottomActions={
-        <ActionButton
-          onClick={() => navigate('/')}
-          label="Back"
-          primary
-          icon={
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-          }
-        />
-      }
+      topbarOnShare={share}
+      topbarShareCopied={copied}
+      bottomActions={<TimeIsMoneyBottomActions onHome={() => navigate('/')} onShare={share} copied={copied} />}
     />
+  );
+}
+
+// Bottom action pair, same shape as the timed and zen dailies: secondary on
+// the left to leave, primary on the right for the forward action. Those two
+// put their per-mode leaderboard on the right; Time is Money has no separate
+// leaderboard page — the day's standings are already on this screen — so
+// Share takes the primary slot.
+function TimeIsMoneyBottomActions({
+  onHome,
+  onShare,
+  copied,
+}: {
+  onHome: () => void;
+  onShare: () => void;
+  copied: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <ActionButton
+        onClick={onHome}
+        label="Home"
+        icon={
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 11l9-8 9 8" />
+            <path d="M5 10v10h14V10" />
+            <path d="M9 20v-6h6v6" />
+          </svg>
+        }
+      />
+      <ActionButton
+        onClick={onShare}
+        label={copied ? 'Copied' : 'Share'}
+        primary
+        icon={
+          copied ? (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          ) : (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+              <polyline points="16 6 12 2 8 6" />
+              <line x1="12" y1="2" x2="12" y2="15" />
+            </svg>
+          )
+        }
+      />
+    </div>
   );
 }
