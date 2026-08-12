@@ -7,6 +7,7 @@ import { GamePage } from '../game/GamePage';
 import { useFeedbackSounds, type FeedbackType } from '../game';
 import { useTimer } from '../../hooks/useTimer';
 import { useWordValidator } from '../../hooks/useWordValidator';
+import { toDeviceClock } from '../../shared/timing/serverClock';
 import { scoreGauntletWord } from '../../shared/utils/gauntletScore';
 import { roundTitle } from './modifierDisplay';
 import type { CellDecoration } from '../game/components/Board';
@@ -185,7 +186,10 @@ export function GauntletPlayRoute() {
     if (!session) return null;
     return {
       board: session.board,
-      startedAt: new Date(session.startedAt).getTime(),
+      startedAt: toDeviceClock(
+        new Date(session.startedAt).getTime(),
+        session.clock_offset_ms ?? 0,
+      ),
       status: session.endedAt ? GameState.Finished : GameState.InProgress,
       config: {
         durationSeconds: session.config.timeLimit,

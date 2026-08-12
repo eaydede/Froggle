@@ -1,8 +1,17 @@
 import { Position, Game, Word } from 'models';
 import type { GameResults } from '../types';
 import { supabase } from '../supabase';
+import { sampleClockOffset, toDeviceClock } from '../timing/serverClock';
 
 const API_URL = '/api';
+
+// Rebase a server-stamped game start into device-clock terms so the client
+// countdown is immune to a wrong device clock (see shared/timing/serverClock).
+// Config-state games carry startedAt 0 and no timer, so they're left alone.
+function rebaseGameStart(game: Game, serverNow: number | undefined): Game {
+  if (game.startedAt <= 0) return game;
+  return { ...game, startedAt: toDeviceClock(game.startedAt, sampleClockOffset(serverNow)) };
+}
 
 let sessionId: string | null = null;
 const inFlightGets = new Map<string, Promise<unknown>>();
@@ -87,7 +96,8 @@ export const startGame = async (
     headers: await sessionHeaders(),
     body: JSON.stringify({ durationSeconds, boardSize, minWordLength, board: predefinedBoard, seed, challengeId, isDaily }),
   });
-  return response.json();
+  const data = await response.json();
+  return { ...data, game: rebaseGameStart(data.game, data.server_now) };
 };
 
 export const cancelGame = async (): Promise<{ success: boolean }> => {
@@ -128,7 +138,8 @@ export const fetchGameState = async (): Promise<{
   const response = await fetch(`${API_URL}/game/state`, {
     headers: await sessionHeaders(),
   });
-  return response.json();
+  const data = await response.json();
+  return { ...data, game: data.game ? rebaseGameStart(data.game, data.server_now) : null };
 };
 
 export interface ActiveFreePlaySession {
@@ -151,7 +162,9 @@ export const fetchActiveFreePlaySession = async (): Promise<ActiveFreePlaySessio
   });
   if (!response.ok) return null;
   const data = await response.json();
-  return data.session ?? null;
+  const session: ActiveFreePlaySession | null = data.session ?? null;
+  if (session) session.game = rebaseGameStart(session.game, data.server_now);
+  return session;
 };
 
 export const fetchResults = async (): Promise<GameResults> => {
@@ -261,6 +274,11 @@ export interface DailyTimedSession {
   total_findable: number;
   salt: string;
   wordHashes: string[];
+  /** Server clock at response time; paired with the local clock to correct
+   *  timer math for a skewed device clock. */
+  server_now?: number;
+  /** server − device clock offset, sampled by the client on receipt. */
+  clock_offset_ms?: number;
 }
 
 export const fetchDailyTimedSession = async (
@@ -271,7 +289,9 @@ export const fetchDailyTimedSession = async (
   });
   if (!response.ok) return null;
   const data = await response.json();
-  return data.session ?? null;
+  const session: DailyTimedSession | null = data.session ?? null;
+  if (session) session.clock_offset_ms = sampleClockOffset(session.server_now);
+  return session;
 };
 
 export const startDailyTimedSession = async (
@@ -282,7 +302,9 @@ export const startDailyTimedSession = async (
     headers: await sessionHeaders(),
   });
   const data = await response.json();
-  return data.session;
+  const session: DailyTimedSession = data.session;
+  session.clock_offset_ms = sampleClockOffset(session.server_now);
+  return session;
 };
 
 export const submitDailyTimedWord = async (

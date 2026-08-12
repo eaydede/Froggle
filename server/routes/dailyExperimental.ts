@@ -166,7 +166,7 @@ dailyExperimentalRouter.get('/:mode/session/:date', requireAuth, async (req, res
       session.min_word_length,
     );
     noStore(res);
-    res.json({ session: { ...session, salt, wordHashes, goldenHashes } });
+    res.json({ session: { ...session, salt, wordHashes, goldenHashes, server_now: Date.now() } });
   } catch (err) {
     console.error('Failed to fetch experimental session:', err);
     res.status(500).json({ error: 'Failed to fetch session' });
@@ -189,7 +189,7 @@ dailyExperimentalRouter.post('/:mode/session/:date/start', requireAuth, async (r
       session.min_word_length,
     );
     noStore(res);
-    res.json({ session: { ...session, salt, wordHashes, goldenHashes } });
+    res.json({ session: { ...session, salt, wordHashes, goldenHashes, server_now: Date.now() } });
   } catch (err) {
     console.error('Failed to start experimental session:', err);
     res.status(500).json({ error: 'Failed to start session' });

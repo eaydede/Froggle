@@ -70,6 +70,7 @@ gameRouter.post('/start', requireAuth, async (req, res) => {
       wordHashes,
       salt,
       seed: session.seed,
+      server_now: Date.now(),
     });
   } catch (err) {
     console.error('Failed to start free-play session:', err);
@@ -128,6 +129,7 @@ gameRouter.get('/active', requireAuth, async (req, res) => {
         salt,
         wordHashes,
       },
+      server_now: Date.now(),
     });
   } catch (err) {
     console.error('Failed to fetch active free-play session:', err);
@@ -152,6 +154,7 @@ gameRouter.get('/state', requireAuth, async (req, res) => {
         path: [],
         submittedAt: 0,
       })),
+      server_now: Date.now(),
     });
   } catch (err) {
     console.error('Failed to fetch free-play state:', err);

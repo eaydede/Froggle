@@ -5,6 +5,7 @@ import type {
   VoteSentiment,
 } from 'models/experimental';
 import { supabase } from '../supabase';
+import { sampleClockOffset } from '../timing/serverClock';
 
 const API_URL = '/api';
 
@@ -63,6 +64,11 @@ export interface ExperimentalSession {
   salt: string;
   wordHashes: string[];
   goldenHashes: string[];
+  /** Server clock at response time; paired with the local clock to correct
+   *  timer math for a skewed device clock. */
+  server_now?: number;
+  /** server − device clock offset, sampled by the client on receipt. */
+  clock_offset_ms?: number;
 }
 
 export interface ExperimentalMissedWord {
@@ -139,7 +145,9 @@ export async function fetchExperimentalSession(
   });
   if (!res.ok) return null;
   const data = await res.json();
-  return data.session ?? null;
+  const session: ExperimentalSession | null = data.session ?? null;
+  if (session) session.clock_offset_ms = sampleClockOffset(session.server_now);
+  return session;
 }
 
 export async function startExperimentalSession(
@@ -152,7 +160,9 @@ export async function startExperimentalSession(
   });
   if (!res.ok) return null;
   const data = await res.json();
-  return data.session ?? null;
+  const session: ExperimentalSession | null = data.session ?? null;
+  if (session) session.clock_offset_ms = sampleClockOffset(session.server_now);
+  return session;
 }
 
 export async function submitExperimentalWord(

@@ -115,7 +115,7 @@ dailyRouter.get('/session/:date', requireAuth, async (req, res) => {
     const { totalFindable, salt, wordHashes } = solveBoard(session.board, req.params.date);
     noStore(res);
     res.json({
-      session: { ...session, total_findable: totalFindable, salt, wordHashes },
+      session: { ...session, total_findable: totalFindable, salt, wordHashes, server_now: Date.now() },
     });
   } catch (err) {
     console.error('Failed to fetch timed daily session:', err);
@@ -137,7 +137,7 @@ dailyRouter.post('/session/:date/start', requireAuth, async (req, res) => {
     const session = await startTimedDailySession(getDb(), req.userId!, date, board, config);
     const { totalFindable, salt, wordHashes } = solveBoard(session.board, date);
     noStore(res);
-    res.json({ session: { ...session, total_findable: totalFindable, salt, wordHashes } });
+    res.json({ session: { ...session, total_findable: totalFindable, salt, wordHashes, server_now: Date.now() } });
   } catch (err) {
     console.error('Failed to start timed daily session:', err);
     res.status(500).json({ error: 'Failed to start session' });

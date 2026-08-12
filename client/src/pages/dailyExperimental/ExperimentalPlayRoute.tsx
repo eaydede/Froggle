@@ -11,6 +11,7 @@ import { useGame } from '../../GameContext';
 import { GamePage } from '../game/GamePage';
 import { useFeedbackSounds, type FeedbackType } from '../game';
 import { useTimer } from '../../hooks/useTimer';
+import { toDeviceClock } from '../../shared/timing/serverClock';
 import { useWordValidator } from '../../hooks/useWordValidator';
 import { scoreWord } from '../../shared/utils/score';
 import type { CellDecoration } from '../game/components/Board';
@@ -272,7 +273,10 @@ export function ExperimentalPlayRoute() {
     const base = session.time_limit;
     return {
       board: session.board,
-      startedAt: new Date(session.started_at).getTime(),
+      startedAt: toDeviceClock(
+        new Date(session.started_at).getTime(),
+        session.clock_offset_ms ?? 0,
+      ),
       status: session.ended_at ? GameState.Finished : GameState.InProgress,
       config: {
         durationSeconds: isMoney
