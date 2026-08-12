@@ -21,9 +21,19 @@ const SCORE_TIERS: ScoreTier[] = [
 ];
 
 export interface ShareOptions {
-  daily?: { number: number; mode?: 'timed' | 'zen' };
+  daily?: { number: number; mode?: 'timed' | 'zen' | 'time-is-money' };
   gameLink?: string;
 }
+
+const DAILY_MODE_TAG: Record<string, string> = {
+  zen: 'Zen',
+  'time-is-money': 'Time is Money',
+};
+
+const DAILY_MODE_PATH: Record<string, string> = {
+  zen: '/daily/zen/play',
+  'time-is-money': '/daily/time-is-money',
+};
 
 function numberToEmojis(n: number): string {
   return String(n)
@@ -48,7 +58,7 @@ export function generateShareText(foundWords: ScoredWord[], options: ShareOption
   const lines: string[] = [];
 
   if (isDaily) {
-    const tag = options.daily!.mode === 'zen' ? 'Zen' : '';
+    const tag = DAILY_MODE_TAG[options.daily!.mode ?? 'timed'] ?? '';
     const prefix = tag ? `Froggle ${tag} #${options.daily!.number}` : `Froggle #${options.daily!.number}`;
     lines.push(`${prefix} ${totalWords}W ${totalPoints}pts`);
   } else {
@@ -67,7 +77,7 @@ export function generateShareText(foundWords: ScoredWord[], options: ShareOption
   }
 
   if (isDaily) {
-    const path = options.daily!.mode === 'zen' ? '/daily/zen/play' : '/daily';
+    const path = DAILY_MODE_PATH[options.daily!.mode ?? 'timed'] ?? '/daily';
     lines.push(`${window.location.origin}${path}`);
   } else if (options.gameLink) {
     lines.push(options.gameLink);
