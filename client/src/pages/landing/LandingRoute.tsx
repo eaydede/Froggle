@@ -56,6 +56,7 @@ export function LandingRoute() {
     points: null,
     wordCount: null,
     rank: null,
+    timeLimit: null,
   });
 
   // Dev-only fixture injection — `?mock=unplayed|completed|partial` renders
@@ -120,8 +121,8 @@ export function LandingRoute() {
     if (!authReady) return;
     let cancelled = false;
     fetchTimeIsMoneyStatus()
-      .then(({ state, points, wordCount, rank }) => {
-        if (!cancelled) setTimeIsMoneyStatus({ state, points, wordCount, rank });
+      .then(({ state, points, wordCount, rank, timeLimit }) => {
+        if (!cancelled) setTimeIsMoneyStatus({ state, points, wordCount, rank, timeLimit });
       })
       .catch(() => {
         // Non-fatal: the card falls back to the unplayed nudge.
@@ -249,7 +250,13 @@ export function LandingRoute() {
         zenRank={null}
         gauntletEntry={null}
         onGauntletPlay={() => {}}
-        timeIsMoneyStatus={{ state: 'unplayed', points: null, wordCount: null, rank: null }}
+        timeIsMoneyStatus={{
+          state: 'unplayed',
+          points: null,
+          wordCount: null,
+          rank: null,
+          timeLimit: null,
+        }}
         onTimeIsMoneyPlay={() => {}}
         displayName={mockFixture.displayName}
         nameProfile={null}

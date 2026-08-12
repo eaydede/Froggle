@@ -7,6 +7,9 @@ export interface TimeIsMoneyCardStatus {
   points: number | null;
   wordCount: number | null;
   rank: number | null;
+  /** The run's own starting clock — not today's config, so a retune doesn't
+   *  restate a run that was played under the old one. */
+  timeLimit: number | null;
 }
 
 interface TimeIsMoneyDailyCardProps {
@@ -60,7 +63,7 @@ function formatClock(seconds: number): string {
 }
 
 function HintLine({ status }: { status: TimeIsMoneyCardStatus }) {
-  if (status.state === 'completed' && status.points !== null) {
+  if (status.state === 'completed' && status.points !== null && status.timeLimit !== null) {
     return (
       <span
         className="text-small text-[color:var(--ink-muted)] truncate"
@@ -70,7 +73,7 @@ function HintLine({ status }: { status: TimeIsMoneyCardStatus }) {
           className="font-[family-name:var(--font-structure)] text-[color:var(--ink)] tabular-nums"
           style={{ fontWeight: 700 }}
         >
-          {formatClock(timeSurvivedSeconds(status.points))}
+          {formatClock(timeSurvivedSeconds(status.timeLimit, status.points))}
         </span>{' '}
         played · {status.wordCount} {status.wordCount === 1 ? 'word' : 'words'}
       </span>

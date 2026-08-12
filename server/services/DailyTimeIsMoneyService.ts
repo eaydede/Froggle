@@ -271,6 +271,9 @@ export interface TimeIsMoneyStatus {
   points: number | null;
   wordCount: number | null;
   rank: number | null;
+  // The run's own starting clock, so the card can show the time it bought
+  // without assuming today's config. Null when there's no run yet.
+  timeLimit: number | null;
 }
 
 export async function getTimeIsMoneyStatus(
@@ -282,9 +285,17 @@ export async function getTimeIsMoneyStatus(
   // stuck at "in-progress" and sit outside the day's ranks. Finalizing here
   // means the rank query below observes the freshly-closed row.
   const session = await getTimeIsMoneySession(db, userId, date);
-  if (!session) return { state: 'unplayed', points: null, wordCount: null, rank: null };
+  if (!session) {
+    return { state: 'unplayed', points: null, wordCount: null, rank: null, timeLimit: null };
+  }
   if (!session.ended_at) {
-    return { state: 'in-progress', points: session.points, wordCount: session.word_count, rank: null };
+    return {
+      state: 'in-progress',
+      points: session.points,
+      wordCount: session.word_count,
+      rank: null,
+      timeLimit: session.time_limit,
+    };
   }
 
   const ranked = await db
@@ -308,5 +319,6 @@ export async function getTimeIsMoneyStatus(
     points: session.points,
     wordCount: session.word_count,
     rank: ranked ? Number(ranked.rank) : null,
+    timeLimit: session.time_limit,
   };
 }

@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import type { Position } from 'models';
 import { generateSalt, hashWord } from 'models';
-import { TIME_IS_MONEY_CONFIG } from 'models/timeIsMoney';
 import { findAllWords } from 'engine/solver.js';
 import { scoreWord } from 'engine/scoring.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -24,16 +23,26 @@ import {
 
 export const dailyTimeIsMoneyRouter = Router();
 
-// Solve cache keyed by date + board contents. The day's puzzle is
+// Solve cache keyed by date + board contents + min length. The day's puzzle is
 // deterministic, so the full solver output is computed once and everything
 // downstream (word hashes, the missed-word list) derives from it.
+//
+// `minWordLength` is always the value persisted on the row, never the current
+// config: retuning the mode must not change what an already-started or
+// already-finished board solves to. It's part of the cache key for the same
+// reason — one board can legitimately have two solutions across a retune, and
+// keying on the board alone would serve one run's hashes to the other.
 const boardSolveCache = new Map<string, { word: string; path: Position[] }[]>();
 
-function cachedSolve(date: string, board: string[][]): { word: string; path: Position[] }[] {
-  const key = `${date}:${board.flat().join('')}`;
+function cachedSolve(
+  date: string,
+  board: string[][],
+  minWordLength: number,
+): { word: string; path: Position[] }[] {
+  const key = `${date}:${board.flat().join('')}:${minWordLength}`;
   const hit = boardSolveCache.get(key);
   if (hit) return hit;
-  const solved = findAllWords(board, dictionary, TIME_IS_MONEY_CONFIG.minWordLength).map((w) => ({
+  const solved = findAllWords(board, dictionary, minWordLength).map((w) => ({
     word: w.word,
     path: w.path,
   }));
@@ -42,12 +51,17 @@ function cachedSolve(date: string, board: string[][]): { word: string; path: Pos
 }
 
 // Salt + hashed word list for the client's instant local validation, exactly
-// like the timed daily.
-function solveBoard(date: string, board: string[][]): { salt: string; wordHashes: string[] } {
+// like the timed daily. Hashes must cover exactly the words the server's submit
+// path will accept, so this takes the session's own min length.
+function solveBoard(
+  date: string,
+  board: string[][],
+  minWordLength: number,
+): { salt: string; wordHashes: string[] } {
   const salt = generateSalt();
   return {
     salt,
-    wordHashes: cachedSolve(date, board).map((w) => hashWord(w.word, salt)),
+    wordHashes: cachedSolve(date, board, minWordLength).map((w) => hashWord(w.word, salt)),
   };
 }
 
@@ -73,7 +87,12 @@ dailyTimeIsMoneyRouter.get('/session/:date', requireAuth, async (req, res) => {
       return res.json({ session: null });
     }
     noStore(res);
-    res.json({ session: { ...session, ...solveBoard(req.params.date, session.board) } });
+    res.json({
+      session: {
+        ...session,
+        ...solveBoard(req.params.date, session.board, session.min_word_length),
+      },
+    });
   } catch (err) {
     console.error('Failed to fetch Time is Money session:', err);
     res.status(500).json({ error: 'Failed to fetch session' });
@@ -88,7 +107,9 @@ dailyTimeIsMoneyRouter.post('/session/:date/start', requireAuth, async (req, res
     }
     const session = await startTimeIsMoneySession(getDb(), req.userId!, date);
     noStore(res);
-    res.json({ session: { ...session, ...solveBoard(date, session.board) } });
+    res.json({
+      session: { ...session, ...solveBoard(date, session.board, session.min_word_length) },
+    });
   } catch (err) {
     console.error('Failed to start Time is Money session:', err);
     res.status(500).json({ error: 'Failed to start session' });
@@ -133,7 +154,7 @@ dailyTimeIsMoneyRouter.get('/results/:date', requireAuth, async (req, res) => {
     }
 
     const foundSet = new Set(session.found_words.map((w) => w.toUpperCase()));
-    const missedWords = cachedSolve(date, session.board)
+    const missedWords = cachedSolve(date, session.board, session.min_word_length)
       .filter((w) => !foundSet.has(w.word))
       .map((w) => ({ word: w.word, path: w.path, score: scoreWord(w.word) }))
       .sort((a, b) => b.score - a.score || b.word.length - a.word.length);

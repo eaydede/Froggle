@@ -57,7 +57,13 @@ function InContextWrapper({ completed }: { completed: boolean }) {
         zenRank={null}
         gauntletEntry={null}
         onGauntletPlay={() => {}}
-        timeIsMoneyStatus={{ state: 'unplayed', points: null, wordCount: null, rank: null }}
+        timeIsMoneyStatus={{
+          state: 'unplayed',
+          points: null,
+          wordCount: null,
+          rank: null,
+          timeLimit: null,
+        }}
         onTimeIsMoneyPlay={() => {}}
         displayName={name}
         nameProfile={null}

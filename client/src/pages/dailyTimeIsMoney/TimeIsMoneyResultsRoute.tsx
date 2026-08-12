@@ -106,12 +106,14 @@ export function TimeIsMoneyResultsRoute() {
       soloPlaceholderVariant="wait"
       soloHero={
         <TimeSurvivedHero
-          seconds={timeSurvivedSeconds(activeResult.points)}
+          seconds={timeSurvivedSeconds(activeResult.config.timeLimit, activeResult.points)}
           points={activeResult.points}
           words={foundWords.length}
         />
       }
-      standingsFormatValue={(points) => formatClock(timeSurvivedSeconds(points))}
+      standingsFormatValue={(points) =>
+        formatClock(timeSurvivedSeconds(activeResult.config.timeLimit, points))
+      }
       topbarLabel="Time is Money"
       topbarOnClose={() => navigate('/')}
       bottomActions={

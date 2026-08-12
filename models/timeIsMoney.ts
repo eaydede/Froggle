@@ -18,9 +18,14 @@ export const TIME_IS_MONEY_CONFIG = {
   timeLimit: 60,
 } as const;
 
-// The clock a run was worth: the starting time plus everything banked. Base
-// and rate are identical for every player, so ordering by this is identical to
-// ordering by points — it is purely a display transform.
-export function timeSurvivedSeconds(points: number): number {
-  return TIME_IS_MONEY_CONFIG.timeLimit + points * TIME_IS_MONEY_SECONDS_PER_POINT;
+// The clock a run was worth: the starting time plus everything banked. Every
+// player on a given day shares the same base, so ordering by this is identical
+// to ordering by points — it is purely a display transform.
+//
+// `baseTimeLimit` is a parameter rather than a read of TIME_IS_MONEY_CONFIG on
+// purpose: it must be the value persisted on the run being displayed. Reading
+// the current config here would silently restate every historical result the
+// first time the starting clock is retuned.
+export function timeSurvivedSeconds(baseTimeLimit: number, points: number): number {
+  return baseTimeLimit + points * TIME_IS_MONEY_SECONDS_PER_POINT;
 }

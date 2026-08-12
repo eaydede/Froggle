@@ -17,6 +17,7 @@ export interface TimeIsMoneyStatusResponse {
   points: number | null;
   wordCount: number | null;
   rank: number | null;
+  timeLimit: number | null;
 }
 
 export interface TimeIsMoneySession {
