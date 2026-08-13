@@ -80,6 +80,35 @@ async function aggregateZen(db: Kysely<Database>, date: string): Promise<WordPer
   return out;
 }
 
+async function aggregateTimeIsMoney(db: Kysely<Database>, date: string): Promise<WordPercents> {
+  // Only finalized Time is Money sessions count toward popularity. In-progress
+  // players would otherwise drag every word's percentage downward — the
+  // denominator must match "people who had a fair shot at finding it".
+  const totalsQuery = sql<{ total: number | string }>`
+    select count(*)::int as total
+    from daily_time_is_money_results
+    where date = ${date} and ended_at is not null
+  `;
+  const findsQuery = sql<AggregateRow>`
+    select upper(w::text) as word, count(distinct r.user_id)::int as finders
+    from daily_time_is_money_results r,
+         lateral jsonb_array_elements_text(r.found_words) as w
+    where r.date = ${date} and r.ended_at is not null
+    group by upper(w::text)
+  `;
+  const [totalsResult, findsResult] = await Promise.all([
+    totalsQuery.execute(db),
+    findsQuery.execute(db),
+  ]);
+  const total = Number(totalsResult.rows[0]?.total ?? 0);
+  if (total === 0) return {};
+  const out: WordPercents = {};
+  for (const row of findsResult.rows) {
+    out[row.word] = (Number(row.finders) / total) * 100;
+  }
+  return out;
+}
+
 /** Read-through cache that only memoizes today's date. Historic dates
  *  always recompute (their popularity is final, but we accept the small
  *  per-request cost rather than retaining unbounded state). The cache ref
@@ -108,6 +137,7 @@ export async function getCachedWordPercents(
 
 const timedCacheRef: CacheRef = { value: null };
 const zenCacheRef: CacheRef = { value: null };
+const timeIsMoneyCacheRef: CacheRef = { value: null };
 
 export function getTimedDailyWordPercents(
   db: Kysely<Database>,
@@ -123,4 +153,12 @@ export function getZenDailyWordPercents(
   today: string,
 ): Promise<WordPercents> {
   return getCachedWordPercents(zenCacheRef, (d) => aggregateZen(db, d), date, today);
+}
+
+export function getTimeIsMoneyDailyWordPercents(
+  db: Kysely<Database>,
+  date: string,
+  today: string,
+): Promise<WordPercents> {
+  return getCachedWordPercents(timeIsMoneyCacheRef, (d) => aggregateTimeIsMoney(db, d), date, today);
 }

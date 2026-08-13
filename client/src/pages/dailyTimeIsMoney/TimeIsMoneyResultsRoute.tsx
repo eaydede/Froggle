@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { timeSurvivedSeconds } from 'models/timeIsMoney';
 import { useGame } from '../../GameContext';
@@ -6,13 +6,17 @@ import { ResultsView } from '../../shared/results/ResultsView';
 import { ActionButton } from '../../shared/results/components/ActionButton';
 import { findWordPath } from '../../shared/utils/findWordPath';
 import { scoreWord } from '../../shared/utils/score';
-import type { ResultsRosterEntry } from '../../shared/results/types';
+import type { LoadOpponentResult, ResultsRosterEntry } from '../../shared/results/types';
 import { useShareText } from '../results/hooks/useShareText';
 import { generateShareText } from '../results/utils/shareResults';
 import { TimeSurvivedHero } from './components/TimeSurvivedHero';
 import { formatClock } from './timeIsMoneyUtils';
-import { TIME_IS_MONEY_RESULT_FIXTURES } from './__fixtures__';
-import { fetchTimeIsMoneyResult, type TimeIsMoneyResultResponse } from '../../shared/api/timeIsMoneyApi';
+import { TIME_IS_MONEY_OPPONENT_FIXTURES, TIME_IS_MONEY_RESULT_FIXTURES } from './__fixtures__';
+import {
+  fetchTimeIsMoneyCompare,
+  fetchTimeIsMoneyResult,
+  type TimeIsMoneyResultResponse,
+} from '../../shared/api/timeIsMoneyApi';
 
 function todayPST(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
@@ -26,6 +30,8 @@ export function TimeIsMoneyResultsRoute() {
   // without a played session — `?mock=solo|standings`. See __fixtures__/.
   const [searchParams] = useSearchParams();
   const mockKey = import.meta.env.DEV ? searchParams.get('mock') : null;
+  // Deep link into a comparison, e.g. arriving from a "compare with X" link.
+  const initialOpponentId = mockKey ? null : searchParams.get('compare');
 
   const [result, setResult] = useState<TimeIsMoneyResultResponse | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -80,6 +86,32 @@ export function TimeIsMoneyResultsRoute() {
       : '',
   );
 
+  // Declared before the loading early-return so the hook order stays stable.
+  const loadOpponent = useMemo(
+    () =>
+      async (userId: string): Promise<LoadOpponentResult> => {
+        if (mockKey) {
+          const opp = TIME_IS_MONEY_OPPONENT_FIXTURES[userId];
+          return opp
+            ? { ok: true, opponent: { id: userId, ...opp } }
+            : { ok: false, error: 'opponent-missing' };
+        }
+        const r = await fetchTimeIsMoneyCompare(date, userId);
+        if (!r.ok) return { ok: false, error: r.error };
+        return {
+          ok: true,
+          opponent: {
+            id: userId,
+            displayName: r.data.them.displayName,
+            points: r.data.them.points,
+            wordCount: r.data.them.wordCount,
+            foundWords: r.data.them.foundWords,
+          },
+        };
+      },
+    [date, mockKey],
+  );
+
   if ((!mockKey && !loaded) || !activeResult) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)]" />
@@ -128,6 +160,8 @@ export function TimeIsMoneyResultsRoute() {
       board={activeResult.board}
       config={activeResult.config}
       roster={roster}
+      loadOpponent={loadOpponent}
+      initialOpponentId={initialOpponentId}
       standingsHeader="Standings"
       soloPlaceholderVariant="wait"
       soloHero={
@@ -140,6 +174,8 @@ export function TimeIsMoneyResultsRoute() {
       standingsFormatValue={(points) =>
         formatClock(timeSurvivedSeconds(activeResult.config.timeLimit, points))
       }
+      findPercents={activeResult.find_percents}
+      popularityStyle={activeResult.find_percents ? 'inline' : undefined}
       topbarLabel="Time is Money"
       topbarOnClose={() => navigate('/')}
       topbarOnShare={share}
