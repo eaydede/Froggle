@@ -5,6 +5,7 @@
 //   - # of players who played yesterday's zen daily
 //   - Estimated active time spent on the zen daily (gap-capped, see
 //     DailyZenService.ACTIVE_TIME_GAP_CAP_SECONDS)
+//   - # of players who played yesterday's Time is Money daily
 //   - # of free-play games started
 //
 // Required env vars:
@@ -95,6 +96,7 @@ function renderText(summary: DailySummary): string {
     `Timed daily players:    ${summary.timedDailyPlayers}`,
     `Zen daily players:      ${summary.zenDailyPlayers}`,
     `Zen daily active time:  ${formatActiveDuration(summary.zenDailyActiveSeconds)}`,
+    `Time is Money players:  ${summary.timeIsMoneyDailyPlayers}`,
     `Free play games:        ${summary.freePlayGames}`,
     '',
     renderFeedbackText(summary.feedback),
@@ -111,6 +113,7 @@ function renderHtml(summary: DailySummary): string {
     ${row('Timed daily players', summary.timedDailyPlayers)}
     ${row('Zen daily players', summary.zenDailyPlayers)}
     ${row('Zen daily active time', formatActiveDuration(summary.zenDailyActiveSeconds))}
+    ${row('Time is Money players', summary.timeIsMoneyDailyPlayers)}
     ${row('Free play games', summary.freePlayGames)}
   </table>
   <h3 style="margin:0 0 8px">Feedback</h3>

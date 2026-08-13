@@ -15,6 +15,7 @@ export interface DailySummary {
   timedDailyPlayers: number;
   zenDailyPlayers: number;
   zenDailyActiveSeconds: number;
+  timeIsMoneyDailyPlayers: number;
   freePlayGames: number;
   feedback: FeedbackEntry[];
 }
@@ -22,9 +23,10 @@ export interface DailySummary {
 // Returns aggregate engagement counts for a single PST calendar date.
 // Each table stores `date` as PST YYYY-MM-DD (see migrations), so the
 // query is a simple equality match — no timezone math needed at read
-// time. Counts vs. distinct-user counts: daily_results and
-// daily_zen_results have a unique (user_id, date) constraint, so count(*)
-// is already a per-player count for those.
+// time. Counts vs. distinct-user counts: daily_results,
+// daily_zen_results, and daily_time_is_money_results each have a unique
+// (user_id, date) constraint, so count(*) is already a per-player count
+// for those.
 //
 // freePlayGames counts *completed* sessions only. The table now inserts
 // at /start with completed_at null, so without the filter we'd over-count
@@ -35,7 +37,7 @@ export async function getDailySummary(
   db: Kysely<Database>,
   date: string,
 ): Promise<DailySummary> {
-  const [timedRow, zenRow, freePlayRow, feedbackRows] = await Promise.all([
+  const [timedRow, zenRow, timeIsMoneyRow, freePlayRow, feedbackRows] = await Promise.all([
     db
       .selectFrom('daily_results')
       .select((eb) => eb.fn.countAll<number>().as('players'))
@@ -47,6 +49,11 @@ export async function getDailySummary(
         eb.fn.countAll<number>().as('players'),
         eb.fn.sum<number>('active_seconds').as('active_seconds'),
       ])
+      .where('date', '=', date)
+      .executeTakeFirstOrThrow(),
+    db
+      .selectFrom('daily_time_is_money_results')
+      .select((eb) => eb.fn.countAll<number>().as('players'))
       .where('date', '=', date)
       .executeTakeFirstOrThrow(),
     db
@@ -79,6 +86,7 @@ export async function getDailySummary(
     timedDailyPlayers: Number(timedRow.players),
     zenDailyPlayers: Number(zenRow.players),
     zenDailyActiveSeconds: Number(zenRow.active_seconds ?? 0),
+    timeIsMoneyDailyPlayers: Number(timeIsMoneyRow.players),
     freePlayGames: Number(freePlayRow.games),
     feedback: feedbackRows.map((row) => ({
       id: row.id,
