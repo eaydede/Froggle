@@ -67,6 +67,9 @@ export interface TimeIsMoneyResultResponse {
   word_count: number;
   config: { boardSize: number; minWordLength: number; timeLimit: number };
   roster: TimeIsMoneyRosterEntry[];
+  /** Per-word find rate across today's finishers, keyed by upper-cased word.
+   *  Drives the solo-results popularity affordance, same as timed/zen. */
+  find_percents?: Record<string, number>;
 }
 
 export type TimeIsMoneySubmitResult =
@@ -135,4 +138,45 @@ export async function fetchTimeIsMoneyResult(
   if (!res.ok) return null;
   const data = await res.json();
   return data.result ?? null;
+}
+
+export interface TimeIsMoneyComparePlayer {
+  userId: string;
+  displayName: string;
+  points: number;
+  wordCount: number;
+  foundWords: { word: string; score: number }[];
+}
+
+export interface TimeIsMoneyCompareResponse {
+  date: string;
+  board: string[][];
+  me: TimeIsMoneyComparePlayer;
+  them: TimeIsMoneyComparePlayer;
+}
+
+export type TimeIsMoneyCompareError =
+  | 'unplayed'
+  | 'opponent-missing'
+  | 'forbidden'
+  | 'unknown';
+
+/** Fetches a side-by-side compare payload for the given date and opponent.
+ *  Mirrors the timed/zen compare fetchers so the results screen's standings
+ *  can open a comparison. */
+export async function fetchTimeIsMoneyCompare(
+  date: string,
+  otherUserId: string,
+): Promise<
+  { ok: true; data: TimeIsMoneyCompareResponse } | { ok: false; error: TimeIsMoneyCompareError }
+> {
+  const res = await fetch(
+    `${BASE}/compare/${date}?other=${encodeURIComponent(otherUserId)}`,
+    { headers: await authHeaders() },
+  );
+  if (res.ok) return { ok: true, data: await res.json() };
+  if (res.status === 409) return { ok: false, error: 'unplayed' };
+  if (res.status === 404) return { ok: false, error: 'opponent-missing' };
+  if (res.status === 400) return { ok: false, error: 'forbidden' };
+  return { ok: false, error: 'unknown' };
 }

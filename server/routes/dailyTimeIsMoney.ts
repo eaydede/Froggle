@@ -5,15 +5,17 @@ import { findAllWords } from 'engine/solver.js';
 import { scoreWord } from 'engine/scoring.js';
 import { requireAuth } from '../middleware/auth.js';
 import { getDb } from '../db/index.js';
-import { noStore } from '../httpCache.js';
+import { cachePrivate, noStore } from '../httpCache.js';
 import { dictionary } from '../services/dictionary.js';
 import { getDailyDatePST } from '../services/dailyConfig.js';
+import { getTimeIsMoneyDailyWordPercents } from '../services/dailyWordStats.js';
 import {
   getTimeIsMoneyNumber,
   prepareTimeIsMoneyBoard,
 } from '../services/timeIsMoneyConfig.js';
 import {
   endTimeIsMoneySession,
+  getTimeIsMoneyCompare,
   getTimeIsMoneyRoster,
   getTimeIsMoneySession,
   getTimeIsMoneyStatus,
@@ -161,6 +163,7 @@ dailyTimeIsMoneyRouter.get('/results/:date', requireAuth, async (req, res) => {
       .sort((a, b) => b.score - a.score || b.word.length - a.word.length);
 
     const roster = await getTimeIsMoneyRoster(db, date, req.userId!);
+    const findPercents = await getTimeIsMoneyDailyWordPercents(db, date, getDailyDatePST());
 
     noStore(res);
     res.json({
@@ -178,10 +181,34 @@ dailyTimeIsMoneyRouter.get('/results/:date', requireAuth, async (req, res) => {
           timeLimit: session.time_limit,
         },
         roster,
+        find_percents: findPercents,
       },
     });
   } catch (err) {
     console.error('Failed to fetch Time is Money result:', err);
     res.status(500).json({ error: 'Failed to fetch result' });
+  }
+});
+
+// Side-by-side comparison of two finalized runs. Mirrors the timed and zen
+// daily compare endpoints' status codes so the client shares its fetch/error
+// machinery.
+dailyTimeIsMoneyRouter.get('/compare/:date', requireAuth, async (req, res) => {
+  const otherUserId = typeof req.query.other === 'string' ? req.query.other : '';
+  if (!otherUserId) {
+    return res.status(400).json({ error: 'Missing query param: other' });
+  }
+  try {
+    const result = await getTimeIsMoneyCompare(getDb(), req.params.date, req.userId!, otherUserId);
+    if (result.ok) {
+      cachePrivate(res, 30);
+      return res.json(result.data);
+    }
+    if (result.error === 'unplayed') return res.status(409).json({ error: 'You have not finished this Time is Money daily yet' });
+    if (result.error === 'opponent-missing') return res.status(404).json({ error: 'Opponent has not finished this Time is Money daily' });
+    return res.status(400).json({ error: 'Cannot compare with yourself' });
+  } catch (err) {
+    console.error('Failed to fetch Time is Money compare:', err);
+    res.status(500).json({ error: 'Failed to fetch compare' });
   }
 });

@@ -6,7 +6,7 @@ import { assignCompetitionRanks } from 'models/ranking';
 import { TIME_IS_MONEY_CONFIG, TIME_IS_MONEY_SECONDS_PER_POINT } from 'models/timeIsMoney';
 import type { Database } from '../db/types.js';
 import { dictionary } from './dictionary.js';
-import { scoreResult } from './DailyService.js';
+import { scoreResult, scoreWords } from './DailyService.js';
 import { getDisplayNames } from './displayNames.js';
 import { isTimedSessionExpired, timedExpiryInstant } from './sessionTiming.js';
 import { prepareTimeIsMoneyBoard } from './timeIsMoneyConfig.js';
@@ -260,6 +260,84 @@ export async function getTimeIsMoneyRoster(
     rank,
     isYou: item.user_id === meUserId,
   }));
+}
+
+// ─── Compare ──────────────────────────────────────────────────────────────
+//
+// Side-by-side comparison of two finalized runs. Mirrors the timed and zen
+// daily compare shape so the shared ResultsView renders it with the same
+// versus hero + aligned word lists. Both players solve the same seeded board.
+
+export type TimeIsMoneyCompareError = 'forbidden' | 'unplayed' | 'opponent-missing';
+
+export interface TimeIsMoneyComparePlayer {
+  userId: string;
+  displayName: string;
+  points: number;
+  wordCount: number;
+  foundWords: { word: string; score: number }[];
+}
+
+export interface TimeIsMoneyCompareResult {
+  date: string;
+  board: string[][];
+  me: TimeIsMoneyComparePlayer;
+  them: TimeIsMoneyComparePlayer;
+}
+
+export async function getTimeIsMoneyCompare(
+  db: Kysely<Database>,
+  date: string,
+  meUserId: string,
+  otherUserId: string,
+): Promise<
+  { ok: true; data: TimeIsMoneyCompareResult } | { ok: false; error: TimeIsMoneyCompareError }
+> {
+  if (otherUserId === meUserId) return { ok: false, error: 'forbidden' };
+
+  const rows = await db
+    .selectFrom('daily_time_is_money_results')
+    .select(['user_id', 'board', 'found_words', 'ended_at'])
+    .where('date', '=', date)
+    .where('user_id', 'in', [meUserId, otherUserId])
+    .execute();
+
+  const mine = rows.find((r) => r.user_id === meUserId);
+  const theirs = rows.find((r) => r.user_id === otherUserId);
+
+  if (!mine || mine.ended_at === null) return { ok: false, error: 'unplayed' };
+  if (!theirs || theirs.ended_at === null) return { ok: false, error: 'opponent-missing' };
+
+  const displayNames = await getDisplayNames([meUserId, otherUserId]);
+  const meName = displayNames.get(meUserId) ?? 'Anonymous';
+  const themName = displayNames.get(otherUserId) ?? 'Anonymous';
+
+  const parse = (r: typeof rows[number]) => ({
+    board: parseJson<string[][]>(r.board, []),
+    words: parseJson<string[]>(r.found_words, []),
+  });
+
+  const me = parse(mine);
+  const them = parse(theirs);
+
+  const player = (userId: string, displayName: string, words: string[]): TimeIsMoneyComparePlayer => ({
+    userId,
+    displayName,
+    points: scoreWords(words),
+    wordCount: words.length,
+    foundWords: words.map((word) => ({ word, score: scoreWord(word) })),
+  });
+
+  return {
+    ok: true,
+    data: {
+      date,
+      // Both players solve the same seeded board; either copy is fine.
+      board: me.board,
+      me: player(meUserId, meName, me.words),
+      them: player(otherUserId, themName, them.words),
+    },
+  };
 }
 
 // ─── Landing status ─────────────────────────────────────────────────────────
