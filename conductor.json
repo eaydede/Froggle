@@ -1,5 +1,0 @@
-{
-  "scripts": {
-    "setup": "ln -sf \"$CONDUCTOR_ROOT_PATH/.env\" .env && npm install"
-  }
-}
