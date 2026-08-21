@@ -1,0 +1,4 @@
+"$schema" = "https://conductor.build/schemas/settings.repo.schema.json"
+
+[scripts]
+setup = "ln -sf \"$CONDUCTOR_ROOT_PATH/.env\" .env && npm install"
