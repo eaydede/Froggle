@@ -1,8 +1,8 @@
-import { useState, useCallback } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { Board } from '../pages/game/components/Board';
-import type { FeedbackType } from '../pages/game/components/Board';
 import type { Position } from 'models';
+import { useCallback, useState } from 'react';
+import type { FeedbackType } from '../gameplay/components/Board';
+import { Board } from '../gameplay/components/Board';
 
 const meta: Meta<typeof Board> = {
   title: 'Components/Board',

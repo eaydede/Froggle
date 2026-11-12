@@ -2,15 +2,17 @@ import type { StorybookConfig } from '@storybook/react-vite';
 import { mergeConfig } from 'vite';
 import path from 'path';
 
+const packageRoot = (name: string) => path.dirname(require.resolve(`${name}/package.json`));
+
 const config: StorybookConfig = {
   stories: ['../src/**/*.stories.@(ts|tsx)'],
   addons: [
-    '@storybook/addon-essentials',
-    '@storybook/addon-interactions',
-    '@storybook/addon-links',
+    packageRoot('@storybook/addon-essentials'),
+    packageRoot('@storybook/addon-interactions'),
+    packageRoot('@storybook/addon-links'),
   ],
   framework: {
-    name: '@storybook/react-vite',
+    name: packageRoot('@storybook/react-vite'),
     options: {},
   },
   async viteFinal(config) {

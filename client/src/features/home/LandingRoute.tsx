@@ -1,0 +1,334 @@
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useFreePlay } from '../free-play/FreePlay';
+import { useIdentity } from '../identity/Identity';
+import { usePreferences } from '../preferences/Preferences';
+import { useProfile } from '../profile/Profile';
+import { useTimedDaily } from '../timed-daily/TimedDaily';
+import { useZenDaily } from '../zen/ZenDaily';
+
+import type { GauntletEntry } from 'models/gauntlet';
+import { scoreWord } from '../../gameplay/score';
+import { fetchGauntletStatus } from '../gauntlet/api';
+import { fetchFreePlayUnread } from '../history/api';
+import { createMultiplayerRoom, fetchPublicRooms } from '../rooms/api';
+import { fetchTimeIsMoneyStatus } from '../time-is-money/api';
+import { fetchDaily, fetchDailyStats, fetchLeaderboard, type DailyStatsResponse } from '../timed-daily/api';
+import { fetchDailyZenLeaderboard } from '../zen/api';
+import { LandingPage } from './LandingPage';
+import { getLandingFixture } from './__fixtures__/index';
+import type { TimeIsMoneyCardStatus } from './components/index';
+import type { DailyResults } from './types';
+
+function formatToday(dateIso: string): string {
+  const d = new Date(dateIso + 'T12:00:00');
+  const weekday = d.toLocaleString('en-US', { weekday: 'short' });
+  const month = d.toLocaleString('en-US', { month: 'short' });
+  return `${weekday} · ${month} ${d.getDate()}`;
+}
+
+export function LandingRoute() {
+  const { authReady } = useIdentity();
+  const { displayName, nameProfile, updateDisplayName } = useProfile();
+  const { theme, toggleTheme } = usePreferences();
+  const { puzzle: cachedDaily, result: cachedDailyResult, ready: dailyResultLoaded, selectPuzzle: setDailyInfo } = useTimedDaily();
+  const { puzzle: cachedDailyZen, run: cachedDailyZenSession, ready: dailyZenLoaded } = useZenDaily();
+  const { createGame } = useFreePlay();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [stats, setStats] = useState<DailyStatsResponse | null>(null);
+  const [dailyRank, setDailyRank] = useState<number | null>(null);
+  const [zenRank, setZenRank] = useState<number | null>(null);
+  const [freePlayUnread, setFreePlayUnread] = useState(0);
+  const [publicPlaying, setPublicPlaying] = useState(0);
+  const [gauntletEntry, setGauntletEntry] = useState<GauntletEntry | null>(null);
+  const [timeIsMoneyStatus, setTimeIsMoneyStatus] = useState<TimeIsMoneyCardStatus>({
+    state: 'unplayed',
+    points: null,
+    wordCount: null,
+    rank: null,
+    timeLimit: null,
+  });
+
+  // Dev-only fixture injection — `?mock=unplayed|completed|partial` renders
+  // the page with canned data so visual-regression work can reach either
+  // state without needing a live account or completed game. Stripped from
+  // production bundles.
+  const mockFixture = import.meta.env.DEV
+    ? getLandingFixture(searchParams.get('mock'))
+    : null;
+
+  useEffect(() => {
+    if (!authReady) return;
+    let cancelled = false;
+    fetchFreePlayUnread()
+      .then(({ count }) => {
+        if (!cancelled) setFreePlayUnread(count);
+      })
+      .catch(() => {
+        // Non-fatal: the dot just doesn't render.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady]);
+
+  // Live "N playing" count for the Free Play card — refreshed on a slow
+  // interval so the landing reflects current public-game activity without
+  // hammering the endpoint. Non-fatal on failure (the cue just hides).
+  useEffect(() => {
+    let cancelled = false;
+    const load = () => {
+      fetchPublicRooms()
+        .then(({ totalPlayers }) => {
+          if (!cancelled) setPublicPlaying(totalPlayers);
+        })
+        .catch(() => {});
+    };
+    load();
+    const id = setInterval(load, 20000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!authReady) return;
+    let cancelled = false;
+    fetchGauntletStatus()
+      .then((s) => {
+        if (!cancelled) setGauntletEntry(s.entry);
+      })
+      .catch(() => {
+        // Non-fatal: gauntlet card falls back to the "unplayed" hint.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady]);
+
+  useEffect(() => {
+    if (!authReady) return;
+    let cancelled = false;
+    fetchTimeIsMoneyStatus()
+      .then(({ state, points, wordCount, rank, timeLimit }) => {
+        if (!cancelled) setTimeIsMoneyStatus({ state, points, wordCount, rank, timeLimit });
+      })
+      .catch(() => {
+        // Non-fatal: the card falls back to the unplayed nudge.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady]);
+
+  useEffect(() => {
+    if (!authReady) return;
+    let cancelled = false;
+    fetchDailyStats({ definitions: false })
+      .then((s) => {
+        if (!cancelled) setStats(s);
+      })
+      .catch(() => {
+        // Non-fatal: landing still renders with zeroed streak.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady]);
+
+  // Fetch the player's rank for podium-badge display. Only when the player
+  // has actually finished today's puzzle — otherwise rank isn't meaningful
+  // (and for in-progress zen, it would shift through the day). Failures are
+  // non-fatal: the badge just doesn't render.
+  useEffect(() => {
+    if (!authReady || !cachedDaily || !cachedDailyResult) return;
+    let cancelled = false;
+    fetchLeaderboard(cachedDaily.date)
+      .then((lb) => {
+        if (!cancelled) setDailyRank(lb.currentPlayer?.rank ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady, cachedDaily, cachedDailyResult]);
+
+  // Fetch zen rank for completed competitive sessions. In-progress players
+  // do not have a stable rank yet, and refetching on every found word creates
+  // avoidable leaderboard traffic from the landing page.
+  useEffect(() => {
+    if (!authReady || !cachedDailyZen || !cachedDailyZenSession) return;
+    if (!cachedDailyZenSession.is_competitive || !cachedDailyZenSession.ended_at) {
+      setZenRank(null);
+      return;
+    }
+    let cancelled = false;
+    fetchDailyZenLeaderboard(cachedDailyZen.date)
+      .then((lb) => {
+        if (!cancelled) setZenRank(lb.currentPlayer?.rank ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady, cachedDailyZen?.date, cachedDailyZenSession?.date, cachedDailyZenSession?.ended_at, cachedDailyZenSession?.is_competitive]);
+
+  // Free Play now opens the merged config/lobby: a room is minted up front
+  // so the same surface can stay solo or grow into a lobby the moment a
+  // friend joins via the share link. The solo game itself is still created
+  // lazily when the host presses Start (and runs on the single-player
+  // engine), so nothing about solo play changes.
+  const handleFreePlay = async () => {
+    setDailyInfo(null);
+    try {
+      const room = await createMultiplayerRoom();
+      navigate(`/play/room/${room.code}`);
+    } catch {
+      // Room service unreachable — fall back to the classic solo config
+      // page so Free Play still works offline of the lobby backend.
+      await createGame();
+      navigate('/play');
+    }
+  };
+
+  const handleDailyPlay = async () => {
+    const info = await fetchDaily();
+    setDailyInfo(info);
+    navigate('/daily');
+  };
+
+  const handleDailySeeResult = () => {
+    // DailyResultsRoute reads the puzzle out of context; without it the
+    // page redirects back home.
+    if (cachedDaily) setDailyInfo(cachedDaily);
+    navigate('/daily/results');
+  };
+
+  const handleDailyLeaderboard = () => {
+    if (cachedDaily) {
+      navigate(`/leaderboard?date=${cachedDaily.date}`);
+    } else {
+      navigate('/leaderboard');
+    }
+  };
+
+  const handleGauntletPlay = () => navigate('/daily/gauntlet');
+
+  const handleTimeIsMoneyPlay = () => navigate('/daily/time-is-money');
+
+  const handleZenPlay = () => navigate('/daily/zen/play');
+  const handleZenResume = () => navigate('/daily/zen/play');
+  const handleZenSeeResult = () => navigate('/daily/zen/results');
+  const handleZenLeaderboard = () => {
+    if (cachedDailyZen) {
+      navigate(`/daily/zen/leaderboard?date=${cachedDailyZen.date}`);
+    } else {
+      navigate('/daily/zen/leaderboard');
+    }
+  };
+
+  if (mockFixture) {
+    return (
+      <LandingPage
+        dateLabel={mockFixture.dateLabel}
+        streak={mockFixture.streak}
+        dailyConfig={mockFixture.dailyConfig}
+        dailyResults={mockFixture.dailyResults}
+        dailyRank={null}
+        zenSession={mockFixture.zenSession ?? null}
+        zenRank={null}
+        gauntletEntry={null}
+        onGauntletPlay={() => {}}
+        timeIsMoneyStatus={{
+          state: 'unplayed',
+          points: null,
+          wordCount: null,
+          rank: null,
+          timeLimit: null,
+        }}
+        onTimeIsMoneyPlay={() => {}}
+        displayName={mockFixture.displayName}
+        nameProfile={null}
+        onDisplayNameChange={async () => ({ ok: true as const, profile: {
+          display_name: mockFixture.displayName,
+          public_name: mockFixture.displayName,
+          is_marked: false,
+          is_locked: false,
+          locked_until: null,
+          mask_name: mockFixture.displayName,
+          strikes: 0,
+        } })}
+        onDailyPlay={() => {}}
+        onDailySeeResult={() => {}}
+        onDailyLeaderboard={() => {}}
+        onZenPlay={() => {}}
+        onZenResume={() => {}}
+        onZenSeeResult={() => {}}
+        onZenLeaderboard={() => {}}
+        onFreePlayClick={() => {}}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />
+    );
+  }
+
+  if (!cachedDaily || !cachedDailyZen || !dailyResultLoaded || !dailyZenLoaded) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)]">
+        <div
+          className="text-logo italic leading-none tracking-[-0.02em] font-[family-name:var(--font-display)]"
+          style={{ fontWeight: 600 }}
+        >
+          Froggle
+          <span className="inline-block w-[5px] h-[5px] rounded-full bg-[var(--logo-dot)] ml-[2px] align-baseline mb-[3px]" />
+        </div>
+      </div>
+    );
+  }
+
+  let dailyResultsData: DailyResults | null = null;
+  if (cachedDailyResult) {
+    const words = cachedDailyResult.found_words;
+    const longest = words.reduce((best, w) => (w.length > best.length ? w : best), '');
+    const totalScore = words.reduce((sum, w) => sum + scoreWord(w), 0);
+    dailyResultsData = {
+      words: words.length,
+      points: totalScore,
+      longestWord: longest,
+    };
+  }
+
+  return (
+    <LandingPage
+      dateLabel={formatToday(cachedDaily.date)}
+      streak={stats?.currentStreak ?? 0}
+      dailyConfig={cachedDaily.config}
+      dailyResults={dailyResultsData}
+      dailyRank={dailyRank}
+      zenSession={cachedDailyZenSession}
+      zenRank={zenRank}
+      gauntletEntry={gauntletEntry}
+      onGauntletPlay={handleGauntletPlay}
+      timeIsMoneyStatus={timeIsMoneyStatus}
+      onTimeIsMoneyPlay={handleTimeIsMoneyPlay}
+      displayName={displayName}
+      nameProfile={nameProfile}
+      onDisplayNameChange={updateDisplayName}
+      onDailyPlay={handleDailyPlay}
+      onDailySeeResult={handleDailySeeResult}
+      onDailyLeaderboard={handleDailyLeaderboard}
+      onZenPlay={handleZenPlay}
+      onZenResume={handleZenResume}
+      onZenSeeResult={handleZenSeeResult}
+      onZenLeaderboard={handleZenLeaderboard}
+      onFreePlayClick={handleFreePlay}
+      onFreePlayHistory={() => navigate('/history')}
+      freePlayUnread={freePlayUnread}
+      freePlayPlayingCount={publicPlaying}
+      theme={theme}
+      onToggleTheme={toggleTheme}
+    />
+  );
+}

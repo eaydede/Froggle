@@ -15,8 +15,8 @@
 
 import { Kysely, PostgresDialect } from 'kysely';
 import { Pool } from 'pg';
-import { scoreWords } from '../server/services/DailyService.js';
-import type { Database } from '../server/db/types.js';
+import { scoreWords } from '../server/gameplay/scoring.js';
+import type { Database } from '../server/platform/database/types.js';
 
 function parseWords(raw: unknown): string[] {
   if (typeof raw === 'string') return JSON.parse(raw);

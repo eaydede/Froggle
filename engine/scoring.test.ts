@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { scoreWord } from './scoring';
+import { scoreWord } from './scoring.js';
 
 describe('scoreWord', () => {
   it('scores each length boundary on the capped Fibonacci curve', () => {

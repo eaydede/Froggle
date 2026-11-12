@@ -1,0 +1,135 @@
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTimedDaily } from '../TimedDaily';
+
+import { formatDateLabel } from '../../../platform/time/formatDate';
+import { useShareText } from '../../results/hooks/useShareText';
+import { fetchDailyStats, fetchLeaderboard, type DailyStatsDay, type DailyStatsResponse, type LeaderboardResponse } from '../api';
+import type { DailyEntry } from '../types';
+import { LeaderboardPage } from './LeaderboardPage';
+
+function getTodayPST(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+}
+
+function adaptDay(day: DailyStatsDay): DailyEntry {
+  return {
+    puzzleNumber: day.puzzleNumber,
+    date: new Date(day.date + 'T12:00:00'),
+    state: day.state,
+    points: day.points ?? undefined,
+    wordsFound: day.wordsFound ?? undefined,
+    longestWord: day.longestWord ?? undefined,
+    longestWordDefinition: day.longestWordDefinition,
+    stampTier: day.stampTier,
+    playersCount: day.playersCount,
+    config: day.config,
+  };
+}
+
+export function LeaderboardRoute() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { selectedPuzzle: dailyInfo, selectPuzzle: setDailyInfo, puzzle: cachedDaily } = useTimedDaily();
+
+  const [selectedDate, setSelectedDate] = useState<string>(
+    searchParams.get('date') ?? dailyInfo?.date ?? getTodayPST(),
+  );
+  const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(null);
+  const [stats, setStats] = useState<DailyStatsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDailyStats({ definitions: false }).then(setStats);
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchLeaderboard(selectedDate).then((data) => {
+      setLeaderboard(data);
+      setLoading(false);
+    });
+  }, [selectedDate]);
+
+  const entries: DailyEntry[] = useMemo(() => {
+    if (!stats) return [];
+    return stats.days.map(adaptDay);
+  }, [stats]);
+
+  const pointsRankings = leaderboard?.rankings.points ?? [];
+
+  // Top-3 for the podium. Handles the common case but also degrades to
+  // the first N entries when a puzzle has fewer than three players.
+  const podium = useMemo(
+    () =>
+      pointsRankings.slice(0, 3).map((r) => ({
+        rank: r.rank,
+        name: r.displayName,
+        score: r.value,
+        userId: r.userId,
+        isCurrentUser: r.isCurrentUser,
+      })),
+    [pointsRankings],
+  );
+
+  const rankingsForList = useMemo(
+    () =>
+      pointsRankings.map((r) => ({
+        rank: r.rank,
+        userId: r.userId,
+        displayName: r.displayName,
+        subLabel: r.subLabel,
+        value: r.value,
+        valueUnit: r.value === 1 ? 'pt' : 'pts',
+        isCurrentUser: r.isCurrentUser,
+      })),
+    [pointsRankings],
+  );
+
+  const youFallback = leaderboard?.currentPlayer
+    ? `#${leaderboard.currentPlayer.rank}`
+    : undefined;
+
+  const { share } = useShareText(() => {
+    const url = `${window.location.origin}/leaderboard?date=${selectedDate}`;
+    return `Daily #${leaderboard?.puzzleNumber ?? ''} leaderboard — ${url}`;
+  });
+
+  if (loading && !leaderboard) return null;
+
+  return (
+    <LeaderboardPage
+      dateLabel={formatDateLabel(selectedDate)}
+      entries={entries}
+      selectedDate={selectedDate}
+      todayDate={getTodayPST()}
+      onChangeDate={setSelectedDate}
+      podium={podium}
+      rankings={rankingsForList}
+      totalPlayers={leaderboard?.totalPlayers ?? 0}
+      avgScore={leaderboard?.avgScore ?? 0}
+      youTopPercent={leaderboard?.currentPlayer?.topPercent ?? null}
+      youFallback={youFallback}
+      onBack={() => navigate('/')}
+      onShare={share}
+      onCompare={
+        leaderboard?.currentPlayer
+          ? (userId) => navigate(`/daily/results?date=${selectedDate}&from=leaderboard&compare=${userId}`)
+          : undefined
+      }
+      onSelfClick={
+        // Only wire self-click on today's leaderboard — DailyResultsRoute
+        // reads dailyInfo from context, and cachedDaily is today's entry.
+        // Historical self-results aren't browseable from here yet.
+        // The `from=leaderboard` hint tells the results page's Close to
+        // route back here instead of the landing page.
+        leaderboard?.currentPlayer && cachedDaily && selectedDate === cachedDaily.date
+          ? () => {
+              setDailyInfo(cachedDaily);
+              navigate('/daily/results?from=leaderboard');
+            }
+          : undefined
+      }
+    />
+  );
+}

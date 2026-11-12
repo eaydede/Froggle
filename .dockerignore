@@ -4,5 +4,6 @@ server/node_modules
 engine/node_modules
 models/node_modules
 client/dist
+client/storybook-static
 .git
 .claude

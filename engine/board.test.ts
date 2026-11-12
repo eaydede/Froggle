@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateBoard, generateSeededBoard } from './board';
+import { generateBoard, generateSeededBoard } from './board.js';
 
 const VOWELS = new Set(['A', 'E', 'I', 'O', 'U']);
 const BACKBONES = new Set(['T', 'S', 'R', 'N', 'L', 'D']);

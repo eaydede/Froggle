@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { fn } from '@storybook/test';
-import { FreePlayCard } from '../pages/landing/components/FreePlayCard';
+import { FreePlayCard } from '../features/home/components/FreePlayCard';
 
 const meta: Meta<typeof FreePlayCard> = {
   title: 'Components/FreePlayCard',

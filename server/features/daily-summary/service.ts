@@ -1,0 +1,91 @@
+import { type Kysely } from 'kysely';
+import type { Database } from '../../platform/database/types.js';
+import { getDisplayNames } from '../profile/publicNames.js';
+import * as repository from './repository.js';
+
+export interface FeedbackEntry {
+  id: string;
+  userId: string | null;
+  displayName: string | null;
+  message: string;
+  createdAt: Date;
+}
+
+export interface DailySummary {
+  date: string;
+  timedDailyPlayers: number;
+  zenDailyPlayers: number;
+  zenDailyActiveSeconds: number;
+  timeIsMoneyDailyPlayers: number;
+  freePlayGames: number;
+  feedback: FeedbackEntry[];
+}
+
+// Returns aggregate engagement counts for a single PST calendar date.
+// Each table stores `date` as PST YYYY-MM-DD (see migrations), so the
+// query is a simple equality match — no timezone math needed at read
+// time. Counts vs. distinct-user counts: daily_results,
+// daily_zen_results, and daily_time_is_money_results each have a unique
+// (user_id, date) constraint, so count(*) is already a per-player count
+// for those.
+//
+// freePlayGames counts *completed* sessions only. The table now inserts
+// at /start with completed_at null, so without the filter we'd over-count
+// abandoned games. The session's `date` is rewritten on finalization to
+// the completion-PST date, so cross-midnight games still land on the day
+// they finished (matching the pre-migration semantics).
+export async function getDailySummary(
+  db: Kysely<Database>,
+  date: string,
+): Promise<DailySummary> {
+  const [timedRow, zenRow, timeIsMoneyRow, freePlayRow, feedbackRows] = await Promise.all([
+    repository.listTimedResults(db, date),
+    repository.listZenResults(db, date),
+    repository.listMoneyResults(db, date),
+    repository.listFreePlayResults(db, date),
+    // feedback.created_at is timestamptz; match rows whose PST calendar date equals `date`.
+    repository.listFeedback(db, date),
+  ]);
+
+  const userIds = feedbackRows
+    .map((row) => row.user_id)
+    .filter((id): id is string => id !== null);
+  const displayNames =
+    userIds.length > 0 ? await getDisplayNames(userIds) : new Map<string, string>();
+
+  return {
+    date,
+    timedDailyPlayers: Number(timedRow.players),
+    zenDailyPlayers: Number(zenRow.players),
+    zenDailyActiveSeconds: Number(zenRow.active_seconds ?? 0),
+    timeIsMoneyDailyPlayers: Number(timeIsMoneyRow.players),
+    freePlayGames: Number(freePlayRow.games),
+    feedback: feedbackRows.map((row) => ({
+      id: row.id,
+      userId: row.user_id,
+      displayName: row.user_id ? displayNames.get(row.user_id) ?? null : null,
+      message: row.message,
+      createdAt: row.created_at,
+    })),
+  };
+}
+
+// Returns yesterday's PST calendar date, formatted YYYY-MM-DD. "Yesterday"
+// is defined as the day before the *current* PST date — so a script running
+// at 00:30 PST on 2026-05-12 reports on 2026-05-11.
+export function getYesterdayPST(now: Date = new Date()): string {
+  const todayPST = now.toLocaleDateString('en-CA', {
+    timeZone: 'America/Los_Angeles',
+  });
+  const d = new Date(todayPST + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+export function formatActiveDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (hours === 0) return `${minutes}m`;
+  return `${hours}h ${minutes}m`;
+}

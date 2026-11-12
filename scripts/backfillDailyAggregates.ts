@@ -14,8 +14,8 @@
 
 import { Kysely, PostgresDialect, sql } from 'kysely';
 import { Pool } from 'pg';
-import { scoreResult } from '../server/services/DailyService.js';
-import type { Database } from '../server/db/types.js';
+import { scoreResult } from '../server/gameplay/scoring.js';
+import type { Database } from '../server/platform/database/types.js';
 
 async function main() {
   const connectionString = process.env.DATABASE_URL;
