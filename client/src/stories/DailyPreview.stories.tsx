@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { Board } from '../pages/game/components/Board';
-import type { FeedbackType } from '../pages/game/components/Board';
 import type { Position } from 'models';
+import { useCallback, useEffect, useState } from 'react';
+import type { FeedbackType } from '../gameplay/components/Board';
+import { Board } from '../gameplay/components/Board';
 
 // Hits the server's dev-only /api/daily/preview endpoint, which returns
 // `{ seed, config, board }` for any seed without spoiling future dailies.

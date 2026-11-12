@@ -1,8 +1,8 @@
-import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { fn } from '@storybook/test';
-import { ProfileDisplay } from '../shared/components/ProfileDisplay';
-import { LandingPage } from '../pages/landing/LandingPage';
+import { useState } from 'react';
+import { LandingPage } from '../features/home/LandingPage';
+import { ProfileDisplay } from '../ui/ProfileDisplay';
 
 const meta: Meta<typeof ProfileDisplay> = {
   title: 'Components/Profile',

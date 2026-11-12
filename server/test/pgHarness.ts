@@ -1,15 +1,15 @@
-import { execSync } from 'child_process';
-import { readdirSync, readFileSync } from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { Kysely, PostgresDialect } from 'kysely';
-import { Pool } from 'pg';
 import {
   PostgreSqlContainer,
   type StartedPostgreSqlContainer,
 } from '@testcontainers/postgresql';
-import { resetDb } from '../db/index.js';
-import type { Database } from '../db/types.js';
+import { execSync } from 'child_process';
+import { readdirSync, readFileSync } from 'fs';
+import { Kysely, PostgresDialect } from 'kysely';
+import path from 'path';
+import { Pool } from 'pg';
+import { fileURLToPath } from 'url';
+import { resetDb } from '../platform/database/index.js';
+import type { Database } from '../platform/database/types.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = path.join(__dirname, '../../supabase/migrations');
@@ -36,6 +36,7 @@ const APP_TABLES = [
   'daily_results',
   'daily_zen_results',
   'daily_gauntlet_results',
+  'daily_time_is_money_results',
   'free_play_sessions',
   'feedback',
 ] as const;

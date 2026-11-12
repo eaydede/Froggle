@@ -3,7 +3,7 @@ import {
   DEFAULT_RARE_LETTER_VALUES,
   type GauntletModifier,
 } from 'models/gauntlet';
-import { scoreGauntletWord } from './gauntletScoring';
+import { scoreGauntletWord } from './gauntletScoring.js';
 
 const regular: GauntletModifier = { kind: 'regular' };
 const hotE: GauntletModifier = { kind: 'hotLetter', letter: 'E' };

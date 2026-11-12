@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Cell } from '../shared/components/Cell';
+import { Cell } from '../ui/Cell';
 
 const DARK_BG = '#2C2C2E';
 

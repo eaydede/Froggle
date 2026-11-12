@@ -23,14 +23,8 @@
 
 import { Kysely, PostgresDialect } from 'kysely';
 import { Pool } from 'pg';
-import type { Database } from '../server/db/types.js';
-import {
-  formatActiveDuration,
-  getDailySummary,
-  getYesterdayPST,
-  type DailySummary,
-  type FeedbackEntry,
-} from '../server/services/DailySummaryService.js';
+import type { Database } from '../server/platform/database/types.js';
+import { formatActiveDuration, getDailySummary, getYesterdayPST, type DailySummary, type FeedbackEntry } from '../server/features/daily-summary/service.js';
 
 function requireEnv(name: string): string {
   const value = process.env[name];

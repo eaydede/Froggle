@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { fn } from '@storybook/test';
-import { DailyCard } from '../pages/landing/components/DailyCard';
-import { FreePlayCard } from '../pages/landing/components/FreePlayCard';
+import { DailyCard } from '../features/home/components/DailyCard';
+import { FreePlayCard } from '../features/home/components/FreePlayCard';
 
 const dailyResults = {
   words: 19,

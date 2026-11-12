@@ -1,6 +1,6 @@
 import { generateSeededBoard } from 'engine/board.js';
 import { findAllWords, type FoundWord } from 'engine/solver.js';
-import { dictionary } from '../services/dictionary.js';
+import { dictionary } from '../gameplay/dictionary.js';
 
 export interface BoardFixture {
   board: string[][];

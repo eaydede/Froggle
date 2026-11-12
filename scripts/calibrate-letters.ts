@@ -16,7 +16,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { loadDictionary } from 'engine/dictionary';
+import { loadDictionary } from '../server/platform/dictionary.js';
 import { generateBoard } from 'engine/board';
 import type { Board } from 'models';
 

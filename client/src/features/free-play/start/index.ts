@@ -1,0 +1,1 @@
+export { ConfigRoute } from "./ConfigRoute";

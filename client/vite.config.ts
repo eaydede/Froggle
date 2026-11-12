@@ -19,9 +19,9 @@ export default defineConfig({
         // HMR reloads, transport upgrades, a tab closing. These are benign
         // (there's no proxy in production), so quiet them to keep the dev
         // terminal readable; genuine proxy errors still surface.
-        configure: (proxy: { on: (event: string, cb: (err: NodeJS.ErrnoException) => void) => void }) => {
+        configure: (proxy) => {
           proxy.on('error', (err) => {
-            if (err.code === 'EPIPE' || err.code === 'ECONNRESET') return;
+            if ((err as NodeJS.ErrnoException).code === 'EPIPE' || (err as NodeJS.ErrnoException).code === 'ECONNRESET') return;
             console.warn('[socket.io proxy]', err.message);
           });
         },
