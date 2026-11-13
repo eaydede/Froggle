@@ -1,26 +1,35 @@
-import type { Position } from 'models';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ResultsInsights, ResultsSource, ResultPlayer } from 'models/results';
 import { findWordPath } from '../../../gameplay/findWordPath';
 import { IconAction } from '../../../ui/IconAction';
-import { WordDefinitionPanel } from '../components/WordDefinitionPanel';
-import { WordsCard } from '../components/WordsCard';
+import { WordDefinitionSheet } from '../components/WordDefinitionSheet';
+import { useDefinition } from '../hooks/useDefinition';
 import { RARITY_VAR, wordRarity } from '../utils/wordRarity';
 import { Board } from './components/Board';
-import { Placeholders } from './components/Placeholders';
 import { ResultsHero } from './components/ResultsHero';
 import { Standings } from './components/Standings';
-import { WordList, type DisplayWordRow } from './components/WordList';
+import { ResultsTabs, type ResultsTab } from '../recap/ResultsTabs';
+import { RecapView } from '../recap/RecapView';
+import { RunChart } from '../recap/RunChart';
+import { HighlightsView } from '../recap/HighlightsView';
+import { buildFinds } from '../recap/finds';
+import { useResultsInsights } from '../recap/api';
+import { useRunPlayback } from '../recap/useRunPlayback';
+import { useResultsMotion } from '../recap/useResultsMotion';
+import { formatTime, mergeRuns, scoreAt, timedFinds } from '../recap/run';
 import type {
-  LoadOpponentError,
   LoadOpponentResult,
   ResultsBoardConfig,
-  ResultsOpponent,
   ResultsRosterEntry,
   ResultsViewer,
+  ResultsOpponent,
 } from './types';
+import '../recap/recap.css';
 
 interface ResultsViewProps {
+  source?: ResultsSource;
+  insights?: ResultsInsights;
   /** The viewer's own results — board + found/missed words + display info. */
   me: ResultsViewer;
   board: string[][];
@@ -30,8 +39,7 @@ interface ResultsViewProps {
   boardCellBadge?: (row: number, col: number, letter: string) => ReactNode;
   config: ResultsBoardConfig;
   /** Standings roster. Must include the viewer (entry with isYou=true).
-   *  length === 1 collapses to the solo state (no standings panel; right
-   *  column becomes the share prompt). */
+   *  length === 1 collapses to the solo state without standings. */
   roster: ResultsRosterEntry[];
   /** Loader for the selected opponent's full word list. Resolves
    *  synchronously for pre-loaded data (free-play challenge), async for
@@ -49,12 +57,6 @@ interface ResultsViewProps {
    *  Money passes a formatter that shows the clock each run bought, since
    *  that's the stat the mode ranks on. */
   standingsFormatValue?: (points: number) => string;
-  /** Source label in the compare prompt ("Tap any name in the X"). */
-  compareSourceLabel?: string;
-  /** Per-word find percent — when provided, WordsCard renders the
-   *  popularity affordance in solo mode. */
-  findPercents?: Record<string, number>;
-  popularityStyle?: 'inline';
   /** Custom topbar. If omitted, a default Close/Label/Share bar is
    *  rendered using the topbar fields below. */
   topbar?: ReactNode;
@@ -65,18 +67,19 @@ interface ResultsViewProps {
   topbarOnLabelClick?: () => void;
   /** Bottom CTA row (Home/Leaderboard, or Play again). */
   bottomActions: ReactNode;
-  /** Right-column placeholder when the viewer is the only player in the
-   *  roster. Free-play defaults to a Share nudge; daily/zen pass 'wait'
-   *  since there's nothing to share — comparisons surface as other
-   *  players finish today's puzzle. */
-  soloPlaceholderVariant?: 'share' | 'wait';
   /** Optional solo-state hero override (e.g. daily/zen want HeroScore
    *  with a mode badge / rank crown). Defaults to the unified
    *  ResultsHero in solo mode. */
   soloHero?: ReactNode;
 }
 
-export function ResultsView({
+export function ResultsView(props: ResultsViewProps) {
+  return (
+    <ResultsScreen key={JSON.stringify(props.source) ?? props.board.flat().join(',')} {...props} />
+  );
+}
+
+function ResultsScreen({
   me,
   board,
   boardCellBadge,
@@ -87,9 +90,6 @@ export function ResultsView({
   standingsHeader = 'Standings',
   standingsShowBars = false,
   standingsFormatValue,
-  compareSourceLabel = 'standings',
-  findPercents,
-  popularityStyle,
   topbar,
   topbarLabel,
   topbarOnClose,
@@ -98,108 +98,170 @@ export function ResultsView({
   topbarOnLabelClick,
   bottomActions,
   soloHero,
-  soloPlaceholderVariant = 'share',
+  source,
+  insights: providedInsights,
 }: ResultsViewProps) {
-  const [highlightedWord, setHighlightedWord] = useState<string | null>(null);
-  const [highlightPath, setHighlightPath] = useState<Position[] | null>(null);
+  const {
+    insights,
+    error: insightsError,
+    loading: insightsLoading,
+  } = useResultsInsights(source, providedInsights);
+  const [view, setView] = useState<ResultsTab>('recap');
+  const [run, setRun] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const [selected, setSelected] = useState<string | null>(null);
   const [opponentId, setOpponentId] = useState<string | null>(null);
   const [opponent, setOpponent] = useState<ResultsOpponent | null>(null);
   const [opponentLoading, setOpponentLoading] = useState(false);
-  const [opponentError, setOpponentError] = useState<LoadOpponentError | null>(null);
-  const loadedInitialRef = useRef<string | null>(null);
+  const [opponentError, setOpponentError] = useState<string | null>(null);
+  const [sheetWord, setSheetWord] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const request = useRef(0);
+  const initialLoaded = useRef(false);
+  const scroller = useRef<HTMLDivElement>(null);
+  const { body, comparisonLayer, captureRows, captureComparison } = useResultsMotion(
+    view,
+    run,
+    opponent?.id ?? null,
+  );
 
-  const meRow = roster.find((r) => r.isYou) ?? null;
-  const isMulti = roster.length > 1;
-
-  const handleHighlight = (word: string | null, path: Position[] | null) => {
-    setHighlightedWord(word ? word.toUpperCase() : null);
-    setHighlightPath(path);
+  const meRow = roster.find((r) => r.isYou);
+  const recordedMe = insights?.players.find((p) => p.isYou);
+  const recordedOpponent = insights?.players.find((p) => p.id === opponent?.id);
+  const yours = useMemo(() => buildFinds(me.foundWords, recordedMe), [me.foundWords, recordedMe]);
+  const theirs = useMemo(
+    () => (opponent ? buildFinds(opponent.foundWords, recordedOpponent) : null),
+    [opponent, recordedOpponent],
+  );
+  const all = [
+    ...yours,
+    ...me.missedWords.map((w) => ({ ...w, word: w.word.toUpperCase(), time: null })),
+  ];
+  const yourRun = timedFinds(yours, 'you');
+  const oppRun = theirs ? timedFinds(theirs, 'opp') : null;
+  const hasTiming =
+    !!recordedMe && yourRun !== null && (!opponent || (!!recordedOpponent && oppRun !== null));
+  const duration = Math.max(
+    1,
+    config.timeLimit,
+    recordedMe?.duration ?? 0,
+    recordedOpponent?.duration ?? 0,
+    recordedMe?.timeLimit ?? 0,
+    recordedOpponent?.timeLimit ?? 0,
+  );
+  const playback = useRunPlayback(duration);
+  const live =
+    run &&
+    view === 'recap' &&
+    hasTiming &&
+    (playback.playing || playback.scrubbing || playback.time < duration);
+  const events = mergeRuns(yourRun ?? [], oppRun ?? []);
+  const current = live ? events.filter((f) => f.time <= playback.time).slice(-1)[0] : null;
+  const focus = live ? (current?.word ?? null) : selected;
+  const highlightPath = useMemo(() => (focus ? findWordPath(board, focus) : null), [board, focus]);
+  const focusScore =
+    all.find((w) => w.word === focus)?.score ?? theirs?.find((w) => w.word === focus)?.score;
+  const highlightColor = focusScore ? RARITY_VAR[wordRarity(focusScore)] : null;
+  const { definition, loading: definitionLoading } = useDefinition(selected);
+  const sheet = useDefinition(sheetWord);
+  const reset = () => {
+    playback.reset();
+    setSelected(null);
   };
-
+  const selectView = (tab: ResultsTab) => {
+    if (tab !== view) {
+      reset();
+      setView(tab);
+    }
+  };
+  const selectRun = (next: boolean) => {
+    if (next !== run) {
+      captureRows();
+      reset();
+      setRun(next);
+      setShowAll(false);
+    }
+  };
   const clearOpponent = () => {
+    request.current++;
+    if (opponent) captureComparison();
     setOpponentId(null);
     setOpponent(null);
     setOpponentError(null);
     setOpponentLoading(false);
-    setHighlightedWord(null);
-    setHighlightPath(null);
+    reset();
   };
-
-  const handleSelectOpponent = async (id: string) => {
-    if (!loadOpponent) return;
-    if (opponentId === id) {
+  const selectOpponent = async (id: string) => {
+    if (id === meRow?.id) return;
+    if (id === opponentId) {
       clearOpponent();
       return;
     }
-    // Keep the previous opponent's data visible while loading so the
-    // versus hero + aligned word lists don't collapse to solo for a
-    // frame between selections.
+    if (!loadOpponent) return;
+    const version = ++request.current;
+    playback.seek(playback.time);
     setOpponentId(id);
-    setOpponentError(null);
     setOpponentLoading(true);
-    setHighlightedWord(null);
-    setHighlightPath(null);
-
-    const result = await loadOpponent(id);
-    setOpponentLoading(false);
-    if (result.ok) {
-      setOpponent(result.opponent);
-    } else {
-      setOpponent(null);
-      setOpponentError(result.error);
+    setOpponentError(null);
+    try {
+      const result = await loadOpponent(id);
+      if (request.current !== version) return;
+      if (result.ok) {
+        captureComparison();
+        reset();
+        setShowAll(false);
+        setView('recap');
+        setOpponent(result.opponent);
+      } else {
+        setOpponentId(opponent?.id ?? null);
+        setOpponentError(opponentErrorLabel(result.error));
+      }
+    } catch {
+      if (request.current === version) {
+        setOpponentId(opponent?.id ?? null);
+        setOpponentError("Couldn't load that comparison.");
+      }
+    } finally {
+      if (request.current === version) setOpponentLoading(false);
     }
   };
-
   useEffect(() => {
-    if (!initialOpponentId || !loadOpponent) return;
-    if (loadedInitialRef.current === initialOpponentId) return;
-    loadedInitialRef.current = initialOpponentId;
-    void handleSelectOpponent(initialOpponentId);
-    // handleSelectOpponent intentionally stays local; this effect is
-    // keyed only by the URL-provided opponent and loader availability.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!initialOpponentId || !loadOpponent || initialLoaded.current) return;
+    initialLoaded.current = true;
+    void selectOpponent(initialOpponentId);
   }, [initialOpponentId, loadOpponent]);
-
-  // When the hero is in versus mode, the highlighted-word path comes from
-  // an on-the-fly solve over the shared board so opponent-only words
-  // light up too.
-  const comparePathByWord = useMemo(
-    () => (opponent ? buildComparePathMap(board, me, opponent) : null),
-    [opponent, board, me],
-  );
-
-  const activeHighlightPath = useMemo(() => {
-    if (!opponent || !comparePathByWord || !highlightedWord) return highlightPath;
-    return comparePathByWord.get(highlightedWord) ?? null;
-  }, [opponent, comparePathByWord, highlightedWord, highlightPath]);
-
-  // Tint the board's animated cells with the rarity color of the word being
-  // replayed, so the preview matches the rarity stripe in the word list. In
-  // compare mode either side may own the word but not both, so look in both.
-  const highlightColor = useMemo(() => {
-    if (!highlightedWord) return null;
-    const score =
-      me.foundWords.find((w) => w.word.toUpperCase() === highlightedWord)?.score ??
-      opponent?.foundWords.find((w) => w.word.toUpperCase() === highlightedWord)
-        ?.score;
-    if (!score || score <= 0) return null;
-    return RARITY_VAR[wordRarity(score)];
-  }, [highlightedWord, me.foundWords, opponent]);
-
-  const youCompareRows = useMemo(
-    () => (opponent ? alignedRows(me, opponent, 'you', highlightedWord) : null),
-    [opponent, me, highlightedWord],
-  );
-  const oppCompareRows = useMemo(
-    () => (opponent ? alignedRows(me, opponent, 'opp', highlightedWord) : null),
-    [opponent, me, highlightedWord],
-  );
-
-  const scrollSync = useScrollSync(!!opponent);
-
-  const opponentRosterRow = opponent
-    ? roster.find((r) => r.id === opponent.id) ?? null
-    : null;
+  const selectWord = (word: string, time?: number | null) => {
+    const same = selected === word;
+    setSelected(same ? null : word);
+    if (run && hasTiming && time != null)
+      playback.seek(same ? duration : Math.min(duration, time + 0.4));
+  };
+  const fallbackPlayer: ResultPlayer = {
+    id: meRow?.id ?? 'you',
+    displayName: 'You',
+    isYou: true,
+    finds: yours,
+    duration: config.timeLimit,
+    timeLimit: config.timeLimit,
+  };
+  const players = insights?.players ?? [fallbackPlayer];
+  const playerCount = insights?.players.length ?? Math.max(1, roster.length);
+  const nowMe = live
+    ? {
+        ...me,
+        points: scoreAt(yourRun!, playback.time),
+        wordCount: yourRun!.filter((f) => f.time <= playback.time).length,
+      }
+    : me;
+  const nowOpponent =
+    opponent && live
+      ? {
+          ...opponent,
+          points: scoreAt(oppRun!, playback.time),
+          wordCount: oppRun!.filter((f) => f.time <= playback.time).length,
+        }
+      : opponent;
+  const opponentRow = roster.find((r) => r.id === opponent?.id);
 
   return (
     <div className="fixed inset-0 flex justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] overflow-hidden">
@@ -216,52 +278,31 @@ export function ResultsView({
             onLabelClick={topbarOnLabelClick}
           />
         )}
-
-        <div
-          key={opponent ? 'hero-versus' : 'hero-solo'}
-          className="shrink-0 results-region-fade-in"
-        >
-          {opponent && meRow && opponentRosterRow ? (
-            <ResultsHero
-              me={{
-                displayName: 'You',
-                points: me.points,
-                wordCount: me.wordCount,
-              }}
-              myRank={meRow.rank}
-              totalPlayers={roster.length}
-              opponent={{
-                displayName: opponent.displayName,
-                points: opponent.points,
-                wordCount: opponent.wordCount,
-              }}
-              oppRank={opponentRosterRow.rank}
-              compact
-            />
+        <div className="shrink-0">
+          {!opponent && !live && soloHero ? (
+            soloHero
           ) : (
-            soloHero ?? (
-              <ResultsHero
-                me={{
-                  displayName: me.displayName,
-                  points: me.points,
-                  wordCount: me.wordCount,
-                }}
-                myRank={meRow?.rank ?? 1}
-                totalPlayers={roster.length}
-                opponent={null}
-                oppRank={null}
-                compact
-              />
-            )
+            <ResultsHero
+              me={nowMe}
+              myRank={meRow?.rank ?? null}
+              totalPlayers={roster.length}
+              opponent={nowOpponent}
+              oppRank={opponentRow?.rank ?? null}
+              compact
+              liveSubtitle={
+                live && !opponent
+                  ? `${formatTime(playback.time)} · ${nowMe.wordCount} of ${me.wordCount} words`
+                  : undefined
+              }
+            />
           )}
         </div>
-
         <section className="flex items-stretch gap-2 shrink-0 box-border">
-          {isMulti && (
+          {roster.length > 1 && (
             <Standings
               rows={roster}
               selectedId={opponentId}
-              onSelect={handleSelectOpponent}
+              onSelect={selectOpponent}
               header={standingsHeader}
               compact
               maxHeight="160px"
@@ -269,10 +310,10 @@ export function ResultsView({
               formatValue={standingsFormatValue}
             />
           )}
-          <div className={isMulti ? '' : 'flex-1 flex justify-center'}>
+          <div className={roster.length > 1 ? '' : 'flex-1 flex justify-center'}>
             <Board
               board={board}
-              highlightPath={activeHighlightPath}
+              highlightPath={highlightPath}
               highlightColor={highlightColor}
               config={config}
               compact
@@ -280,85 +321,144 @@ export function ResultsView({
             />
           </div>
         </section>
-
-        <section className="flex justify-between items-stretch gap-2 flex-1 min-h-0 box-border">
-          <div
-            key={opponent ? 'opp-compare' : 'placeholders-solo'}
-            className="w-1/2 flex flex-col min-h-0 results-region-fade-in"
-          >
-            {opponent && oppCompareRows ? (
-              <WordList
-                side="opp"
-                headerLabel={`${opponent.displayName} · ${opponent.wordCount}`}
-                headerTrail={String(opponent.points)}
-                footer={{ label: 'Stop', arrow: '›', onClick: clearOpponent }}
-                rows={oppCompareRows}
-                onWordTap={(w) => {
-                  const normalized = w.toUpperCase();
-                  setHighlightedWord((prev) =>
-                    prev === normalized ? null : normalized,
-                  );
-                  setHighlightPath(null);
-                }}
-                scrollSync={scrollSync.left}
-                compact
-              />
-            ) : (
-              <Placeholders
-                variant={isMulti ? 'compare' : soloPlaceholderVariant}
-                onShare={!isMulti && soloPlaceholderVariant === 'share' ? topbarOnShare : undefined}
-                compact
-                compareSourceLabel={compareSourceLabel}
-                definitionSlot={
-                  opponentLoading ? (
-                    <InlineStatus label="Loading comparison" />
-                  ) : opponentError ? (
-                    <InlineStatus label={opponentErrorLabel(opponentError)} />
-                  ) : highlightedWord ? (
-                    <WordDefinitionPanel word={highlightedWord} fitContainer />
-                  ) : undefined
-                }
-              />
-            )}
-          </div>
-          <div
-            key={opponent ? 'you-compare' : 'words-solo'}
-            className="w-1/2 flex flex-col min-h-0 results-region-fade-in"
-          >
-            {opponent && youCompareRows ? (
-              <WordList
-                side="you"
-                headerLabel={`You · ${me.wordCount}`}
-                headerTrail={String(me.points)}
-                rows={youCompareRows}
-                onWordTap={(w) => {
-                  const normalized = w.toUpperCase();
-                  setHighlightedWord((prev) =>
-                    prev === normalized ? null : normalized,
-                  );
-                  setHighlightPath(null);
-                }}
-                scrollSync={scrollSync.right}
-                compact
-              />
-            ) : (
-              <WordsCard
-                foundWords={me.foundWords}
-                missedWords={me.missedWords}
-                showMissedTab={me.missedWords.length > 0}
-                highlightedWord={highlightedWord}
-                onHighlightWord={handleHighlight}
-                findPercents={findPercents}
-                popularityStyle={popularityStyle}
-              />
-            )}
+        <section className="results-recap">
+          <ResultsTabs
+            view={view}
+            onView={selectView}
+            run={run}
+            onRun={selectRun}
+            canRun={!insightsLoading}
+            comparing={opponentId !== null}
+            onExit={clearOpponent}
+            meta={`${playerCount} ${playerCount === 1 ? 'player' : 'players'}`}
+          />
+          {opponentLoading && (
+            <div role="status" className="results-comparison-status">
+              Loading comparison…
+            </div>
+          )}
+          {opponentError && (
+            <div role="alert" className="results-status">
+              {opponentError}
+            </div>
+          )}
+          <div className="results-view-region">
+            <div
+              ref={body}
+              id="results-panel"
+              role="tabpanel"
+              aria-busy={opponentLoading}
+              aria-labelledby={`results-tab-${view}`}
+              className="results-view-body"
+            >
+              {view === 'recap' && (
+                <>
+                  {run &&
+                    (hasTiming ? (
+                      <RunChart
+                        you={yourRun!}
+                        opponent={opponent ? oppRun : null}
+                        duration={duration}
+                        yourFinish={recordedMe?.duration ?? duration}
+                        opponentFinish={recordedOpponent?.duration ?? duration}
+                        time={playback.time}
+                        playing={playback.playing}
+                        live={live}
+                        onPlay={() => {
+                          setSelected(null);
+                          if (playback.time >= duration && scroller.current)
+                            scroller.current.scrollTop = 0;
+                          playback.toggle();
+                        }}
+                        onScrub={(time) => {
+                          setSelected(null);
+                          playback.seek(time);
+                        }}
+                        onScrubbing={playback.setScrubbing}
+                      />
+                    ) : (
+                      <p className="results-status">
+                        {insightsError ? (
+                          'Couldn’t load run data. Try reloading this page.'
+                        ) : (
+                          <>
+                            Timestamps weren’t recorded for this game.
+                            <br />
+                            Showing find order.
+                          </>
+                        )}
+                      </p>
+                    ))}
+                  <RecapView
+                    yours={yours}
+                    theirs={theirs}
+                    all={all}
+                    opponentName={opponent?.displayName}
+                    run={run}
+                    hasTiming={hasTiming}
+                    events={events}
+                    showAll={showAll}
+                    onShowAll={() => {
+                      setShowAll(!showAll);
+                      setSelected(null);
+                      if (scroller.current) scroller.current.scrollTop = 0;
+                    }}
+                    selected={selected}
+                    currentKey={current?.key ?? null}
+                    live={live}
+                    time={playback.time}
+                    onSelect={selectWord}
+                    peek={
+                      definitionLoading
+                        ? 'Looking up…'
+                        : (definition?.meanings[0]?.definitions[0]?.definition ??
+                          'No definition found')
+                    }
+                    onDefinition={() => {
+                      setSheetWord(selected);
+                      setSheetOpen(true);
+                    }}
+                    scroller={scroller}
+                  />
+                </>
+              )}
+              {view === 'highlights' &&
+                (insightsLoading ? (
+                  <p className="results-status">Loading highlights…</p>
+                ) : insightsError ? (
+                  <p role="alert" className="results-status">
+                    Couldn’t load the field’s highlights.
+                  </p>
+                ) : (
+                  <HighlightsView
+                    players={players}
+                    selected={selected}
+                    onSelect={selectWord}
+                    onCompare={selectOpponent}
+                  />
+                ))}
+            </div>
+            <div ref={comparisonLayer} className="results-transition-layer" aria-hidden="true" />
           </div>
         </section>
-
         <div className="shrink-0">{bottomActions}</div>
       </main>
+      <WordDefinitionSheet
+        open={sheetOpen}
+        word={sheetWord ?? ''}
+        definition={sheet.definition}
+        loading={sheet.loading}
+        onClose={() => setSheetOpen(false)}
+      />
     </div>
   );
+}
+
+function opponentErrorLabel(error: string): string {
+  if (error === 'unplayed') return "Finish today's puzzle first.";
+  if (error === 'opponent-missing') return "That player doesn't have a result yet.";
+  if (error === 'forbidden') return 'Pick another player to compare.';
+  return "Couldn't load that comparison.";
 }
 
 function DefaultTopbar({
@@ -380,7 +480,14 @@ function DefaultTopbar({
       style={{ gridTemplateColumns: '32px 1fr 32px' }}
     >
       <IconAction onClick={onClose} label="Close">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="M18 6L6 18M6 6l12 12" />
         </svg>
       </IconAction>
@@ -401,11 +508,25 @@ function DefaultTopbar({
       </div>
       <IconAction onClick={onShare} label={shareCopied ? 'Copied to clipboard' : 'Share'}>
         {shareCopied ? (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <polyline points="20 6 9 17 4 12" />
           </svg>
         ) : (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
             <polyline points="16 6 12 2 8 6" />
             <line x1="12" y1="2" x2="12" y2="15" />
@@ -414,117 +535,4 @@ function DefaultTopbar({
       </IconAction>
     </header>
   );
-}
-
-function InlineStatus({ label }: { label: string }) {
-  return (
-    <div
-      className="w-full h-full flex items-center justify-center text-center rounded-xl px-3 py-2 text-[10px] italic leading-[1.35] text-[color:var(--ink-soft)] font-[family-name:var(--font-display)]"
-      style={{ border: '1.5px dashed var(--ink-faint)', background: 'transparent' }}
-    >
-      {label}
-    </div>
-  );
-}
-
-function opponentErrorLabel(error: string): string {
-  if (error === 'unplayed') return "Finish today's puzzle first.";
-  if (error === 'opponent-missing') return "That player doesn't have a result yet.";
-  if (error === 'forbidden') return 'Pick another player to compare.';
-  return "Couldn't load that comparison.";
-}
-
-function buildComparePathMap(
-  board: string[][],
-  me: ResultsViewer,
-  opponent: ResultsOpponent,
-): Map<string, Position[]> {
-  const map = new Map<string, Position[]>();
-  const allWords = new Set<string>();
-  for (const w of me.foundWords) allWords.add(w.word.toUpperCase());
-  for (const w of opponent.foundWords) allWords.add(w.word.toUpperCase());
-  for (const word of allWords) {
-    const path = findWordPath(board, word);
-    if (path) map.set(word, path);
-  }
-  return map;
-}
-
-function alignedRows(
-  me: ResultsViewer,
-  opponent: ResultsOpponent,
-  side: 'you' | 'opp',
-  highlightedWord: string | null,
-): DisplayWordRow[] {
-  const youMap = new Map(me.foundWords.map((w) => [w.word.toUpperCase(), w]));
-  const oppMap = new Map(
-    opponent.foundWords.map((w) => [w.word.toUpperCase(), w]),
-  );
-  const union = new Set<string>([...youMap.keys(), ...oppMap.keys()]);
-
-  const entries = Array.from(union).map((word) => {
-    const youWord = youMap.get(word);
-    const oppWord = oppMap.get(word);
-    const score = Math.max(youWord?.score ?? 0, oppWord?.score ?? 0);
-    return { word, score, youWord, oppWord };
-  });
-  entries.sort((a, b) => b.score - a.score || a.word.localeCompare(b.word));
-
-  return entries.map((e) => {
-    const onThisSide = side === 'you' ? e.youWord : e.oppWord;
-    const onOtherSide = side === 'you' ? e.oppWord : e.youWord;
-    if (!onThisSide) {
-      return { key: `${side}:${e.word}`, word: null, score: e.score };
-    }
-    return {
-      key: `${side}:${e.word}`,
-      word: e.word,
-      score: e.score,
-      unique: !onOtherSide,
-      highlighted: highlightedWord === e.word,
-    };
-  });
-}
-
-function useScrollSync(active: boolean) {
-  const leftRef = useRef<HTMLDivElement | null>(null);
-  const rightRef = useRef<HTMLDivElement | null>(null);
-  // Per-side "ignore the next scroll event" flags. When we programmatically
-  // set scrollTop on the other side, that write queues a scroll event we
-  // must drop so it doesn't echo back. A single shared flag would also
-  // swallow legitimate follow-up scrolls from the active side that fire
-  // before rAF clears it — which is what made momentum scrolling stutter.
-  const ignoreNextRef = useRef({ left: false, right: false });
-
-  const sync = (source: 'left' | 'right') => {
-    if (!active) return;
-    if (ignoreNextRef.current[source]) {
-      ignoreNextRef.current[source] = false;
-      return;
-    }
-    const from = source === 'left' ? leftRef.current : rightRef.current;
-    const to = source === 'left' ? rightRef.current : leftRef.current;
-    if (!from || !to) return;
-    if (to.scrollTop !== from.scrollTop) {
-      ignoreNextRef.current[source === 'left' ? 'right' : 'left'] = true;
-      to.scrollTop = from.scrollTop;
-    }
-  };
-
-  return {
-    left: {
-      register: (el: HTMLDivElement | null) => {
-        if (leftRef.current) leftRef.current.onscroll = null;
-        leftRef.current = el;
-        if (el) el.onscroll = () => sync('left');
-      },
-    },
-    right: {
-      register: (el: HTMLDivElement | null) => {
-        if (rightRef.current) rightRef.current.onscroll = null;
-        rightRef.current = el;
-        if (el) el.onscroll = () => sync('right');
-      },
-    },
-  };
 }

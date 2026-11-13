@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setBoardCompletionHandler } from './history.js';
-import { createRoom, endBoard, getRoom, joinRoom, leaveRoom, startBoard } from './service.js';
+import { createRoom, endBoard, getRoom, joinRoom, leaveRoom, startBoard, markPlayerFinished, getRoomResultsForUser } from './service.js';
 import { type RoomBoardCompletion } from './types.js';
 
 // The store defers a finished board's history write until the post-end grace
@@ -121,4 +121,26 @@ describe('room board history persistence', () => {
     expect(completions).toHaveLength(1);
     expect(completions[0].hostUserId).toBe('user-1');
   });
+  it('keeps an early player finish separate from the board finish in live and saved results', () => {
+    const { code } = createRoom();
+    joinRoom(code, 'early', 'Alice', 'user-1');
+    joinRoom(code, 'full', 'Bob', 'user-2');
+    startBoard(code, () => {});
+    const room = getRoom(code)!;
+    const start = room.currentBoard!.startedAt;
+    const alice = room.players[0];
+    vi.setSystemTime(start + 10000);
+    markPlayerFinished(code, alice.id);
+    vi.setSystemTime(start + 30000);
+    endBoard(code);
+    const results = getRoomResultsForUser(code, 'user-1', alice.id)!;
+    expect(results.players[0].duration).toBe(10);
+    expect(results.players[1].duration).toBe(30);
+    vi.advanceTimersByTime(1000);
+    expect(completions[0].participants[0].finishedAt).toBe(start + 10000);
+    expect(completions[0].participants[1].finishedAt).toBe(start + 30000);
+    startBoard(code, () => {});
+    expect(room.players.every(p => p.finishedAt === undefined)).toBe(true);
+  });
+
 });

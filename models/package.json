@@ -10,7 +10,8 @@
     "./zenRanks": "./zenRanks.ts",
     "./gauntlet": "./gauntlet.ts",
     "./timeIsMoney": "./timeIsMoney.ts",
-    "./multiplayer": "./multiplayer.ts"
+    "./multiplayer": "./multiplayer.ts",
+    "./results": "./results.ts"
   },
   "private": true
 }

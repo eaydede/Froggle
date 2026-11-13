@@ -10,6 +10,7 @@ test.beforeEach(async ({ request }) => { await request.post(`${authServer}/__tes
 
 test('private session APIs require identity and malformed paths cannot crash a game', async ({ request }) => {
   expect((await request.get('/api/game/active')).status()).toBe(401);
+  expect((await request.get('/api/results/insights?mode=timed&date=2026-11-12')).status()).toBe(401);
   expect((await request.get('/api/freeplay/history')).status()).toBe(401);
   const headers = await identity(request);
   const start = await request.post('/api/game/start', { headers, data: { durationSeconds: 120, boardSize: 4, minWordLength: 3, seed: 123 } });
@@ -27,6 +28,10 @@ test('saved results are owner-only and challenge words stay hidden until partici
   const ended = await request.post('/api/game/end', { headers: owner });
   const sessionId = (await ended.json()).freePlaySessionId;
   expect(typeof sessionId).toBe('string');
+  expect((await request.get(`/api/results/insights?mode=freeplay&sessionId=${sessionId}`, { headers: stranger })).status()).toBe(404);
+  expect((await request.get(`/api/results/insights?mode=freeplay&sessionId=${sessionId}`, { headers: owner })).status()).toBe(200);
+  expect((await request.get('/api/results/insights?mode=invalid', { headers: owner })).status()).toBe(400);
+  expect((await request.get('/api/results/insights?mode=freeplay&sessionId=------------------------------------', { headers: owner })).status()).toBe(400);
   expect((await request.get(`/api/freeplay/session/${sessionId}`, { headers: stranger })).status()).toBe(403);
   const shared = await request.post(`/api/freeplay/share/${sessionId}`, { headers: owner });
   const challengeId = (await shared.json()).challengeId;

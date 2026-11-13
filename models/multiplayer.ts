@@ -40,6 +40,9 @@ export interface MultiplayerPlayer {
    *  starts so the lobby card numbers reflect the latest round, not a
    *  stale aggregate. */
   foundWords: string[];
+  wordTimes?: Record<string, number>;
+  /** End/departure time for this player on the current board. */
+  finishedAt?: number;
   /** Whether the socket is currently connected. Disconnected players
    *  stay in the roster (key-based identity) so reconnects slot back in. */
   connected: boolean;

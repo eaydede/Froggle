@@ -2,7 +2,7 @@ import { scoreWord } from 'engine/scoring.js';
 import { findAllWords } from 'engine/solver.js';
 import { describe, expect, it } from 'vitest';
 import { dictionary } from '../../gameplay/dictionary.js';
-import { createRoom, getRoom, joinRoom, startBoard, submitWord } from './service.js';
+import { createRoom, getRoom, joinRoom, startBoard, submitWord, endBoard, getRoomResultsForUser } from './service.js';
 
 // In-memory characterization of multiplayer submitWord. The validate/derive/
 // dedupe/score middle now delegates to the shared engine core; these lock the
@@ -37,6 +37,8 @@ describe('multiplayer submitWord (characterization)', () => {
     expect(player.foundWords).toEqual([short.word, long.word]);
     expect(player.points).toBe(scoreWord(short.word) + scoreWord(long.word));
     expect(player.wordCount).toBe(2);
+    expect(player.wordTimes?.[short.word]).toBeGreaterThan(0);
+    expect(player.wordTimes?.[long.word]).toBeGreaterThanOrEqual(player.wordTimes![short.word]);
   });
 
   it('rejects a duplicate with reason "repeat" and surfaces the word', () => {
@@ -52,4 +54,15 @@ describe('multiplayer submitWord (characterization)', () => {
     const res = submitWord(code, player.id, [{ row: 0, col: 0 }, { row: last, col: last }]);
     expect(res?.outcome).toEqual({ valid: false, reason: 'invalid' });
   });
+  it('keeps room timing private to participants and clears it for the next board', () => {
+    const { code, player, words } = liveBoard();
+    submitWord(code, player.id, words[0].path);
+    expect(getRoomResultsForUser(code, 'user-1', player.id)).toBeNull();
+    endBoard(code);
+    expect(getRoomResultsForUser(code, 'stranger', player.id)).toBeNull();
+    expect(getRoomResultsForUser(code, 'user-1', player.id)?.players[0].finds[0].time).toBeGreaterThan(0);
+    startBoard(code, () => {});
+    expect(player.wordTimes).toEqual({});
+  });
+
 });

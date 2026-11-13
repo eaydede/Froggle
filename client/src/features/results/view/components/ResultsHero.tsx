@@ -6,11 +6,12 @@ export interface HeroPlayer {
 
 interface ResultsHeroProps {
   me: HeroPlayer;
-  myRank: number;
+  myRank: number | null;
   totalPlayers: number;
   opponent: HeroPlayer | null;
   oppRank: number | null;
   compact?: boolean;
+  liveSubtitle?: string;
 }
 
 // Fixed-height hero so toggling between solo and versus modes doesn't
@@ -23,10 +24,11 @@ export function ResultsHero({
   opponent,
   oppRank,
   compact = false,
+  liveSubtitle,
 }: ResultsHeroProps) {
   return (
     <section className={`shrink-0 box-border flex items-center justify-center ${compact ? 'pt-2 pb-1 h-[82px]' : 'pt-3 pb-2 h-[96px]'}`}>
-      {opponent && oppRank !== null ? (
+      {opponent ? (
         <VersusHero
           me={me}
           myRank={myRank}
@@ -35,7 +37,7 @@ export function ResultsHero({
           compact={compact}
         />
       ) : (
-        <SoloHero player={me} rank={myRank} totalPlayers={totalPlayers} compact={compact} />
+        <SoloHero player={me} rank={myRank} totalPlayers={totalPlayers} compact={compact} liveSubtitle={liveSubtitle} />
       )}
     </section>
   );
@@ -46,21 +48,23 @@ function SoloHero({
   rank,
   totalPlayers,
   compact,
+  liveSubtitle,
 }: {
+  liveSubtitle?: string;
   player: HeroPlayer;
-  rank: number;
+  rank: number | null;
   totalPlayers: number;
   compact: boolean;
 }) {
   // "Rank 1 of 1" reads as filler when nobody else has played — drop
   // the rank phrase entirely until there's someone to be ranked against.
-  const showRank = totalPlayers > 1;
+  const showRank = totalPlayers > 1 && rank !== null;
   return (
     <div className="text-center">
       <div className="inline-flex items-baseline gap-1.5 leading-none">
         <span
           className={`${compact ? 'text-[2.5rem]' : 'text-display-lg'} tabular-nums font-[family-name:var(--font-structure)]`}
-          style={{ fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 0.95 }}
+          style={{ fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 0.95, color: liveSubtitle ? 'var(--you-accent)' : undefined }}
         >
           {player.points}
         </span>
@@ -76,8 +80,7 @@ function SoloHero({
         style={{ fontWeight: 500 }}
       >
         <span>
-          {player.wordCount} {player.wordCount === 1 ? 'word' : 'words'}
-          {showRank ? ` · rank ${rank} of ${totalPlayers}` : ''}
+          {liveSubtitle ?? `${player.wordCount} ${player.wordCount === 1 ? 'word' : 'words'}${showRank ? ` · rank ${rank} of ${totalPlayers}` : ''}`}
         </span>
       </div>
     </div>
@@ -92,9 +95,9 @@ function VersusHero({
   compact,
 }: {
   me: HeroPlayer;
-  myRank: number;
+  myRank: number | null;
   opponent: HeroPlayer;
-  oppRank: number;
+  oppRank: number | null;
   compact: boolean;
 }) {
   const diff = me.points - opponent.points;
@@ -171,7 +174,7 @@ function VersusCard({
   initial?: string;
   score: number;
   wordCount: number;
-  rank: number;
+  rank: number | null;
   isWinner: boolean;
   align: 'left' | 'right';
   compact: boolean;
@@ -219,7 +222,7 @@ function VersusCard({
         className={`flex items-center gap-1.5 min-w-0 ${align === 'right' ? 'justify-end' : ''}`}
       >
         {align === 'left' && <Initial char={initialChar} accent={accent} />}
-        {align === 'right' && <RankBadge rank={rank} />}
+        {align === 'right' && rank !== null && <RankBadge rank={rank} />}
         <span
           className="uppercase truncate font-[family-name:var(--font-structure)] text-label-xs tracking-[0.12em] leading-none text-[color:var(--ink-soft)] min-w-0"
           style={{ fontWeight: 700 }}
@@ -227,7 +230,7 @@ function VersusCard({
         >
           {name}
         </span>
-        {align === 'left' && <RankBadge rank={rank} />}
+        {align === 'left' && rank !== null && <RankBadge rank={rank} />}
         {align === 'right' && <Initial char={initialChar} accent={accent} />}
       </div>
       <div className="inline-flex items-baseline gap-1 mt-1 leading-none">

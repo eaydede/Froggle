@@ -221,6 +221,7 @@ export function RoomResults({
   // and on results they're visible via Standings.
   return (
     <ResultsView
+      source={{ mode: 'room', code: room.code, playerId: me.id }}
       me={viewer}
       board={board.board}
       config={{
@@ -232,7 +233,6 @@ export function RoomResults({
       loadOpponent={loadOpponent}
       standingsHeader="Standings"
       standingsShowBars
-      compareSourceLabel="standings"
       topbarLabel={isSolo ? 'Free Play' : `Room · ${room.code}`}
       topbarOnClose={onLeave}
       topbarOnShare={share}
@@ -247,7 +247,6 @@ export function RoomResults({
           nextLabel={isSolo ? 'Play again' : 'Next round'}
         />
       }
-      soloPlaceholderVariant="share"
     />
   );
 }

@@ -4,6 +4,7 @@ export interface DailyResultsTable {
   id: Generated<string>;
   user_id: string;
   date: string;
+  word_times: Generated<Record<string, number> | null>;
   found_words: Generated<string>; // JSON string
   board: string; // JSON string
   completed_at: Generated<Date>;
@@ -21,6 +22,7 @@ export interface DailyZenResultsTable {
   id: Generated<string>;
   user_id: string;
   date: string;
+  word_times: Generated<Record<string, number> | null>;
   found_words: Generated<string>;
   board: string;
   started_at: Generated<Date>;
@@ -39,6 +41,7 @@ export interface FreePlaySessionsTable {
   id: Generated<string>;
   user_id: string | null;
   date: string;
+  word_times: Generated<Record<string, number> | null>;
   found_words: Generated<string>;
   board: string;
   started_at: Generated<Date>;
@@ -69,6 +72,7 @@ export interface DailyGauntletResultsTable {
   round_kind: string;
   board: string; // JSON string
   modifier: string; // JSON string
+  word_times: Generated<Record<string, number> | null>;
   found_words: Generated<string>; // JSON string
   points: Generated<number>;
   word_count: Generated<number>;
@@ -86,6 +90,7 @@ export interface DailyTimeIsMoneyResultsTable {
   user_id: string;
   date: string;
   board: string; // JSON string
+  word_times: Generated<Record<string, number> | null>;
   found_words: Generated<string>; // JSON string
   points: Generated<number>;
   word_count: Generated<number>;

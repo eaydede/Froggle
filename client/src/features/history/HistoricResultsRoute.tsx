@@ -89,6 +89,7 @@ export function HistoricResultsRoute() {
 
   return (
     <ResultsView
+      source={{ mode: 'freeplay', sessionId: data.sessionId }}
       me={{
         displayName: 'You',
         points: totalPoints,

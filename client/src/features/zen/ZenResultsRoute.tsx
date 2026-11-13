@@ -172,6 +172,7 @@ export function ZenResultsRoute() {
   return (
     <>
       <ResultsView
+        source={{ mode: 'zen', date: targetDate }}
         me={{
           displayName: 'You',
           points: totalPoints,
@@ -189,10 +190,6 @@ export function ZenResultsRoute() {
         loadOpponent={loadOpponent}
         initialOpponentId={initialOpponentId}
         standingsHeader="Leaderboard"
-        compareSourceLabel="leaderboard"
-        findPercents={result.find_percents}
-        popularityStyle={result.find_percents ? 'inline' : undefined}
-        soloPlaceholderVariant="wait"
         soloHero={
           <div className="shrink-0 pt-2 pb-1 h-[82px] box-border flex items-center justify-center">
             <HeroScore

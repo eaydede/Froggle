@@ -62,6 +62,8 @@ button, input, select, textarea {
  * components.
  */
 :root {
+  --surface-definition: #FAF8F3;
+
   /* Accent */
   --accent: #6B9B7D;
   --accent-hover: #5A8A6C;
@@ -214,6 +216,8 @@ button, input, select, textarea {
      paper-cream surface tint. */
   --you-accent:           #2B7DB8;
   --you-accent-soft:      rgba(43, 125, 184, 0.12);
+  --you-accent-hi:        rgba(43, 125, 184, 0.26);
+  --opp-accent-hi:        rgba(200, 154, 90, 0.26);
   /* Mid-alpha variants for outlines around panels — solid hue felt
      harsh framing a word list, soft variants are too pale to register. */
   --you-accent-border:    rgba(43, 125, 184, 0.35);
@@ -328,6 +332,8 @@ button, input, select, textarea {
 
   --you-accent:           #6FA3C8;
   --you-accent-soft:      rgba(111, 163, 200, 0.14);
+  --you-accent-hi:        rgba(111, 163, 200, 0.26);
+  --opp-accent-hi:        rgba(215, 172, 114, 0.26);
   --you-accent-border:    rgba(111, 163, 200, 0.40);
   --opp-accent:           #d7ac72e3;
   --opp-accent-strong:    #C99465;
@@ -516,16 +522,7 @@ button, input, select, textarea {
    word list each remount when the user taps a leaderboard name (or hits
    "Stop"); without this the layout context-switches in a single frame
    and reads as jarring. Skipped under prefers-reduced-motion. */
-@keyframes results-region-fade-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.results-region-fade-in {
-  animation: results-region-fade-in 450ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-@media (prefers-reduced-motion: reduce) {
-  .results-region-fade-in { animation: none; }
-}
+
 
 /* Floating card treatment shared by the Free Play lobby sections (room
    card, rules card). Matches the mock's panel: card surface that sits a

@@ -123,6 +123,7 @@ async function fetchWithTimeout(url: string, signal: AbortSignal, timeoutMs: num
   // Abort if either the external signal or the timeout fires
   const onAbort = () => timeoutController.abort();
   signal.addEventListener('abort', onAbort);
+  if (signal.aborted) timeoutController.abort();
 
   try {
     const res = await fetch(url, { signal: timeoutController.signal });
@@ -133,7 +134,7 @@ async function fetchWithTimeout(url: string, signal: AbortSignal, timeoutMs: num
   }
 }
 
-async function fetchDefinition(word: string, signal: AbortSignal): Promise<WordDefinition | null> {
+async function fetchHeadword(word: string, signal: AbortSignal): Promise<WordDefinition | null> {
   // Try primary API with 5s timeout
   try {
     const res = await fetchWithTimeout(
@@ -152,13 +153,26 @@ async function fetchDefinition(word: string, signal: AbortSignal): Promise<WordD
   }
 
   // Fallback API
-  const res = await fetch(
-    `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`,
-    { signal },
+  const res = await fetchWithTimeout(
+    `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`, signal, 5000,
   );
   if (res.ok) {
     const data = await res.json();
     return parseFallbackApi(data);
+  }
+  return null;
+}
+
+/** Try the original word before plural stems; keep the matched headword. */
+export async function lookupDefinition(word: string, signal: AbortSignal): Promise<WordDefinition | null> {
+  const candidates = [word];
+  if (word.endsWith('s')) candidates.push(word.slice(0, -1));
+  if (word.endsWith('es')) candidates.push(word.slice(0, -2));
+  if (word.endsWith('ses')) candidates.push(word.slice(0, -3));
+  for (const candidate of [...new Set(candidates)].filter(Boolean)) {
+    if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+    const result = await fetchHeadword(candidate, signal);
+    if (result) return result;
   }
   return null;
 }
@@ -187,9 +201,10 @@ export const useDefinition = (word: string | null) => {
     const controller = new AbortController();
     abortRef.current = controller;
 
+    setDefinition(null);
     setLoading(true);
 
-    fetchDefinition(lower, controller.signal)
+    lookupDefinition(lower, controller.signal)
       .then((result) => {
         if (controller.signal.aborted) return;
         cache.set(lower, result);

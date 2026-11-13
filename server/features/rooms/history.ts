@@ -33,6 +33,8 @@ function buildCompletion(entry: RoomEntry, board: MultiplayerBoard): RoomBoardCo
     participants.push({
       userId,
       foundWords: [...player.foundWords],
+      wordTimes: { ...player.wordTimes },
+      finishedAt: player.finishedAt,
       points: player.points,
       wordCount: player.wordCount,
       longestWord: longestOf(player.foundWords),

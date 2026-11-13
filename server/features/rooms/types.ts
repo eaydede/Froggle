@@ -68,6 +68,8 @@ export interface RoomBoardCompletion {
   participants: Array<{
     userId: string;
     foundWords: string[];
+    wordTimes?: Record<string, number>;
+    finishedAt?: number;
     points: number;
     wordCount: number;
     longestWord: string;
