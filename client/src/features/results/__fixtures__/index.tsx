@@ -1,3 +1,4 @@
+import { RecapFixture } from './recap';
 import type { ReactNode } from 'react';
 import type { ScoredWord } from '../../../gameplay/types';
 import { ResultsView } from '../view/ResultsView';
@@ -64,6 +65,10 @@ async function loadOpponent(id: string): Promise<LoadOpponentResult> {
 }
 
 export const RESULTS_FIXTURES: Record<string, () => ReactNode> = {
+  recap: () => <RecapFixture />,
+  'recap-delayed': () => <RecapFixture opponentDelay={1000} />,
+  'recap-early': () => <RecapFixture early />,
+  'recap-legacy': () => <RecapFixture legacy />,
   rarity: () => (
     <ResultsView
       me={{

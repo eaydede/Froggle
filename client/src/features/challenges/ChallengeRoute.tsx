@@ -176,6 +176,7 @@ function ChallengeResultsView({
 
   return (
     <ResultsView
+      source={{ mode: 'freeplay', sessionId: me.sessionId }}
       me={{
         displayName: me.displayName,
         points: me.points,
@@ -189,7 +190,6 @@ function ChallengeResultsView({
       loadOpponent={loadOpponent}
       initialOpponentId={initialOpponentId}
       standingsHeader="Standings"
-      compareSourceLabel="standings"
       topbarLabel=""
       topbarOnClose={onBack}
       topbarOnShare={share}

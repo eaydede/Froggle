@@ -34,6 +34,7 @@ export function saveWords(db: Kysely<Database>, result: WordProgress, now: Date,
     .updateTable('daily_zen_results')
     .set({
       found_words: JSON.stringify(result.nextWords),
+      word_times: sql<Record<string, number>>`coalesce(word_times, '{}'::jsonb) || jsonb_build_object(${result.nextWords[result.nextWords.length - 1]}::text, active_seconds + ${creditSec})`,
       last_active_at: now,
       points: result.aggregate.points,
       word_count: result.aggregate.wordCount,

@@ -153,6 +153,7 @@ export function TimeIsMoneyResultsRoute() {
 
   return (
     <ResultsView
+      source={mockKey ? undefined : { mode: 'money', date }}
       me={{
         displayName: displayName || 'You',
         points: activeResult.points,
@@ -166,7 +167,6 @@ export function TimeIsMoneyResultsRoute() {
       loadOpponent={loadOpponent}
       initialOpponentId={initialOpponentId}
       standingsHeader="Standings"
-      soloPlaceholderVariant="wait"
       soloHero={
         <TimeSurvivedHero
           seconds={timeSurvivedSeconds(activeResult.config.timeLimit, activeResult.points)}
@@ -177,8 +177,6 @@ export function TimeIsMoneyResultsRoute() {
       standingsFormatValue={(points) =>
         formatClock(timeSurvivedSeconds(activeResult.config.timeLimit, points))
       }
-      findPercents={activeResult.find_percents}
-      popularityStyle={activeResult.find_percents ? 'inline' : undefined}
       topbarLabel="Time is Money"
       topbarOnClose={() => navigate('/')}
       topbarOnShare={share}

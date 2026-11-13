@@ -3,6 +3,7 @@ import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { challengeRouter } from './features/challenges/api.js';
+import { resultsRouter } from './features/results/api.js';
 import { feedbackRouter } from './features/feedback/api.js';
 import { gameRouter } from './features/free-play/api.js';
 import { dailyGauntletRouter } from './features/gauntlet/api.js';
@@ -24,6 +25,7 @@ export function createApplication() {
   app.use(cors());
   app.use(express.json());
   app.use('/api', authMiddleware);
+  app.use('/api/results', resultsRouter);
   app.use('/api/game', gameRouter);
   app.use('/api/user', userRouter);
   app.use('/api/freeplay', freeplayRouter, challengeRouter);

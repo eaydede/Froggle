@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { WordDefinition } from '../hooks/useDefinition';
 import { abbreviatePartOfSpeech } from '../utils/partOfSpeech';
@@ -24,20 +24,37 @@ export function WordDefinitionSheet({
   loading,
   onClose,
 }: WordDefinitionSheetProps) {
+  const dialog = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
+    dialog.current?.toggleAttribute('inert', !open);
     if (!open) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    dialog.current?.querySelector<HTMLButtonElement>('button')?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') closeRef.current();
+      if (e.key === 'Tab') {
+        const elements = dialog.current?.querySelectorAll<HTMLElement>('button, a[href], [tabindex="0"]');
+        if (!elements?.length) return;
+        const first = elements[0];
+        const last = elements[elements.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
     };
     document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus();
+    };
+  }, [open]);
 
   // Portal to document.body so the sheet's `position: fixed` is
-  // viewport-relative. Otherwise the .results-region-fade-in animation on
-  // an ancestor sets a transform, which creates a containing block and
-  // pins the sheet to the right column (where it leaks out over the
-  // bottom action bar even when closed).
+  // viewport-relative even when a results view animates with a transform.
   return createPortal(
     <>
       <div
@@ -50,6 +67,10 @@ export function WordDefinitionSheet({
       />
 
       <div
+        ref={dialog}
+        data-theme="light"
+        style={{ background: 'var(--surface-definition)' }}
+        aria-hidden={!open}
         role="dialog"
         aria-modal="true"
         aria-label={`Definition of ${word}`}
@@ -120,11 +141,11 @@ export function WordDefinitionSheet({
                   )}
                   {meaning.definitions.map((d, j) => (
                     <div key={j} className="flex flex-col gap-2.5">
-                      <p className="text-[15px] leading-[1.55] text-[color:var(--ink)]">
+                      <p className="m-0 text-[15px] leading-[1.55] text-[color:var(--ink)]">
                         {d.definition}
                       </p>
                       {d.example && (
-                        <p className="italic text-[13px] leading-[1.55] text-[color:var(--ink-muted)] py-2.5 px-3.5 bg-[var(--ink-whisper)] border-l-2 border-[var(--ink-faint)] rounded-r-md font-[family-name:var(--font-display)]">
+                        <p className="m-0 italic text-[13px] leading-[1.55] text-[color:var(--ink-muted)] py-2.5 px-3.5 bg-[var(--ink-whisper)] border-l-2 border-[var(--ink-faint)] rounded-r-md font-[family-name:var(--font-display)]">
                           {d.example}
                         </p>
                       )}

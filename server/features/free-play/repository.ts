@@ -1,4 +1,4 @@
-import type { Kysely, Transaction } from 'kysely';
+import { sql, type Kysely, type Transaction } from 'kysely';
 import type { WordProgress } from '../../gameplay/types.js';
 import type { Database } from '../../platform/database/types.js';
 import type { RoomBoardCompletion } from '../rooms/types.js';
@@ -77,6 +77,7 @@ export function saveWords(trx: Transaction<Database>, result: WordProgress, sess
     .updateTable('free_play_sessions')
     .set({
       found_words: JSON.stringify(result.nextWords),
+      word_times: sql<Record<string, number>>`coalesce(word_times, '{}'::jsonb) || jsonb_build_object(${result.nextWords[result.nextWords.length - 1]}::text, greatest(0, extract(epoch from (clock_timestamp() - started_at))))`,
       points: result.aggregate.points,
       word_count: result.aggregate.wordCount,
       longest_word: result.aggregate.longestWord,
@@ -106,7 +107,7 @@ export async function findLatestCompletedSession(db: Kysely<Database>, userId: s
   return row ? parseFreePlaySession(row) : null;
 }
 
-export function insertRoomResults(db: Kysely<Database>, participants: { userId: string; foundWords: string[]; points: number; wordCount: number; longestWord: string; }[], rowIds: string[], date: string, boardJson: string, startedAt: Date, completedAt: Date, completion: RoomBoardCompletion, challengeId: string | null) {
+export function insertRoomResults(db: Kysely<Database>, participants: RoomBoardCompletion['participants'], rowIds: string[], date: string, boardJson: string, startedAt: Date, completedAt: Date, completion: RoomBoardCompletion, challengeId: string | null) {
   return db
     .insertInto('free_play_sessions')
     .values(
@@ -116,8 +117,11 @@ export function insertRoomResults(db: Kysely<Database>, participants: { userId: 
         date,
         board: boardJson,
         found_words: JSON.stringify(p.foundWords),
+        word_times: p.wordTimes ?? null,
         started_at: startedAt,
-        completed_at: completedAt,
+        completed_at: p.finishedAt === undefined
+          ? completedAt
+          : new Date(Math.max(+startedAt, Math.min(+completedAt, p.finishedAt))),
         points: p.points,
         word_count: p.wordCount,
         longest_word: p.longestWord,

@@ -163,6 +163,7 @@ export function joinRoom(
   if (existing) {
     entry.socketCounts.set(existing.id, (entry.socketCounts.get(existing.id) ?? 0) + 1);
     existing.connected = true;
+    if (existing.status === 'playing') existing.finishedAt = undefined;
     existing.left = false; // rejoining clears the departed flag
     existing.displayName = displayName || existing.displayName;
     if (userId) entry.userIds.set(existing.id, userId);
@@ -221,6 +222,7 @@ export function disconnectPlayer(code: string, playerId: string): MultiplayerRoo
   const player = entry.room.players.find((p) => p.id === playerId);
   if (!player) return entry.room;
   player.connected = false;
+  if (player.status === 'playing') player.finishedAt = Date.now();
 
   // If the host dropped, hand off to the longest-tenured connected player
   // so the lobby doesn't become unstartable.
@@ -263,7 +265,10 @@ export function leaveRoom(code: string, playerId: string): MultiplayerRoom | nul
     player.left = true;
     // Freeze their score: a mid-board departure counts as finishing the
     // board where they stood.
-    if (player.status === 'playing') player.status = 'finished';
+    if (player.status === 'playing') {
+      player.status = 'finished';
+      player.finishedAt ??= Date.now();
+    }
   } else {
     room.players = room.players.filter((p) => p.id !== playerId);
   }
@@ -383,6 +388,8 @@ export function startBoard(
     player.points = 0;
     player.wordCount = 0;
     player.foundWords = [];
+    player.wordTimes = {};
+    player.finishedAt = undefined;
     player.status = player.connected ? 'playing' : 'lobby';
     if (player.status === 'playing') board.participantIds.push(player.id);
   }
@@ -452,7 +459,10 @@ export function endBoard(code: string): MultiplayerRoom | null {
   room.currentBoard.endedAt = Date.now();
   room.status = 'results';
   for (const player of room.players) {
-    if (player.status === 'playing') player.status = 'finished';
+    if (player.status === 'playing') {
+      player.status = 'finished';
+      player.finishedAt ??= Date.now();
+    }
   }
   if (entry.boardTimer) {
     clearTimeout(entry.boardTimer);
@@ -653,6 +663,7 @@ export function submitWord(
   }
 
   player.foundWords.push(result.word);
+  (player.wordTimes ??= {})[result.word] = Math.max(0, Math.min(board.config.durationSeconds, (Date.now() - board.startedAt) / 1000));
   player.points = result.aggregate.points;
   player.wordCount = result.aggregate.wordCount;
   touch(entry);
@@ -668,7 +679,10 @@ export function markPlayerFinished(
   if (!entry) return null;
   const player = entry.room.players.find((p) => p.id === playerId);
   if (!player) return entry.room;
-  if (player.status === 'playing') player.status = 'finished';
+  if (player.status === 'playing') {
+    player.status = 'finished';
+    player.finishedAt = Date.now();
+  }
 
   // If every still-connected player has finished, finalize the board so
   // the room doesn't wait on a no-op timer. A disconnected player who's
@@ -678,4 +692,33 @@ export function markPlayerFinished(
   finalizeIfRoundComplete(entry);
   touch(entry);
   return entry.room;
+}
+
+/** Completed-board data for the authenticated participant, with public room
+ * player ids so Highlights names select the same rows as the standings. */
+export function getRoomResultsForUser(code: string, userId: string, playerId: string) {
+  const entry = repository.findEntry(code);
+  const board = entry?.room.currentBoard;
+  if (!entry || !board || board.endedAt === null) return null;
+  const viewerIds = [...entry.userIds].filter(([, id]) => id === userId).map(([id]) => id);
+  if (!viewerIds.includes(playerId) || !board.participantIds.includes(playerId)) return null;
+  return {
+    startedAt: board.startedAt,
+    config: board.config,
+    players: entry.room.players
+      .filter(p => board.participantIds.includes(p.id))
+      .map(p => ({
+        id: p.id,
+        displayName: p.displayName,
+        isYou: p.id === playerId,
+        duration: Math.max(0, Math.min(
+          board.config.durationSeconds,
+          ((p.finishedAt ?? board.endedAt!) - board.startedAt) / 1000,
+        )),
+        timeLimit: board.config.durationSeconds,
+        finds: p.foundWords.map(word => ({
+          word, score: scoreWord(word), time: p.wordTimes?.[word] ?? null,
+        })),
+      })),
+  };
 }

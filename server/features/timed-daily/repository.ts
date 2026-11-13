@@ -1,4 +1,4 @@
-import { type Kysely } from 'kysely';
+import { sql, type Kysely } from 'kysely';
 import type { WordProgress } from '../../gameplay/types.js';
 import type { Database } from '../../platform/database/types.js';
 import { type DailyConfig } from './config.js';
@@ -56,6 +56,7 @@ export function saveWords(db: Kysely<Database>, result: WordProgress, userId: st
     .updateTable('daily_results')
     .set({
       found_words: JSON.stringify(result.nextWords),
+      word_times: sql<Record<string, number>>`coalesce(word_times, '{}'::jsonb) || jsonb_build_object(${result.nextWords[result.nextWords.length - 1]}::text, greatest(0, extract(epoch from (clock_timestamp() - started_at))))`,
       points: result.aggregate.points,
       word_count: result.aggregate.wordCount,
       longest_word: result.aggregate.longestWord,

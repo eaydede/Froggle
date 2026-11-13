@@ -59,6 +59,9 @@ test('timed daily accepts words, rejects repeats and resumes the same board afte
   expect(await page.locator('[data-row][data-col]').allTextContents()).toEqual(before);
   await page.getByRole('button', { name: 'End game', exact: true }).click();
   await expect(page).toHaveURL(/\/daily\/results/);
+  await page.getByRole('button', { name: 'Your run' }).click();
+  await expect(page.getByRole('slider', { name: 'Run playhead' })).toBeVisible();
+  await page.getByRole('button', { name: 'Word list' }).click();
   await expect(page.getByText(words[0].word, { exact: true }).first()).toBeVisible();
   await page.screenshot({ path: '.context/visual/live-daily-results.png' });
 });
@@ -86,6 +89,8 @@ test('Zen choice, found-word sheet and early-end confirmation persist correctly'
   await page.getByRole('button', { name: 'End puzzle', exact: true }).click();
   await page.getByRole('button', { name: 'End puzzle', exact: true }).last().click();
   await expect(page).toHaveURL(/\/daily\/zen\/results/);
+  await page.getByRole('button', { name: 'Your run' }).click();
+  await expect(page.getByRole('slider', { name: 'Run playhead' })).toBeVisible();
 });
 
 test('Time is Money banks seconds and reload retains the earned clock', async ({ page }) => {
@@ -102,6 +107,8 @@ test('Time is Money banks seconds and reload retains the earned clock', async ({
   await expect(page).toHaveURL(/time-is-money\/results/);
   await expect(page.getByText('played', { exact: true })).toBeVisible();
   await expect(page.getByText('1:06', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Your run' }).click();
+  await expect(page.getByRole('slider', { name: 'Run playhead' })).toBeVisible();
 });
 
 test('Gauntlet enforces round order and progresses from round results', async ({ page }) => {
@@ -115,6 +122,8 @@ test('Gauntlet enforces round order and progresses from round results', async ({
   await traceWord(page, words[0].path);
   await page.getByRole('button', { name: 'End game', exact: true }).click();
   await expect(page).toHaveURL(/gauntlet\/round\/0\/results$/);
+  await page.getByRole('button', { name: 'Your run' }).click();
+  await expect(page.getByRole('slider', { name: 'Run playhead' })).toBeVisible();
   await page.getByRole('button', { name: /Next round/i }).click();
   await expect(page).toHaveURL(/gauntlet\/round\/1$/);
 });
@@ -134,6 +143,8 @@ test('room lobby, configuration, countdown, scores and history use the real sock
   await traceWord(page, words[0].path);
   await page.getByRole('button', { name: 'End game', exact: true }).click();
   await expect(page.getByText(/pts/i).first()).toBeVisible();
+  await page.getByRole('button', { name: 'Your run' }).click();
+  await expect(page.getByRole('slider', { name: 'Run playhead' })).toBeVisible();
   await expect.poll(async () => {
     const token = await page.evaluate(() => {
       const key = Object.keys(localStorage).find(key => key.startsWith('sb-') && key.endsWith('-auth-token'))!;
@@ -149,11 +160,10 @@ test('room lobby, configuration, countdown, scores and history use the real sock
 test('results comparison, word replay, definitions and theme preserve the interaction surfaces', async ({ page }) => {
   await page.goto('/results?mock=rarity');
   await page.getByRole('button', { name: /Pat/ }).click();
-  await expect(page.getByText('Stop', { exact: true })).toBeVisible();
-  await expect(page.locator('.results-region-fade-in').first()).toHaveCSS('animation-duration', '0.45s');
+  await expect(page.getByRole('button', { name: 'Stop comparing' })).toBeVisible();
   await page.screenshot({ path: '.context/visual/compare.png' });
   await page.getByRole('button', { name: /Stop/ }).click();
-  await page.getByText('STORE', { exact: true }).click();
+  await page.getByRole('tabpanel').getByRole('button', { name: 'STORE +3', exact: true }).click();
   await expect(page.getByText('A meaningful unit of language.').first()).toBeVisible();
   await page.goto('/?mock=unplayed');
   await page.getByRole('button', { name: /dark|theme/i }).click();
@@ -193,7 +203,7 @@ test('a saved board becomes a shareable challenge with one attempt per recipient
   await recipient.getByRole('button', { name: 'End game', exact: true }).click();
   await expect(recipient).toHaveURL(/\/freeplay\/challenge\//);
   await recipient.getByRole('button', { name: 'Compare with Alex', exact: true }).click();
-  await expect(recipient.getByRole('button', { name: 'Stop', exact: true })).toBeVisible();
+  await expect(recipient.getByRole('button', { name: 'Stop comparing', exact: true })).toBeVisible();
   await recipient.goto(invitation);
   await expect(recipient).toHaveURL(/\/freeplay\/challenge\//);
   await recipientContext.close();

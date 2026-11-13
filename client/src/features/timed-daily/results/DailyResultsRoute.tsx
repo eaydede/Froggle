@@ -188,6 +188,7 @@ export function DailyResultsRoute() {
   return (
     <>
       <ResultsView
+        source={{ mode: 'timed', date: targetDate }}
         me={{
           displayName: 'You',
           points: totalPoints,
@@ -205,10 +206,6 @@ export function DailyResultsRoute() {
         loadOpponent={loadOpponent}
         initialOpponentId={initialOpponentId}
         standingsHeader="Leaderboard"
-        compareSourceLabel="leaderboard"
-        findPercents={serverResult?.find_percents}
-        popularityStyle={serverResult?.find_percents ? 'inline' : undefined}
-        soloPlaceholderVariant="wait"
         topbar={
           <DailyTopbar
             label={dateLabel}

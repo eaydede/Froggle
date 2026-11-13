@@ -191,6 +191,7 @@ export function GauntletRoundResultsRoute() {
 
   return (
     <ResultsView
+      source={{ mode: 'gauntlet', date: targetDate, round: roundIndex }}
       me={{
         displayName: displayName || 'You',
         points: totalPoints,
@@ -204,8 +205,6 @@ export function GauntletRoundResultsRoute() {
       roster={roster}
       loadOpponent={loadOpponent}
       standingsHeader="Round leaderboard"
-      compareSourceLabel="leaderboard"
-      soloPlaceholderVariant="wait"
       topbar={
         <GauntletTopbar
           label={`Gauntlet R${roundIndex + 1} · ${roundTitle(result.roundKind)}`}

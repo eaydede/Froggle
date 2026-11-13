@@ -104,6 +104,7 @@ function RealResultsRoute() {
 
   return (
     <ResultsView
+      source={results.freePlaySessionId ? { mode: 'freeplay', sessionId: results.freePlaySessionId } : undefined}
       me={{
         displayName: 'You',
         points: totalPoints,
