@@ -8,7 +8,7 @@ The stack remains TypeScript, React 18, Vite, Tailwind v4, Express, Socket.io, K
 
 ## Run locally
 
-Use the existing `.env`, or copy `.env.example` and configure Supabase auth, the client publishable key, the server secret key and PostgreSQL. Install with `npm ci`, then run `npm run dev`. Vite normally starts on port 5173 and advances if that port is occupied; the API uses port 3000. Existing Supabase migrations remain unchanged.
+Use the existing `.env`, or copy `.env.example` and configure Supabase auth, the client publishable key, the server secret key and PostgreSQL. Install with `npm ci`, then run `npm run dev`. The API starts on port 3000 (or `PORT` from your environment) and retries higher ports until one is available. Vite starts afterward and proxies API and Socket.io requests to that selected port. Its own port starts at 5173 and also advances if occupied. Server changes restart both processes; Ctrl+C stops both.
 
 ## Verify
 

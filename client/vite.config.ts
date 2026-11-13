@@ -2,17 +2,19 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
+const apiTarget = process.env.VITE_API_TARGET ?? 'http://localhost:3000';
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   envDir: '..',
   server: {
     proxy: {
-      '/api': 'http://localhost:3000',
+      '/api': apiTarget,
       // Multiplayer socket traffic — Socket.io uses /socket.io for the
       // protocol handshake regardless of namespace, and needs ws:
       // upgrade to keep the persistent connection alive in dev.
       '/socket.io': {
-        target: 'http://localhost:3000',
+        target: apiTarget,
         ws: true,
         // The dev WebSocket proxy logs a noisy EPIPE/ECONNRESET stack
         // whenever a client socket closes mid-write — StrictMode remounts,

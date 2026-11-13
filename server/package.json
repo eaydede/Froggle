@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch --env-file=../.env index.ts"
+    "dev": "tsx watch --env-file=../.env index.ts",
+    "dev:all": "tsx watch --env-file=../.env dev.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.103.0",
