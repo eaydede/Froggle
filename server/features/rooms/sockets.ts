@@ -17,8 +17,9 @@ import type {
 } from 'models/multiplayer';
 import type { Server, Socket } from 'socket.io';
 import { verifyAccessToken } from '../../platform/auth.js';
+import { getDb } from '../../platform/database/index.js';
 import { getDisplayName } from '../profile/publicNames.js';
-import { advanceCountdown, disconnectPlayer, endBoard, getRoom, joinRoom, leaveRoom, markPlayerFinished, registerNudge, returnToLobby, setVisibility, startBoard, submitWord, updateNextConfig } from './service.js';
+import { advanceCountdown, disconnectPlayer, endBoard, getRoom, joinRoom, leaveRoom, markPlayerFinished, registerNudge, returnToLobby, setVisibility, startRankedBoard, submitWord, updateNextConfig } from './service.js';
 
 // Name used when a socket can't be tied to an authenticated user. The client
 // always carries a (possibly anonymous) Supabase session, so this is only a
@@ -151,12 +152,17 @@ export function attachMultiplayerSockets(io: Server): void {
       emitState(io, data.roomCode);
     });
 
-    socket.on('board:start', () => {
+    socket.on('board:start', async () => {
       const data = socket.data as SocketData;
       const room = getRoom(data.roomCode);
       if (!room || room.hostId !== data.playerId) return;
-      const started = startBoard(data.roomCode, () => emitState(io, data.roomCode));
-      if (started) emitState(io, data.roomCode);
+      try {
+        const started = await startRankedBoard(getDb(), data.roomCode, data.playerId, () => emitState(io, data.roomCode));
+        if (started) emitState(io, data.roomCode);
+      } catch (error) {
+        console.error('Failed to start room board:', error);
+        socket.emit('room:error', { reason: 'start-failed' });
+      }
     });
 
     socket.on('board:advance-countdown', () => {

@@ -1,3 +1,4 @@
+import type { TimedRankTargets } from 'models/timedRanks';
 import { sql, type Kysely } from 'kysely';
 import {
   type GauntletModifier,
@@ -17,6 +18,7 @@ export async function findSession(db: Kysely<Database>, userId: string, date: st
       'round_kind',
       'board',
       'modifier',
+      'rank_targets',
       'found_words',
       'points',
       'word_count',
@@ -44,6 +46,7 @@ export async function listUserRounds(db: Kysely<Database>, userId: string, date:
       'round_kind',
       'board',
       'modifier',
+      'rank_targets',
       'found_words',
       'points',
       'word_count',
@@ -61,10 +64,11 @@ export async function listUserRounds(db: Kysely<Database>, userId: string, date:
   return rows.map(parseSessionRow);
 }
 
-export function insertSession(db: Kysely<Database>, userId: string, date: string, roundIndex: number, prepared: PreparedGauntletRound) {
+export function insertSession(db: Kysely<Database>, userId: string, date: string, roundIndex: number, prepared: PreparedGauntletRound, rankTargets: TimedRankTargets | null = null) {
   return db
     .insertInto('daily_gauntlet_results')
     .values({
+      rank_targets: rankTargets ? JSON.stringify(rankTargets) : null,
       user_id: userId,
       date,
       round_index: roundIndex,
@@ -156,6 +160,7 @@ function parseSessionRow(row: {
   round_kind: string;
   board: unknown;
   modifier: unknown;
+  rank_targets: unknown;
   found_words: unknown;
   points: number;
   word_count: number;
@@ -185,6 +190,7 @@ function parseSessionRow(row: {
       timeLimit: row.time_limit,
       minWordLength: row.min_word_length,
     },
+    rankTargets: (typeof row.rank_targets === 'string' ? JSON.parse(row.rank_targets) : row.rank_targets) as TimedRankTargets | null,
     foundWords,
     points: row.points,
     wordCount: row.word_count,
@@ -204,6 +210,7 @@ export async function lockSession(db: Kysely<Database>, userId: string, date: st
       'round_kind',
       'board',
       'modifier',
+      'rank_targets',
       'found_words',
       'points',
       'word_count',

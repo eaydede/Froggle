@@ -66,6 +66,10 @@ async function loadOpponent(id: string): Promise<LoadOpponentResult> {
 
 export const RESULTS_FIXTURES: Record<string, () => ReactNode> = {
   recap: () => <RecapFixture />,
+  'recap-legend': () => <RecapFixture points={160} />,
+  'recap-zero': () => <RecapFixture points={0} />,
+  'recap-5x5': () => <RecapFixture boardSize={5} />,
+  'recap-6x6': () => <RecapFixture boardSize={6} />,
   'recap-delayed': () => <RecapFixture opponentDelay={1000} />,
   'recap-early': () => <RecapFixture early />,
   'recap-legacy': () => <RecapFixture legacy />,

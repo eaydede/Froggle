@@ -1,3 +1,4 @@
+import type { TimedRankTargets } from 'models/timedRanks';
 import type { Position } from 'models';
 import type {
   GauntletEntry,
@@ -13,6 +14,7 @@ const API_URL = '/api';
 
 
 export interface GauntletRoundSession {
+  rankTargets?: TimedRankTargets | null;
   date: string;
   roundIndex: number;
   roundKind: GauntletRoundKind;

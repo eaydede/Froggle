@@ -19,6 +19,7 @@ import type { Database } from '../../platform/database/types.js';
 import { getDailyGauntletNumber, prepareGauntletRound } from './config.js';
 import * as repository from './repository.js';
 import type { AggregateEntry, GauntletRoundSession, GauntletStatus, GauntletSubmitOutcome, RankedRow } from './types.js';
+import { prepareRankTargets } from '../timed-ranks/service.js';
 
 // Same grace window as timed daily — a few hundred ms of client/server
 // clock drift shouldn't reject the last fairly-played word.
@@ -151,7 +152,13 @@ export async function startGauntletRound(
   }
 
   const prepared = prepareGauntletRound(date, roundIndex);
-  await repository.insertSession(db, userId, date, roundIndex, prepared);
+  const rankTargets = await prepareRankTargets(db, prepared.board, {
+    mode: `gauntlet-${prepared.config.kind}`,
+    boardSize: prepared.config.boardSize,
+    timeLimit: prepared.config.timeLimit,
+    minWordLength: prepared.config.minWordLength,
+  }, `gauntlet:${date}:${roundIndex}`, prepared.config.modifier);
+  await repository.insertSession(db, userId, date, roundIndex, prepared, rankTargets);
 
   const session = await getGauntletRoundSession(db, userId, date, roundIndex);
   if (!session) throw new Error('Failed to start gauntlet round');

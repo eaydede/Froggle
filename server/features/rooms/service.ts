@@ -12,6 +12,10 @@ import type {
 } from 'models/multiplayer';
 import { randomSeed } from 'models/seedCode';
 import { randomUUID } from 'node:crypto';
+import type { Kysely } from 'kysely';
+import type { TimedRankTargets } from 'models/timedRanks';
+import type { Database } from '../../platform/database/types.js';
+import { prepareRankTargets } from '../timed-ranks/service.js';
 import { dictionary } from '../../gameplay/dictionary.js';
 import { scoreResult } from '../../gameplay/scoring.js';
 import { COUNTDOWN_MS, COUNTDOWN_STEP_MS, DEFAULT_CONFIG, GRACE_PERIOD_MS, NUDGE_COOLDOWN_MS, ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH, sanitizeConfig } from './config.js';
@@ -325,9 +329,27 @@ export function updateNextConfig(
 }
 
 
+/** Prepare targets before starting the countdown; recheck authorization/state after I/O. */
+export async function startRankedBoard(db: Kysely<Database>, code: string, hostId: string, onAutoEnd: (room: MultiplayerRoom) => void) {
+  const room = getRoom(code);
+  if (!room || room.hostId !== hostId || room.status === 'playing') return null;
+  const previousBoard = room.currentBoard;
+  const config = { ...room.nextConfig };
+  const seed = randomSeed();
+  const grid = generateSeededBoard(config.boardSize, seed);
+  const rankTargets = await prepareRankTargets(db, grid, {
+    mode: 'freeplay', boardSize: config.boardSize, timeLimit: config.durationSeconds, minWordLength: config.minWordLength,
+  }, 'freeplay');
+  const current = getRoom(code);
+  if (current !== room || current.hostId !== hostId || current.status === 'playing' || current.currentBoard !== previousBoard
+    || JSON.stringify(current.nextConfig) !== JSON.stringify(config)) return null;
+  return startBoard(code, onAutoEnd, { grid, seed, rankTargets });
+}
+
 export function startBoard(
   code: string,
   onAutoEnd: (room: MultiplayerRoom) => void,
+  prepared?: { grid: string[][]; seed: number; rankTargets: TimedRankTargets | null; },
 ): StartBoardResult | null {
   const entry = repository.findEntry(code);
   if (!entry) return null;
@@ -344,8 +366,8 @@ export function startBoard(
   entry.flushPersistence?.();
 
   const config = room.nextConfig;
-  const seed = randomSeed();
-  const grid = generateSeededBoard(config.boardSize, seed);
+  const seed = prepared?.seed ?? randomSeed();
+  const grid = prepared?.grid ?? generateSeededBoard(config.boardSize, seed);
   const salt = generateSalt();
   const allWords = findAllWords(grid, dictionary, config.minWordLength);
   const wordHashes = allWords.map((w) => hashWord(w.word, salt));
@@ -357,6 +379,7 @@ export function startBoard(
   // pushed back by the same amount so the duration is unaffected.
   const startedAt = Date.now() + COUNTDOWN_MS;
   const board: MultiplayerBoard = {
+    rankTargets: prepared?.rankTargets ?? null,
     board: grid,
     seed,
     config,
@@ -703,6 +726,7 @@ export function getRoomResultsForUser(code: string, userId: string, playerId: st
   const viewerIds = [...entry.userIds].filter(([, id]) => id === userId).map(([id]) => id);
   if (!viewerIds.includes(playerId) || !board.participantIds.includes(playerId)) return null;
   return {
+    rankTargets: board.rankTargets,
     startedAt: board.startedAt,
     config: board.config,
     players: entry.room.players

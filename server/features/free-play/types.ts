@@ -1,3 +1,4 @@
+import type { TimedRankTargets } from 'models/timedRanks';
 
 
 
@@ -31,6 +32,7 @@ export interface ChallengeOwnerRow {
 // of restarting the local timer.
 
 export interface FreePlaySession {
+  rankTargets?: TimedRankTargets | null;
   id: string;
   board: string[][];
   found_words: string[];

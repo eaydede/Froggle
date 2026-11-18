@@ -19,6 +19,7 @@ const DEFAULT_CONFIG = {
 
 function toGame(session: FreePlaySession): Game {
   return {
+    rankTargets: session.rankTargets,
     board: session.board,
     startedAt: session.started_at.getTime(),
     status: session.completed_at ? GameState.Finished : GameState.InProgress,

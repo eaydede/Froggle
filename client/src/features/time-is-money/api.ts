@@ -1,3 +1,4 @@
+import type { TimedRankTargets } from 'models/timedRanks';
 import type { Position } from 'models';
 import { sessionHeaders as authHeaders } from '../../platform/http';
 import { sampleClockOffset } from '../../platform/time/serverClock';
@@ -16,6 +17,7 @@ export interface TimeIsMoneyStatusResponse {
 }
 
 export interface TimeIsMoneySession {
+  rankTargets?: TimedRankTargets | null;
   date: string;
   board: string[][];
   found_words: string[];

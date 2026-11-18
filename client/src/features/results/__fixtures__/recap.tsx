@@ -77,6 +77,8 @@ const players: ResultPlayer[] = [
   })),
 ];
 const insights: ResultsInsights = {
+  // Visual fixture only; actual games receive saved, production-calibrated targets.
+  rankTargets: { modelVersion: 'fixture', statisticsVersion: 'fixture', attainablePoints: 144, thresholds: [14, 29, 50, 79, 115] },
   players,
 };
 
@@ -84,10 +86,14 @@ export function RecapFixture({
   legacy = false,
   early = false,
   opponentDelay = 0,
+  points = 28,
+  boardSize = 4,
 }: {
   legacy?: boolean;
   early?: boolean;
   opponentDelay?: number;
+  points?: number;
+  boardSize?: number;
 }) {
   const activeInsights = early
     ? {
@@ -117,6 +123,7 @@ export function RecapFixture({
         legacy
           ? {
               ...activeInsights,
+              rankTargets: null,
               players: activeInsights.players.map((p) => ({
                 ...p,
                 finds: p.finds.map((f) => ({ ...f, time: null })),
@@ -126,13 +133,13 @@ export function RecapFixture({
       }
       me={{
         displayName: 'You',
-        points: 28,
+        points,
         wordCount: words.length,
         foundWords: words.map(scored),
         missedWords: all.filter((word) => !words.includes(word)).map(scored),
       }}
-      board={board}
-      config={{ boardSize: 4, minWordLength: 4, timeLimit: 120 }}
+      board={boardSize === 4 ? board : Array.from({ length: boardSize }, (_, r) => Array.from({ length: boardSize }, (_, c) => board[r % 4][c % 4]))}
+      config={{ boardSize, minWordLength: 4, timeLimit: 120 }}
       roster={[...players.filter((p) => !p.isYou), players[0]].map((p, i) => ({
         id: p.id,
         rank: i + 1,

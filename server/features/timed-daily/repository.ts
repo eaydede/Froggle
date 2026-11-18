@@ -1,3 +1,4 @@
+import type { TimedRankTargets } from 'models/timedRanks';
 import { sql, type Kysely } from 'kysely';
 import type { WordProgress } from '../../gameplay/types.js';
 import type { Database } from '../../platform/database/types.js';
@@ -21,6 +22,7 @@ export async function findSession(db: Kysely<Database>, userId: string, date: st
     .select([
       'date',
       'board',
+      'rank_targets',
       'found_words',
       'started_at',
       'ended_at',
@@ -35,10 +37,11 @@ export async function findSession(db: Kysely<Database>, userId: string, date: st
   return row ? parseTimedSession(row) : null;
 }
 
-export function insertSession(db: Kysely<Database>, userId: string, date: string, board: string[][], config: DailyConfig) {
+export function insertSession(db: Kysely<Database>, userId: string, date: string, board: string[][], config: DailyConfig, rankTargets: TimedRankTargets | null = null) {
   return db
     .insertInto('daily_results')
     .values({
+      rank_targets: rankTargets ? JSON.stringify(rankTargets) : null,
       user_id: userId,
       date,
       board: JSON.stringify(board),
@@ -70,6 +73,7 @@ export function saveWords(db: Kysely<Database>, result: WordProgress, userId: st
 function parseTimedSession(row: {
   date: string;
   board: unknown;
+  rank_targets: unknown;
   found_words: unknown;
   started_at: Date;
   ended_at: Date | null;
@@ -85,6 +89,7 @@ function parseTimedSession(row: {
   return {
     date: row.date,
     board,
+    rankTargets: (typeof row.rank_targets === 'string' ? JSON.parse(row.rank_targets) : row.rank_targets) as TimedRankTargets | null,
     found_words: foundWords,
     started_at: row.started_at,
     ended_at: row.ended_at,
@@ -101,6 +106,7 @@ export async function lockSession(db: Kysely<Database>, userId: string, date: st
     .select([
       'date',
       'board',
+      'rank_targets',
       'found_words',
       'started_at',
       'ended_at',

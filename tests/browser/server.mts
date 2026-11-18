@@ -5,7 +5,13 @@ import { startTestDb } from '../../server/test/pgHarness.js';
 import { createRuntime } from '../../server/runtime.js';
 import { findAllWords } from 'engine/solver.js';
 import { dictionary } from '../../server/gameplay/dictionary.js';
-import { getDailyDatePST } from '../../server/features/timed-daily/config.js';
+import { getDailyConfig, getDailyDatePST } from '../../server/features/timed-daily/config.js';
+import { prepareGauntletRound } from '../../server/features/gauntlet/config.js';
+import { TIME_IS_MONEY_CONFIG } from 'models/timeIsMoney';
+import { publishModel } from '../../server/features/timed-ranks/repository.js';
+import { MODEL_VERSION } from '../../server/features/timed-ranks/calculation.js';
+import { PRODUCTION_PROJECT_REF } from '../../server/features/timed-ranks/production.js';
+import { settingsKey, type RankSettings } from '../../server/features/timed-ranks/types.js';
 import { closeRooms } from '../../server/features/rooms/cleanup.js';
 import { getRoom } from '../../server/features/rooms/service.js';
 
@@ -66,6 +72,28 @@ auth.put('/auth/v1/admin/users/:id', async (req, res) => {
 auth.post('/__test__/reset', async (_req, res) => {
   await closeRooms();
   await db.truncateAll();
+  res.json({ ok: true });
+});
+// Supported calibration fixture for UI tests only; never included in the app runtime.
+auth.post('/__test__/rank-model', async (_req, res) => {
+  const date = getDailyDatePST();
+  const settings: RankSettings[] = [
+    { mode: 'timed', ...getDailyConfig(date) },
+    { mode: 'money', ...TIME_IS_MONEY_CONFIG },
+    { mode: 'freeplay', boardSize: 4, timeLimit: 180, minWordLength: 3 },
+    { mode: 'freeplay', boardSize: 4, timeLimit: 60, minWordLength: 3 },
+    { mode: 'freeplay', boardSize: 4, timeLimit: 120, minWordLength: 3 },
+    ...[0, 1, 2].map(index => {
+      const { config } = prepareGauntletRound(date, index);
+      return { mode: `gauntlet-${config.kind}` as const, boardSize: config.boardSize, timeLimit: config.timeLimit, minWordLength: config.minWordLength };
+    }),
+  ];
+  await publishModel(db.db, {
+    version: `${MODEL_VERSION}:browser-fixture`, throughDate: '2020-01-01',
+    cohorts: Object.fromEntries(settings.map(config => [settingsKey(config), {
+      settings: config, words: [], games: 100, boards: 10, calibration: null, multipliers: [0.05, 0.1, 0.2, 0.35, 0.5],
+    }])),
+  }, PRODUCTION_PROJECT_REF);
   res.json({ ok: true });
 });
 auth.get('/__test__/solutions', async (req, res) => {

@@ -49,7 +49,7 @@ export function Standings({
       </div>
 
       <div
-        className={`flex-1 min-h-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${compact ? 'flex flex-col gap-1 pt-1' : 'pt-1'}`}
+        className={`flex-1 min-h-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${compact ? 'flex flex-col gap-[3px] pt-1' : 'pt-1'}`}
         style={{
           maxHeight,
           WebkitMaskImage:
@@ -78,8 +78,8 @@ export function Standings({
               disabled={row.isYou}
               className="relative w-full flex items-center gap-2 rounded-md border-0 text-left transition-colors duration-150"
               style={{
-                padding: '9px 5px 9px 12px',
-                minHeight: '34px',
+                padding: compact ? '8px 5px 8px 12px' : '9px 5px 9px 12px',
+                minHeight: compact ? '32px' : '34px',
                 cursor: row.isYou ? 'default' : 'pointer',
                 background,
                 WebkitTapHighlightColor: 'transparent',

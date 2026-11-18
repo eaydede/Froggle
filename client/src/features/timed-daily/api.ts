@@ -1,3 +1,4 @@
+import type { TimedRankTargets } from 'models/timedRanks';
 import { type Position } from 'models';
 import { API_URL, getJson, sessionHeaders } from '../../platform/http';
 import { sampleClockOffset } from '../../platform/time/serverClock';
@@ -72,6 +73,7 @@ export interface DailyConfig {
 // client can do local hash validation; they're stripped from the
 // finalized response.
 export interface DailyTimedSession {
+  rankTargets?: TimedRankTargets | null;
   date: string;
   board: string[][];
   found_words: string[];

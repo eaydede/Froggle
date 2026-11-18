@@ -42,6 +42,7 @@ function buildCompletion(entry: RoomEntry, board: MultiplayerBoard): RoomBoardCo
   }
   if (participants.length === 0) return null;
   return {
+    rankTargets: board.rankTargets,
     seed: board.seed,
     board: board.board,
     config: board.config,

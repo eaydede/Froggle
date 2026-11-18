@@ -1,3 +1,4 @@
+import type { TimedRankTargets } from './timedRanks.js';
 // Multiplayer free-play types.
 //
 // A room is an ephemeral, server-resident session keyed by a short code.
@@ -55,6 +56,7 @@ export interface MultiplayerPlayer {
 }
 
 export interface MultiplayerBoard {
+  rankTargets?: TimedRankTargets | null;
   board: Board;
   seed: number;
   config: GameConfig;

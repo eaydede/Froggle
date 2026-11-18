@@ -52,6 +52,12 @@ jobs:
         env:
           DATABASE_URL: postgres://postgres.${{ secrets.SUPABASE_PROJECT_REF_STAGING }}:${{ secrets.SUPABASE_DB_PASSWORD_STAGING }}@aws-1-us-east-1.pooler.supabase.com:6543/postgres
 
+      - name: Backfill timed rank statistics
+        run: npm run ranks:refresh -- --write
+        env:
+          RANKS_SOURCE_DATABASE_URL: postgres://postgres.${{ secrets.SUPABASE_PROJECT_REF_PROD }}:${{ secrets.SUPABASE_DB_PASSWORD_PROD }}@aws-1-us-east-1.pooler.supabase.com:6543/postgres
+          DATABASE_URL: postgres://postgres.${{ secrets.SUPABASE_PROJECT_REF_STAGING }}:${{ secrets.SUPABASE_DB_PASSWORD_STAGING }}@aws-1-us-east-1.pooler.supabase.com:6543/postgres
+
       - name: Install Fly CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
 

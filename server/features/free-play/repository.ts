@@ -1,3 +1,4 @@
+import type { TimedRankTargets } from 'models/timedRanks';
 import { sql, type Kysely, type Transaction } from 'kysely';
 import type { WordProgress } from '../../gameplay/types.js';
 import type { Database } from '../../platform/database/types.js';
@@ -7,6 +8,7 @@ import type { FreePlaySession, StartFreePlayOpts } from './types.js';
 const SESSION_COLUMNS = [
   'id',
   'board',
+  'rank_targets',
   'found_words',
   'started_at',
   'completed_at',
@@ -41,10 +43,11 @@ export async function findActiveSession(db: Kysely<Database>, userId: string) {
   return row ? parseFreePlaySession(row) : null;
 }
 
-export function insertSession(db: Kysely<Database>, id: string, opts: StartFreePlayOpts, board: string[][], gameSeed: number) {
+export function insertSession(db: Kysely<Database>, id: string, opts: StartFreePlayOpts, board: string[][], gameSeed: number, rankTargets: TimedRankTargets | null = null) {
   return db
     .insertInto('free_play_sessions')
     .values({
+      rank_targets: rankTargets ? JSON.stringify(rankTargets) : null,
       id,
       user_id: opts.userId,
       date: getDailyDatePST(),
@@ -117,6 +120,7 @@ export function insertRoomResults(db: Kysely<Database>, participants: RoomBoardC
         date,
         board: boardJson,
         found_words: JSON.stringify(p.foundWords),
+        rank_targets: completion.rankTargets ? JSON.stringify(completion.rankTargets) : null,
         word_times: p.wordTimes ?? null,
         started_at: startedAt,
         completed_at: p.finishedAt === undefined
@@ -159,6 +163,7 @@ export function markShared(db: Kysely<Database>, row: { id: string; time_limit: 
 function parseFreePlaySession(row: {
   id: string;
   board: unknown;
+  rank_targets: unknown;
   found_words: unknown;
   started_at: Date;
   completed_at: Date | null;
@@ -178,6 +183,7 @@ function parseFreePlaySession(row: {
   return {
     id: row.id,
     board,
+    rankTargets: (typeof row.rank_targets === 'string' ? JSON.parse(row.rank_targets) : row.rank_targets) as TimedRankTargets | null,
     found_words: foundWords,
     started_at: row.started_at,
     completed_at: row.completed_at,

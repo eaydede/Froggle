@@ -1,7 +1,9 @@
+import type { TimedRankTargets } from 'models/timedRanks';
 import type { GauntletEntry, GauntletModifier, GauntletRoundConfig, GauntletRoundKind } from 'models/gauntlet';
 
 
 export interface GauntletRoundSession {
+  rankTargets?: TimedRankTargets | null;
   date: string;
   roundIndex: number;
   roundKind: GauntletRoundKind;

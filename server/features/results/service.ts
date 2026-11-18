@@ -45,11 +45,12 @@ export async function getInsights(
     await awaitBoardPersistence(source.code);
     const result = getRoomResultsForUser(source.code, userId, source.playerId);
     if (!result) throw new ApplicationError('not-found', 'Completed room result not found');
-    return { players: result.players };
+    return { players: result.players, ...(result.rankTargets ? { rankTargets: result.rankTargets } : {}) };
   }
   const result = await repository.loadResults(db, userId, source);
   if (!result) throw new ApplicationError('not-found', 'Complete this game before viewing results');
   const names = await getDisplayNames(result.flatMap((r) => (r.userId ? [r.userId] : [])));
   const players = result.map((r) => playerFromStored(r, userId, names, source.mode));
-  return { players };
+  const rankTargets = result.find(row => row.userId === userId)?.rankTargets;
+  return { players, ...(rankTargets ? { rankTargets } : {}) };
 }
