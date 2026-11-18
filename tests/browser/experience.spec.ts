@@ -59,9 +59,9 @@ test('timed daily accepts words, rejects repeats and resumes the same board afte
   expect(await page.locator('[data-row][data-col]').allTextContents()).toEqual(before);
   await page.getByRole('button', { name: 'End game', exact: true }).click();
   await expect(page).toHaveURL(/\/daily\/results/);
-  await page.getByRole('button', { name: 'Your run' }).click();
+  await page.getByRole('tab', { name: 'Playback' }).click();
   await expect(page.getByRole('slider', { name: 'Run playhead' })).toBeVisible();
-  await page.getByRole('button', { name: 'Word list' }).click();
+  await page.getByRole('tab', { name: 'Recap' }).click();
   await expect(page.getByText(words[0].word, { exact: true }).first()).toBeVisible();
   await page.screenshot({ path: '.context/visual/live-daily-results.png' });
 });
@@ -89,7 +89,7 @@ test('Zen choice, found-word sheet and early-end confirmation persist correctly'
   await page.getByRole('button', { name: 'End puzzle', exact: true }).click();
   await page.getByRole('button', { name: 'End puzzle', exact: true }).last().click();
   await expect(page).toHaveURL(/\/daily\/zen\/results/);
-  await page.getByRole('button', { name: 'Your run' }).click();
+  await page.getByRole('tab', { name: 'Playback' }).click();
   await expect(page.getByRole('slider', { name: 'Run playhead' })).toBeVisible();
 });
 
@@ -107,7 +107,7 @@ test('Time is Money banks seconds and reload retains the earned clock', async ({
   await expect(page).toHaveURL(/time-is-money\/results/);
   await expect(page.getByText('played', { exact: true })).toBeVisible();
   await expect(page.getByText('1:06', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Your run' }).click();
+  await page.getByRole('tab', { name: 'Playback' }).click();
   await expect(page.getByRole('slider', { name: 'Run playhead' })).toBeVisible();
 });
 
@@ -122,7 +122,7 @@ test('Gauntlet enforces round order and progresses from round results', async ({
   await traceWord(page, words[0].path);
   await page.getByRole('button', { name: 'End game', exact: true }).click();
   await expect(page).toHaveURL(/gauntlet\/round\/0\/results$/);
-  await page.getByRole('button', { name: 'Your run' }).click();
+  await page.getByRole('tab', { name: 'Playback' }).click();
   await expect(page.getByRole('slider', { name: 'Run playhead' })).toBeVisible();
   await page.getByRole('button', { name: /Next round/i }).click();
   await expect(page).toHaveURL(/gauntlet\/round\/1$/);
@@ -143,7 +143,7 @@ test('room lobby, configuration, countdown, scores and history use the real sock
   await traceWord(page, words[0].path);
   await page.getByRole('button', { name: 'End game', exact: true }).click();
   await expect(page.getByText(/pts/i).first()).toBeVisible();
-  await page.getByRole('button', { name: 'Your run' }).click();
+  await page.getByRole('tab', { name: 'Playback' }).click();
   await expect(page.getByRole('slider', { name: 'Run playhead' })).toBeVisible();
   await expect.poll(async () => {
     const token = await page.evaluate(() => {

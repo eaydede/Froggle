@@ -9,6 +9,7 @@ const tables = {
   gauntlet: 'daily_gauntlet_results',
 } as const;
 export interface StoredResult {
+  rankTargets: import('models/timedRanks').TimedRankTargets | null;
   id: string;
   userId: string | null;
   words: string[];
@@ -32,6 +33,7 @@ function translate(
     time_limit?: number;
     active_seconds?: number;
     modifier?: unknown;
+    rank_targets?: unknown;
   },
   sessionIds = false,
   capDuration = true,
@@ -42,6 +44,7 @@ function translate(
       1000,
   );
   return {
+    rankTargets: row.rank_targets ? json(row.rank_targets) : null,
     id: sessionIds ? row.id : row.user_id!,
     userId: row.user_id,
     words: json<string[]>(row.found_words),

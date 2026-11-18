@@ -1,3 +1,4 @@
+import type { TimedRankTargets } from './timedRanks.js';
 export type Board = string[][]; 
 
 export interface Position {
@@ -25,6 +26,7 @@ export interface GameConfig {
 }
 
 export interface Game {
+  rankTargets?: TimedRankTargets | null;
   board: Board;
   startedAt: number;
   status: GameState;

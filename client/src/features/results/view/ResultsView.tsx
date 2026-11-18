@@ -26,6 +26,7 @@ import type {
   ResultsOpponent,
 } from './types';
 import '../recap/recap.css';
+import { BoardRankRing } from '../recap/BoardRankRing';
 
 interface ResultsViewProps {
   source?: ResultsSource;
@@ -107,7 +108,7 @@ function ResultsScreen({
     loading: insightsLoading,
   } = useResultsInsights(source, providedInsights);
   const [view, setView] = useState<ResultsTab>('recap');
-  const [run, setRun] = useState(false);
+  const run = view === 'playback';
   const [showAll, setShowAll] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [opponentId, setOpponentId] = useState<string | null>(null);
@@ -121,7 +122,6 @@ function ResultsScreen({
   const scroller = useRef<HTMLDivElement>(null);
   const { body, comparisonLayer, captureRows, captureComparison } = useResultsMotion(
     view,
-    run,
     opponent?.id ?? null,
   );
 
@@ -152,7 +152,6 @@ function ResultsScreen({
   const playback = useRunPlayback(duration);
   const live =
     run &&
-    view === 'recap' &&
     hasTiming &&
     (playback.playing || playback.scrubbing || playback.time < duration);
   const events = mergeRuns(yourRun ?? [], oppRun ?? []);
@@ -170,16 +169,10 @@ function ResultsScreen({
   };
   const selectView = (tab: ResultsTab) => {
     if (tab !== view) {
+      if (view !== 'highlights' && tab !== 'highlights') captureRows();
       reset();
+      if (tab === 'playback') setShowAll(false);
       setView(tab);
-    }
-  };
-  const selectRun = (next: boolean) => {
-    if (next !== run) {
-      captureRows();
-      reset();
-      setRun(next);
-      setShowAll(false);
     }
   };
   const clearOpponent = () => {
@@ -210,7 +203,7 @@ function ResultsScreen({
         captureComparison();
         reset();
         setShowAll(false);
-        setView('recap');
+        setView(current => current === 'highlights' ? 'recap' : current);
         setOpponent(result.opponent);
       } else {
         setOpponentId(opponent?.id ?? null);
@@ -266,7 +259,7 @@ function ResultsScreen({
   return (
     <div className="fixed inset-0 flex justify-center bg-[var(--surface-panel)] text-[color:var(--ink)] font-[family-name:var(--font-ui)] overflow-hidden">
       <main
-        className="w-full max-w-[360px] box-border flex flex-col p-4 gap-3"
+        className="w-full max-w-[375px] box-border flex flex-col p-4 gap-3"
         style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}
       >
         {topbar ?? (
@@ -305,7 +298,7 @@ function ResultsScreen({
               onSelect={selectOpponent}
               header={standingsHeader}
               compact
-              maxHeight="160px"
+              maxHeight="148px"
               showBars={standingsShowBars}
               formatValue={standingsFormatValue}
             />
@@ -325,9 +318,6 @@ function ResultsScreen({
           <ResultsTabs
             view={view}
             onView={selectView}
-            run={run}
-            onRun={selectRun}
-            canRun={!insightsLoading}
             comparing={opponentId !== null}
             onExit={clearOpponent}
             meta={`${playerCount} ${playerCount === 1 ? 'player' : 'players'}`}
@@ -351,7 +341,7 @@ function ResultsScreen({
               aria-labelledby={`results-tab-${view}`}
               className="results-view-body"
             >
-              {view === 'recap' && (
+              {view !== 'highlights' && (
                 <>
                   {run &&
                     (hasTiming ? (
@@ -389,37 +379,44 @@ function ResultsScreen({
                         )}
                       </p>
                     ))}
-                  <RecapView
-                    yours={yours}
-                    theirs={theirs}
-                    all={all}
-                    opponentName={opponent?.displayName}
-                    run={run}
-                    hasTiming={hasTiming}
-                    events={events}
-                    showAll={showAll}
-                    onShowAll={() => {
-                      setShowAll(!showAll);
-                      setSelected(null);
-                      if (scroller.current) scroller.current.scrollTop = 0;
-                    }}
-                    selected={selected}
-                    currentKey={current?.key ?? null}
-                    live={live}
-                    time={playback.time}
-                    onSelect={selectWord}
-                    peek={
-                      definitionLoading
-                        ? 'Looking up…'
-                        : (definition?.meanings[0]?.definitions[0]?.definition ??
-                          'No definition found')
-                    }
-                    onDefinition={() => {
-                      setSheetWord(selected);
-                      setSheetOpen(true);
-                    }}
-                    scroller={scroller}
-                  />
+                  <div className={view === 'recap' && !opponent && insights?.rankTargets ? 'recap-split' : 'recap-list-area'}>
+                    {view === 'recap' && !opponent && insights?.rankTargets && <>
+                      <BoardRankRing points={me.points} targets={insights.rankTargets} />
+                      <div className="recap-rank-rule" aria-hidden="true" />
+                    </>}
+                    <RecapView
+                      points={me.points}
+                      yours={yours}
+                      theirs={theirs}
+                      all={all}
+                      opponentName={opponent?.displayName}
+                      run={run}
+                      hasTiming={hasTiming}
+                      events={events}
+                      showAll={showAll}
+                      onShowAll={() => {
+                        setShowAll(!showAll);
+                        setSelected(null);
+                        if (scroller.current) scroller.current.scrollTop = 0;
+                      }}
+                      selected={selected}
+                      currentKey={current?.key ?? null}
+                      live={live}
+                      time={playback.time}
+                      onSelect={selectWord}
+                      peek={
+                        definitionLoading
+                          ? 'Looking up…'
+                          : (definition?.meanings[0]?.definitions[0]?.definition ??
+                            'No definition found')
+                      }
+                      onDefinition={() => {
+                        setSheetWord(selected);
+                        setSheetOpen(true);
+                      }}
+                      scroller={scroller}
+                    />
+                  </div>
                 </>
               )}
               {view === 'highlights' &&

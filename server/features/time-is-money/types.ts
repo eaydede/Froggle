@@ -1,7 +1,9 @@
+import type { TimedRankTargets } from 'models/timedRanks';
 
 
 
 export interface TimeIsMoneySession {
+  rankTargets?: TimedRankTargets | null;
   date: string;
   board: string[][];
   found_words: string[];

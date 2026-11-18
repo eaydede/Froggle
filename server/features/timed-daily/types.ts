@@ -1,3 +1,4 @@
+import type { TimedRankTargets } from 'models/timedRanks';
 
 
 // ─── Session lifecycle ────────────────────────────────────────────────────
@@ -11,6 +12,7 @@
 // inflate scores arbitrarily — that endpoint no longer exists.
 
 export interface TimedDailySession {
+  rankTargets?: TimedRankTargets | null;
   date: string;
   board: string[][];
   found_words: string[];

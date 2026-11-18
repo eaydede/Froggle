@@ -29,6 +29,9 @@ export function Board({
   cellBadge,
 }: BoardProps) {
   const size = board.length;
+  const gap = compact ? (size >= 6 ? 2 : size === 5 ? 3 : 4) : 4;
+  const cellSize = (148 - gap * (size - 1)) / size;
+  const fontSize = Math.min(13, Math.round(cellSize * 0.42 * 2) / 2);
   const [animatedCells, setAnimatedCells] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -49,10 +52,10 @@ export function Board({
   }, [highlightPath]);
 
   return (
-    <div className={`${compact ? 'w-[160px]' : 'w-[168px]'} shrink-0 flex flex-col items-center`}>
+    <div className={`${compact ? 'w-[148px]' : 'w-[168px]'} shrink-0 flex flex-col items-center`}>
       <div
-        className="grid w-full aspect-square gap-1"
-        style={{ gridTemplateColumns: `repeat(${size}, 1fr)` }}
+        className="grid w-full aspect-square"
+        style={{ gridTemplateColumns: `repeat(${size}, 1fr)`, gap }}
       >
         {board.map((row, r) =>
           row.map((letter, c) => {
@@ -65,9 +68,10 @@ export function Board({
             return (
               <div
                 key={`${r}-${c}`}
-                className={`relative ${compact ? 'rounded-[4px] text-[13px]' : 'rounded-[4px] text-sm'} flex items-center justify-center tabular-nums font-[family-name:var(--font-structure)] transition-[background,border-color,color] duration-150`}
+                className={`relative ${compact ? '' : 'rounded-[4px] text-sm'} flex items-center justify-center tabular-nums font-[family-name:var(--font-structure)] transition-[background,border-color,color] duration-150`}
                 style={{
                   fontWeight: 700,
+                  ...(compact ? { fontSize, borderRadius: size >= 5 ? 3 : 4 } : {}),
                   background: lit ? litBackground : 'var(--surface-card)',
                   borderWidth: '1px',
                   borderStyle: 'solid',

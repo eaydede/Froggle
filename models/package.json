@@ -11,7 +11,8 @@
     "./gauntlet": "./gauntlet.ts",
     "./timeIsMoney": "./timeIsMoney.ts",
     "./multiplayer": "./multiplayer.ts",
-    "./results": "./results.ts"
+    "./results": "./results.ts",
+    "./timedRanks": "./timedRanks.ts"
   },
   "private": true
 }

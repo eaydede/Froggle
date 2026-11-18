@@ -23,5 +23,6 @@ export interface ResultPlayer {
 }
 
 export interface ResultsInsights {
+  rankTargets?: import('./timedRanks.js').TimedRankTargets | null;
   players: ResultPlayer[];
 }

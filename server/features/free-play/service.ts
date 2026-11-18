@@ -14,6 +14,7 @@ import type { RoomBoardCompletion } from '../rooms/types.js';
 import { getDailyDatePST } from '../timed-daily/config.js';
 import * as repository from './repository.js';
 import type { ChallengeOwnerRow, ChallengeParticipantRow, FreePlaySession, FreePlaySubmitOutcome, RoomChallengeShare, StartFreePlayOpts, StartFreePlayResult } from './types.js';
+import { prepareRankTargets } from '../timed-ranks/service.js';
 
 export function computeChallengeNewResults(
   ownerRows: ChallengeOwnerRow[],
@@ -119,10 +120,13 @@ export async function startFreePlaySession(
     : generateSeededBoard(opts.boardSize, gameSeed);
 
   const id = crypto.randomUUID();
+  const rankTargets = await prepareRankTargets(db, board, {
+    mode: 'freeplay', boardSize: opts.boardSize, timeLimit: opts.durationSeconds, minWordLength: opts.minWordLength,
+  }, 'freeplay');
 
   await repository.discardOpenSessions(db, opts.userId);
 
-  await repository.insertSession(db, id, opts, board, gameSeed);
+  await repository.insertSession(db, id, opts, board, gameSeed, rankTargets);
 
   const session = await getActiveFreePlaySession(db, opts.userId);
   if (!session) throw new Error('Failed to start free-play session');

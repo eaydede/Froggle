@@ -11,6 +11,7 @@ interface Cell {
   key: string;
 }
 interface Props {
+  points: number;
   yours: Word[];
   theirs: Word[] | null;
   all: Word[];
@@ -31,6 +32,7 @@ interface Props {
 }
 
 export function RecapView({
+  points,
   yours,
   theirs,
   all,
@@ -108,7 +110,11 @@ export function RecapView({
       .map((w) => ({ key: w.word, cells: [cell(w, 'you')] }));
   }
   return (
-    <>
+    <div className="recap-list">
+      {!run && !comparing && <div className="recap-metric-header recap-found-header">
+        <span>{showAll ? 'All words' : <>Found <span className="recap-count">· {yours.length}</span></>}</span>
+        <span>{showAll ? `${yours.length}/${all.length}` : `${points} pts`}</span>
+      </div>}
       {comparing && (
         <div className="recap-compare-header">
           <span>
@@ -183,9 +189,9 @@ export function RecapView({
       </div>
       {!run && !comparing && (
         <button type="button" className="recap-all" onClick={onShowAll}>
-          {showAll ? `Your ${yours.length} words ↑` : `All ${all.length} words ↓`}
+          {showAll ? 'Found' : 'All words'}
         </button>
       )}
-    </>
+    </div>
   );
 }

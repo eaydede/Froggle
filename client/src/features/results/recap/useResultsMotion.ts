@@ -1,23 +1,23 @@
 import { useLayoutEffect, useRef } from 'react';
 import type { ResultsTab } from './ResultsTabs';
-const order: ResultsTab[] = ['recap', 'highlights'];
+const order: ResultsTab[] = ['recap', 'playback', 'highlights'];
 interface ComparisonSnapshot {
   element: HTMLElement;
   scrollPositions: number[];
 }
 
-export function useResultsMotion(view: ResultsTab, run: boolean, opponentId: string | null) {
+export function useResultsMotion(view: ResultsTab, opponentId: string | null) {
   const body = useRef<HTMLDivElement>(null);
   const comparisonLayer = useRef<HTMLDivElement>(null);
   const comparisonSnapshot = useRef<ComparisonSnapshot | null>(null);
   const oldOpponent = useRef(opponentId);
   const oldView = useRef(view);
-  const snapshot = useRef<Map<string, number> | null>(null);
+  const snapshot = useRef<Map<string, { top: number; left: number }> | null>(null);
   const captureRows = () => {
     snapshot.current = new Map(
       [...body.current!.querySelectorAll<HTMLElement>('[data-flip]')].map((el) => [
         el.dataset.flip!,
-        el.getBoundingClientRect().top,
+        { top: el.getBoundingClientRect().top, left: el.getBoundingClientRect().left },
       ]),
     );
   };
@@ -78,7 +78,7 @@ export function useResultsMotion(view: ResultsTab, run: boolean, opponentId: str
       );
       fade.addEventListener('finish', () => outgoing.element.remove(), { once: true });
       animations.push(fade);
-    } else if (oldView.current !== view) {
+    } else if (oldView.current !== view && (oldView.current === 'highlights' || view === 'highlights')) {
       const direction = order.indexOf(view) > order.indexOf(oldView.current) ? 1 : -1;
       animations.push(
         el.animate(
@@ -100,7 +100,7 @@ export function useResultsMotion(view: ResultsTab, run: boolean, opponentId: str
           row.animate(
             old === undefined
               ? [{ opacity: 0 }, { opacity: 1 }]
-              : [{ transform: `translateY(${old - rect.top}px)` }, { transform: 'translateY(0)' }],
+              : [{ transform: `translate(${old.left - rect.left}px, ${old.top - rect.top}px)` }, { transform: 'translateY(0)' }],
             {
               duration: old === undefined ? 220 : 340,
               delay: old === undefined ? 120 : 0,
@@ -111,7 +111,7 @@ export function useResultsMotion(view: ResultsTab, run: boolean, opponentId: str
         );
       });
       const chart = el.querySelector('.recap-chart');
-      if (run && chart)
+      if (view === 'playback' && chart)
         animations.push(
           chart.animate(
             [
@@ -130,6 +130,6 @@ export function useResultsMotion(view: ResultsTab, run: boolean, opponentId: str
       animations.forEach((animation) => animation.cancel());
       outgoing?.element.remove();
     };
-  }, [view, run, opponentId]);
+  }, [view, opponentId]);
   return { body, comparisonLayer, captureRows, captureComparison };
 }

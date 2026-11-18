@@ -1,3 +1,4 @@
+import type { TimedRankTargets } from 'models/timedRanks';
 import { sql, type Kysely } from 'kysely';
 import type { WordProgress } from '../../gameplay/types.js';
 import type { Database } from '../../platform/database/types.js';
@@ -9,6 +10,7 @@ export async function findSession(db: Kysely<Database>, userId: string, date: st
     .select([
       'date',
       'board',
+      'rank_targets',
       'found_words',
       'started_at',
       'ended_at',
@@ -25,10 +27,11 @@ export async function findSession(db: Kysely<Database>, userId: string, date: st
   return row ? parseSession(row) : null;
 }
 
-export function insertSession(db: Kysely<Database>, userId: string, date: string, board: string[][], config: { boardSize: number; minWordLength: number; timeLimit: number; }) {
+export function insertSession(db: Kysely<Database>, userId: string, date: string, board: string[][], config: { boardSize: number; minWordLength: number; timeLimit: number; }, rankTargets: TimedRankTargets | null = null) {
   return db
     .insertInto('daily_time_is_money_results')
     .values({
+      rank_targets: rankTargets ? JSON.stringify(rankTargets) : null,
       user_id: userId,
       date,
       board: JSON.stringify(board),
@@ -107,6 +110,7 @@ export function findRank(db: Kysely<Database>, date: string, userId: string) {
 function parseSession(row: {
   date: string;
   board: unknown;
+  rank_targets: unknown;
   found_words: unknown;
   started_at: Date;
   ended_at: Date | null;
@@ -118,6 +122,7 @@ function parseSession(row: {
   time_limit: number;
 }): TimeIsMoneySession {
   return {
+    rankTargets: parseJson<TimedRankTargets | null>(row.rank_targets, null),
     date: row.date,
     board: parseJson<string[][]>(row.board, []),
     found_words: parseJson<string[]>(row.found_words, []),
@@ -143,6 +148,7 @@ export async function lockSession(db: Kysely<Database>, userId: string, date: st
     .select([
       'date',
       'board',
+      'rank_targets',
       'found_words',
       'started_at',
       'ended_at',

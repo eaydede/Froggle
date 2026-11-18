@@ -1,22 +1,16 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-export type ResultsTab = 'recap' | 'highlights';
-const tabs: ResultsTab[] = ['recap', 'highlights'];
+export type ResultsTab = 'recap' | 'playback' | 'highlights';
+const tabs: ResultsTab[] = ['recap', 'playback', 'highlights'];
 
 export function ResultsTabs({
   view,
   onView,
-  run,
-  onRun,
-  canRun,
   comparing,
   onExit,
   meta,
 }: {
   view: ResultsTab;
   onView: (tab: ResultsTab) => void;
-  run: boolean;
-  onRun: (run: boolean) => void;
-  canRun: boolean;
   comparing: boolean;
   onExit: () => void;
   meta: string;
@@ -48,6 +42,18 @@ export function ResultsTabs({
             role="tab"
             aria-controls="results-panel"
             aria-selected={view === tab}
+            tabIndex={view === tab ? 0 : -1}
+            onKeyDown={event => {
+              const index = tabs.indexOf(tab);
+              const next = event.key === 'ArrowRight' ? (index + 1) % tabs.length
+                : event.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length
+                : event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : null;
+              if (next !== null) {
+                event.preventDefault();
+                onView(tabs[next]);
+                group.current?.querySelectorAll<HTMLButtonElement>('[role=tab]')[next].focus();
+              }
+            }}
             key={tab}
             onClick={() => onView(tab)}
           >
@@ -57,37 +63,7 @@ export function ResultsTabs({
         <span className="results-tab-underline" style={underline} />
       </div>
       <div className="results-view-controls">
-        {view === 'recap' ? (
-          <>
-            <button
-              type="button"
-              className={`results-circle ${!run ? 'active' : ''}`}
-              aria-label="Word list"
-              aria-pressed={!run}
-              onClick={() => onRun(false)}
-            >
-              <svg viewBox="0 0 24 24">
-                <path d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className={`results-circle ${run ? 'active' : ''}`}
-              aria-label="Your run"
-              aria-pressed={run}
-              disabled={!canRun}
-              title={!canRun ? 'Find times are unavailable for this game' : undefined}
-              onClick={() => onRun(true)}
-            >
-              <svg viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="9" />
-                <path d="M12 7v5l3 2" />
-              </svg>
-            </button>
-          </>
-        ) : (
-          !comparing && <span className="results-meta">{meta}</span>
-        )}
+        {view === 'highlights' && !comparing && <span className="results-meta">{meta}</span>}
         {comparing && (
           <button
             type="button"

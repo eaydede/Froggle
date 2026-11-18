@@ -1,3 +1,4 @@
+import type { TimedRankTargets } from 'models/timedRanks';
 import { type GameConfig } from 'models';
 import type {
   MultiplayerBoard,
@@ -54,6 +55,7 @@ export interface RoomEntry {
 }
 
 export interface RoomBoardCompletion {
+  rankTargets?: TimedRankTargets | null;
   seed: number;
   board: string[][];
   config: GameConfig;

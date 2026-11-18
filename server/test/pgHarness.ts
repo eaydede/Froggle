@@ -33,6 +33,9 @@ const SUPABASE_BOOTSTRAP = `
 `;
 
 const APP_TABLES = [
+  'timed_word_statistics',
+  'timed_rank_models',
+  'timed_board_ranks',
   'daily_results',
   'daily_zen_results',
   'daily_gauntlet_results',

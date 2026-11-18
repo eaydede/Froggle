@@ -12,6 +12,7 @@ import { getDisplayNames } from '../profile/publicNames.js';
 import { prepareTimeIsMoneyBoard } from './config.js';
 import * as repository from './repository.js';
 import type { TimeIsMoneyCompareError, TimeIsMoneyComparePlayer, TimeIsMoneyCompareResult, TimeIsMoneyRosterEntry, TimeIsMoneySession, TimeIsMoneyStatus, TimeIsMoneySubmitOutcome } from './types.js';
+import { prepareRankTargets } from '../timed-ranks/service.js';
 
 // Same buzzer-grace window the timed daily uses — a word fairly played as the
 // clock hits zero can reach the server a few hundred ms late.
@@ -65,7 +66,11 @@ export async function startTimeIsMoneySession(
   userId: string,
   date: string,
 ): Promise<TimeIsMoneySession> {
-  await repository.insertSession(db, userId, date, prepareTimeIsMoneyBoard(date), TIME_IS_MONEY_CONFIG);
+  const existing = await getTimeIsMoneySession(db, userId, date);
+  if (existing) return existing;
+  const board = prepareTimeIsMoneyBoard(date);
+  const rankTargets = await prepareRankTargets(db, board, { mode: 'money', ...TIME_IS_MONEY_CONFIG }, `money:${date}`);
+  await repository.insertSession(db, userId, date, board, TIME_IS_MONEY_CONFIG, rankTargets);
 
   const session = await getTimeIsMoneySession(db, userId, date);
   if (!session) throw new Error('Failed to start Time is Money session');

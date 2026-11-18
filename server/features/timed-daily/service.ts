@@ -9,6 +9,7 @@ import type { Database } from '../../platform/database/types.js';
 import { getDailyConfig, type DailyConfig } from './config.js';
 import * as repository from './repository.js';
 import type { TimedDailySession, TimedSubmitOutcome } from './types.js';
+import { prepareRankTargets } from '../timed-ranks/service.js';
 
 // Grace window for late submissions. The client perceives the timer
 // hitting zero from its local clock; the same submission reaching the
@@ -64,7 +65,10 @@ export async function startTimedDailySession(
   board: string[][],
   config: DailyConfig,
 ): Promise<TimedDailySession> {
-  await repository.insertSession(db, userId, date, board, config);
+  const existing = await getTimedDailySession(db, userId, date);
+  if (existing) return existing;
+  const rankTargets = await prepareRankTargets(db, board, { mode: 'timed', ...config }, `timed:${date}`);
+  await repository.insertSession(db, userId, date, board, config, rankTargets);
 
   const session = await getTimedDailySession(db, userId, date);
   if (!session) throw new Error('Failed to start timed daily session');

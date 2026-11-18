@@ -22,7 +22,8 @@
     "test:browser": "playwright test",
     "check": "npm run check:boundaries && npm exec --workspace=client -- tsc --noEmit && npm exec --workspace=server -- tsc --noEmit && npm exec --workspace=engine -- tsc --noEmit && npm exec --workspace=models -- tsc --noEmit && tsc --project tests/browser/tsconfig.json",
     "check:boundaries": "node scripts/checkBoundaries.mjs",
-    "verify:visual": "node --import tsx scripts/compareExperience.mjs"
+    "verify:visual": "node --import tsx scripts/compareExperience.mjs",
+    "ranks:refresh": "tsx scripts/refreshTimedRanks.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.0",

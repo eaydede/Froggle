@@ -1,0 +1,34 @@
+name: Refresh timed rank statistics
+
+on:
+  schedule:
+    - cron: '15 9 * * *'
+  workflow_dispatch:
+    inputs:
+      recalibrate:
+        description: Recalculate rank multipliers for future boards
+        type: boolean
+        default: false
+
+concurrency:
+  group: timed-rank-statistics
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Refresh statistics and save evaluation report
+        run: npm run ranks:refresh -- --write --report=timed-ranks-report.json ${{ inputs.recalibrate && '--recalibrate' || '' }}
+        env:
+          RANKS_SOURCE_DATABASE_URL: postgres://postgres.${{ secrets.SUPABASE_PROJECT_REF_PROD }}:${{ secrets.SUPABASE_DB_PASSWORD_PROD }}@aws-1-us-east-1.pooler.supabase.com:6543/postgres
+          DATABASE_URL: postgres://postgres.${{ secrets.SUPABASE_PROJECT_REF_PROD }}:${{ secrets.SUPABASE_DB_PASSWORD_PROD }}@aws-1-us-east-1.pooler.supabase.com:6543/postgres
+      - uses: actions/upload-artifact@v4
+        with:
+          name: timed-ranks-report
+          path: timed-ranks-report.json
