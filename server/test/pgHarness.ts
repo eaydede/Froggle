@@ -33,6 +33,7 @@ const SUPABASE_BOOTSTRAP = `
 `;
 
 const APP_TABLES = [
+  'zen_board_difficulties',
   'timed_word_statistics',
   'timed_rank_models',
   'timed_board_ranks',

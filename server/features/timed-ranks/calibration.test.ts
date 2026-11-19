@@ -32,6 +32,10 @@ describe('historical calibration', () => {
     games.push({ ...game(100), settings: { ...settings, timeLimit: 180 } });
     const model = trainModel(games, vocabulary);
     expect(model.cohorts[settingsKey(settings)].multipliers).toHaveLength(5);
+    const reference = model.cohorts[settingsKey(settings)].boardDifficulties!;
+    expect(reference).toHaveLength(10); // Sixty player-games still represent ten boards.
+    expect(reference).toEqual([...reference].sort((a, b) => a - b));
+    expect(reference.every(value => value >= 0 && value <= 1)).toBe(true);
     expect(model.cohorts[settingsKey({ ...settings, timeLimit: 180 })].multipliers).toBeNull();
     expect(trainModel(games.map(entry => ({ ...entry, boardKey: 'same-board' })), vocabulary).cohorts[settingsKey(settings)].multipliers).toBeNull();
   });
@@ -43,6 +47,7 @@ describe('historical calibration', () => {
     const refreshed = trainModel(changed, vocabulary, previous);
     expect(refreshed.cohorts[settingsKey(settings)].multipliers).toEqual(previous.cohorts[settingsKey(settings)].multipliers);
     expect(refreshed.cohorts[settingsKey(settings)].words.every(word => word.finds === 0)).toBe(true);
+    expect(refreshed.cohorts[settingsKey(settings)].boardDifficulties).not.toEqual(previous.cohorts[settingsKey(settings)].boardDifficulties);
     expect(trainModel(changed, vocabulary).cohorts[settingsKey(settings)].multipliers).not.toEqual(previous.cohorts[settingsKey(settings)].multipliers);
     expect(trainModel(games, vocabulary).version).toBe(previous.version);
     const reordered = JSON.parse(JSON.stringify(previous)) as typeof previous;
@@ -102,5 +107,24 @@ describe('historical calibration', () => {
     expect(evaluation.holdoutGames).toBe(41);
     expect(evaluation.cohorts[settingsKey(settings)]).toMatchObject({ trainingGames: 160, trainingBoards: 10, supported: 40 });
     expect(evaluation.cohorts[settingsKey({ ...settings, timeLimit: 180 })].achievementRates).toBeNull();
+  });
+});
+
+describe('Zen word statistics', () => {
+  it('keeps untimed evidence separate and never calibrates Zen rank multipliers', () => {
+    const timed = Array.from({ length: 60 }, (_, index) => game(index));
+    const zen = timed.map((entry, index) => ({
+      ...entry, id: `zen-${index}`, settings: { ...entry.settings, mode: 'zen' as const, timeLimit: 0 },
+      foundWords: [], points: 0,
+    }));
+    const model = trainModel([...timed, ...zen], vocabulary);
+    const timedCohort = model.cohorts[settingsKey(settings)];
+    const zenCohort = model.cohorts[settingsKey(zen[0].settings)];
+    expect(timedCohort.words.some(word => word.finds > 0)).toBe(true);
+    expect(zenCohort.words.every(word => word.finds === 0)).toBe(true);
+    expect(zenCohort.boardDifficulties).toHaveLength(10);
+    expect(zenCohort.multipliers).toBeNull();
+    expect(zenCohort.calibration).toBeNull();
+    expect(evaluateHistory([...timed, ...zen], vocabulary)).toEqual(evaluateHistory(timed, vocabulary));
   });
 });

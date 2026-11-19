@@ -154,6 +154,7 @@ export interface GauntletRoundMissedWord {
 }
 
 export interface GauntletRoundResultResponse {
+  rankTargets?: TimedRankTargets | null;
   date: string;
   roundIndex: number;
   roundKind: GauntletRoundKind;

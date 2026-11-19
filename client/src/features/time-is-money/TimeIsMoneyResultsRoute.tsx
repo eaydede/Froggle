@@ -153,6 +153,7 @@ export function TimeIsMoneyResultsRoute() {
 
   return (
     <ResultsView
+      rankTargets={activeResult.rankTargets}
       source={mockKey ? undefined : { mode: 'money', date }}
       me={{
         displayName: displayName || 'You',

@@ -1,3 +1,4 @@
+import type { TimedRankTargets } from 'models/timedRanks';
 import type { Position } from 'models';
 
 export interface ScoredWord {
@@ -12,6 +13,7 @@ export interface ScoredWord {
 }
 
 export interface GameResults {
+  rankTargets?: TimedRankTargets | null;
   board: string[][];
   foundWords: ScoredWord[];
   missedWords: ScoredWord[];

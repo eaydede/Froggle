@@ -1,3 +1,4 @@
+import { TIMED_RANK_POLICY_VERSION } from 'models/timedRanks';
 import type { ResultsInsights, ResultPlayer } from 'models/results';
 import { scoreWord } from '../../../gameplay/score';
 import { findWordPath } from '../../../gameplay/findWordPath';
@@ -78,22 +79,26 @@ const players: ResultPlayer[] = [
 ];
 const insights: ResultsInsights = {
   // Visual fixture only; actual games receive saved, production-calibrated targets.
-  rankTargets: { modelVersion: 'fixture', statisticsVersion: 'fixture', attainablePoints: 144, thresholds: [14, 29, 50, 79, 115] },
+  rankTargets: { modelVersion: TIMED_RANK_POLICY_VERSION, statisticsVersion: 'fixture', attainablePoints: 144, thresholds: [19, 39, 59, 79, 99], boardDifficulty: { value: 0.45, totalPoints: 262, percentile: 58, comparisonBoards: 120 } },
   players,
 };
 
 export function RecapFixture({
+  zen = false,
   legacy = false,
   early = false,
   opponentDelay = 0,
   points = 28,
   boardSize = 4,
+  difficultyPercentile = 58,
 }: {
+  zen?: boolean;
   legacy?: boolean;
   early?: boolean;
   opponentDelay?: number;
   points?: number;
   boardSize?: number;
+  difficultyPercentile?: number | null;
 }) {
   const activeInsights = early
     ? {
@@ -112,6 +117,16 @@ export function RecapFixture({
       }
     : insights;
   const all = [...new Set([...words, ...opponentWords, 'AMESACES', 'AMESACE', 'CALESAS'])];
+  const fixtureDifficulties: Record<string, number> = {
+    AMESACES: 0.94, AMESACE: 0.91, CALESAS: 0.88, MAILES: 0.81, MALICES: 0.74,
+    DACES: 0.72, DANGS: 0.69, CAMES: 0.66, LEACHES: 0.61, LEACH: 0.5,
+    CAMEL: 0.3, CAME: 0.1, CAMS: 0.34, SCAM: 0.14, SCAMS: 0.3,
+    SCALE: 0.16, SCALES: 0.24, LAMES: 0.52, SEAM: 0.18, ACES: 0.2,
+    CASE: 0.08, MACE: 0.26, MESA: 0.38, ACHE: 0.22, EACH: 0.06,
+    SAME: 0.05, MEAL: 0.12, SALE: 0.1, SEAL: 0.12, HEAL: 0.15,
+    LACE: 0.14, MALE: 0.1, SCAN: 0.16, CANS: 0.2, MASS: 0.18,
+    SANG: 0.24, SNAG: 0.28, DANG: 0.44,
+  };
   const scored = (word: string) => ({
     word,
     score: scoreWord(word),
@@ -119,6 +134,10 @@ export function RecapFixture({
   });
   return (
     <ResultsView
+      zenMaxScore={zen ? 262 : undefined}
+      rankTargets={zen ? null : undefined}
+      boardDifficulty={zen ? { value: 0.45, totalPoints: 262, percentile: difficultyPercentile, comparisonBoards: 120 } : undefined}
+      wordDifficulties={Object.fromEntries(all.map(word => [word, fixtureDifficulties[word] ?? 0.5]))}
       insights={
         legacy
           ? {
@@ -129,7 +148,7 @@ export function RecapFixture({
                 finds: p.finds.map((f) => ({ ...f, time: null })),
               })),
             }
-          : activeInsights
+          : { ...activeInsights, rankTargets: { ...activeInsights.rankTargets!, boardDifficulty: { ...activeInsights.rankTargets!.boardDifficulty!, percentile: difficultyPercentile } } }
       }
       me={{
         displayName: 'You',
@@ -139,7 +158,7 @@ export function RecapFixture({
         missedWords: all.filter((word) => !words.includes(word)).map(scored),
       }}
       board={boardSize === 4 ? board : Array.from({ length: boardSize }, (_, r) => Array.from({ length: boardSize }, (_, c) => board[r % 4][c % 4]))}
-      config={{ boardSize, minWordLength: 4, timeLimit: 120 }}
+      config={{ boardSize, minWordLength: 4, timeLimit: zen ? 0 : 120 }}
       roster={[...players.filter((p) => !p.isYou), players[0]].map((p, i) => ({
         id: p.id,
         rank: i + 1,
@@ -174,7 +193,7 @@ export function RecapFixture({
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </IconAction>
-          <DateChip label="Timed Daily · Wed, Oct 14" onClick={() => {}} />
+          <DateChip label={`${zen ? 'Zen Daily' : 'Timed Daily'} · Wed, Oct 14`} onClick={() => {}} />
           <IconAction label="Share" onClick={() => {}}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M4 12v8h16v-8M12 16V2m-5 5 5-5 5 5" />

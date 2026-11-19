@@ -1,4 +1,4 @@
-import { ZEN_RANKS, getZenRank } from 'models/zenRanks';
+import { ZEN_RANKS, getZenRank, getZenRankTarget } from 'models/zenRanks';
 import { useEffect } from 'react';
 
 interface RankLadderSheetProps {
@@ -72,7 +72,7 @@ export function RankLadderSheet({ open, onClose, points, maxScore }: RankLadderS
 
         <div className="px-[22px] py-3 flex flex-col gap-2">
           {ZEN_RANKS.map((rank) => {
-            const threshold = Math.ceil(rank.threshold * maxScore);
+            const threshold = getZenRankTarget(rank, maxScore);
             const reached = points >= threshold;
             const isCurrent = currentRank?.id === rank.id;
             const remaining = Math.max(0, threshold - points);

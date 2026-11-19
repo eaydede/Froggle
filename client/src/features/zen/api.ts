@@ -1,3 +1,4 @@
+import type { BoardWordDifficultyAssessment } from 'models/results';
 import { type Position } from 'models';
 import { API_URL, getJson, sessionHeaders } from '../../platform/http';
 import { type DailyCompareError, type DailyCompareResponse, type DailyResultMissedWord, type DailyStatsDay } from '../timed-daily/api';
@@ -119,6 +120,8 @@ export const endDailyZenSession = async (
 };
 
 export interface DailyZenResultResponse {
+  difficulty_assessment: BoardWordDifficultyAssessment | null;
+  config: { boardSize: number; minWordLength: number };
   date: string;
   found_words: DailyResultMissedWord[];
   board: string[][];

@@ -26,3 +26,25 @@ export interface ResultsInsights {
   rankTargets?: import('./timedRanks.js').TimedRankTargets | null;
   players: ResultPlayer[];
 }
+
+/** Completed-board word ratings, using the statistics saved with that game. */
+export interface ResultsWordDifficulties {
+  difficulties: Record<string, number>;
+}
+
+/** Descending entry scores consumed by the results carousel, for either rank policy. */
+export interface ResultsRankRung {
+  id: string;
+  name: string;
+  colorToken: string;
+  ordinal: number;
+  points: number;
+  nextPoints: number;
+  collapsed?: boolean;
+}
+
+/** A saved word-statistics version and its board-level comparison. */
+export interface BoardWordDifficultyAssessment {
+  statisticsVersion: string;
+  boardDifficulty: import('./timedRanks.js').BoardDifficulty;
+}

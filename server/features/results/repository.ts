@@ -1,3 +1,5 @@
+import type { RankSettings } from '../timed-ranks/types.js';
+import type { TimedRankTargets } from 'models/timedRanks';
 import type { Kysely } from 'kysely';
 import type { ResultsSource } from 'models/results';
 import type { Database } from '../../platform/database/types.js';
@@ -94,4 +96,43 @@ export async function loadResults(
   const me = field.find((r) => r.user_id === userId);
   if (!me) return null;
   return field.map((r) => translate(r, false, source.mode !== 'money'));
+}
+
+interface DifficultyRow {
+  board: unknown;
+  found_words: unknown;
+  rank_targets: unknown;
+  board_size: number;
+  time_limit: number;
+  min_word_length: number;
+}
+
+function difficultyBoard(row: DifficultyRow, mode: RankSettings['mode']) {
+  return {
+    board: json<string[][]>(row.board),
+    words: json<string[]>(row.found_words),
+    targets: json<TimedRankTargets | null>(row.rank_targets),
+    settings: { mode, boardSize: row.board_size, timeLimit: row.time_limit, minWordLength: row.min_word_length },
+  };
+}
+
+/** Read only the caller's completed board; never load a field of other players. */
+export async function loadDifficultyBoard(
+  db: Kysely<Database>, userId: string, source: Exclude<ResultsSource, { mode: 'room' }>,
+) {
+  if (source.mode === 'zen') return null;
+  if (source.mode === 'freeplay') {
+    const row = await db.selectFrom('free_play_sessions').selectAll()
+      .where('id', '=', source.sessionId).where('user_id', '=', userId).where('completed_at', 'is not', null).executeTakeFirst();
+    return row ? difficultyBoard(row, 'freeplay') : null;
+  }
+  if (source.mode === 'gauntlet') {
+    const row = await db.selectFrom('daily_gauntlet_results').selectAll()
+      .where('date', '=', source.date).where('round_index', '=', source.round)
+      .where('user_id', '=', userId).where('ended_at', 'is not', null).executeTakeFirst();
+    return row ? difficultyBoard(row, `gauntlet-${row.round_kind}` as RankSettings['mode']) : null;
+  }
+  const row = await db.selectFrom(tables[source.mode]).selectAll()
+    .where('date', '=', source.date).where('user_id', '=', userId).where('ended_at', 'is not', null).executeTakeFirst();
+  return row ? difficultyBoard(row, source.mode) : null;
 }

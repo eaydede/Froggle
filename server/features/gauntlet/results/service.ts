@@ -37,6 +37,7 @@ export async function getRoundResult(db: Kysely<Database>, userId: string, date:
 
   return {
     result: {
+      rankTargets: session.rankTargets ?? null,
       date: session.date,
       roundIndex,
       roundKind: session.roundKind,

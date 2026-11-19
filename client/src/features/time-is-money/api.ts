@@ -54,6 +54,7 @@ export interface TimeIsMoneyRosterEntry {
 }
 
 export interface TimeIsMoneyResultResponse {
+  rankTargets?: TimedRankTargets | null;
   date: string;
   number: number;
   board: string[][];

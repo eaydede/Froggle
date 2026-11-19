@@ -1,3 +1,4 @@
+import type { TimedRankTargets } from 'models/timedRanks';
 import { API_URL, sessionHeaders } from '../../platform/http';
 
 
@@ -56,6 +57,7 @@ export interface FreePlayChallengePlayer {
 }
 
 export interface FreePlayChallengeResponse {
+  rankTargets?: TimedRankTargets | null;
   challengeId: string;
   board: string[][];
   config: { boardSize: number; minWordLength: number; timeLimit: number };

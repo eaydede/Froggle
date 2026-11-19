@@ -1,3 +1,6 @@
+import { getSavedResult } from '../history/service.js';
+import { getChallenge } from '../challenges/service.js';
+import { TIMED_RANK_POLICY_VERSION } from 'models/timedRanks';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { dockerAvailable, startTestDb, type TestDb } from '../../test/pgHarness.js';
@@ -30,6 +33,27 @@ describe.runIf(dockerAvailable())('results insights and timing (DB)', () => {
   });
   beforeEach(async () => {
     await h.truncateAll();
+  });
+
+  it('includes the viewer’s saved targets in primary history and challenge results', async () => {
+    const id = randomUUID();
+    const mine = randomUUID();
+    const legacy = randomUUID();
+    const targets = { modelVersion: TIMED_RANK_POLICY_VERSION, statisticsVersion: 'test', attainablePoints: 60, thresholds: [9, 19, 29, 39, 49] };
+    const ownerTargets = { ...targets, thresholds: [4, 9, 14, 19, 24] };
+    const common = {
+      date: '2026-11-12', board, board_size: 4, min_word_length: 4, time_limit: 120,
+      found_words: '[]', started_at: new Date('2026-11-12T12:00:00Z'), completed_at: new Date('2026-11-12T12:02:00Z'),
+    };
+    await h.db.insertInto('free_play_sessions').values([
+      { ...common, id, challenge_id: id, user_id: user, rank_targets: JSON.stringify(ownerTargets) },
+      { ...common, id: mine, challenge_id: id, user_id: other, rank_targets: JSON.stringify(targets) },
+      { ...common, id: legacy, user_id: user, rank_targets: null },
+    ]).execute();
+    expect((await getSavedResult(h.db, other, mine)).rankTargets).toEqual(targets);
+    expect((await getChallenge(h.db, other, id)).rankTargets).toEqual(targets);
+    expect((await getSavedResult(h.db, user, legacy)).rankTargets).toBeNull();
+    await expect(getSavedResult(h.db, user, mine)).rejects.toMatchObject({ code: 'forbidden' });
   });
 
   it('records accepted find times in every persisted mode without inventing historical times', async () => {

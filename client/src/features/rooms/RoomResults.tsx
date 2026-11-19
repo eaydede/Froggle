@@ -221,6 +221,7 @@ export function RoomResults({
   // and on results they're visible via Standings.
   return (
     <ResultsView
+      rankTargets={board.rankTargets ?? null}
       source={{ mode: 'room', code: room.code, playerId: me.id }}
       me={viewer}
       board={board.board}

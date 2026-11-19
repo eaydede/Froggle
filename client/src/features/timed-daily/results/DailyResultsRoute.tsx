@@ -188,6 +188,7 @@ export function DailyResultsRoute() {
   return (
     <>
       <ResultsView
+        rankTargets={serverResult?.rankTargets}
         source={{ mode: 'timed', date: targetDate }}
         me={{
           displayName: 'You',

@@ -5,7 +5,7 @@ import { requireAuth } from '../../platform/auth.js';
 import { getDb } from '../../platform/database/index.js';
 import { ApplicationError, endpoint } from '../../platform/errors.js';
 import { cachePrivate } from '../../platform/httpCache.js';
-import { getInsights } from './service.js';
+import { getInsights, getBoardWordDifficulties } from './service.js';
 
 const UUID = /^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i;
 
@@ -45,3 +45,10 @@ resultsRouter.get(
     res.json(insights);
   }),
 );
+
+resultsRouter.get('/word-difficulties', requireAuth, endpoint(async (req, res) => {
+  const source = parseSource(req.query);
+  const result = await getBoardWordDifficulties(getDb(), req.userId!, source);
+  cachePrivate(res, 300);
+  res.json(result);
+}));

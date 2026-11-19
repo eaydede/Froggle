@@ -173,6 +173,9 @@ export function ZenResultsRoute() {
     <>
       <ResultsView
         source={{ mode: 'zen', date: targetDate }}
+        rankTargets={null}
+        zenMaxScore={result.theoretical_max_score ?? [...result.found_words, ...result.missed_words].reduce((sum, word) => sum + word.score, 0)}
+        boardDifficulty={result.difficulty_assessment?.boardDifficulty}
         me={{
           displayName: 'You',
           points: totalPoints,
@@ -183,7 +186,7 @@ export function ZenResultsRoute() {
         board={result.board}
         config={{
           boardSize: result.board.length,
-          minWordLength: cachedDailyZen?.config.minWordLength ?? 4,
+          minWordLength: result.config.minWordLength,
           timeLimit: 0,
         }}
         roster={roster}

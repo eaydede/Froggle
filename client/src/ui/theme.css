@@ -63,6 +63,12 @@ button, input, select, textarea {
  */
 :root {
   --surface-definition: #FAF8F3;
+  --board-difficulty-easy: var(--rarity-rare);
+  --board-difficulty-fair: #717326;
+  --board-difficulty-tough: #826A20;
+  --board-difficulty-hard: var(--rarity-legendary);
+  --board-difficulty-brutal: #B5473A;
+  --rank-pill-ink: #FFFFFF;
 
   /* Accent */
   --accent: #6B9B7D;
@@ -280,6 +286,10 @@ button, input, select, textarea {
  * Dark theme
  */
 [data-theme="dark"] {
+  --board-difficulty-fair: #C8C95A;
+  --board-difficulty-tough: #D2B85C;
+  --board-difficulty-brutal: #D9665A;
+  --rank-pill-ink: #14120F;
   --surface-bg: #14120F;
   --surface-panel: #1C1A15;
   --surface-card: #221F1A;     /* LIGHTER than panel — same floating logic */

@@ -1,3 +1,4 @@
+import type { TimedRankTargets } from 'models/timedRanks';
 import { API_URL, sessionHeaders } from '../../platform/http';
 
 
@@ -32,6 +33,7 @@ export const fetchFreePlayUnread = async (): Promise<{ count: number }> => {
 };
 
 export interface FreePlaySessionResponse {
+  rankTargets?: TimedRankTargets | null;
   sessionId: string;
   challengeId: string | null;
   seed: number | null;

@@ -1,3 +1,4 @@
+import { getNextTimedRank, getTimedRank, getTimedRankStarts } from 'models/timedRanks';
 import { describe, expect, it } from 'vitest';
 import { attainablePoints, createDifficultyLookup, createTargets, vocabularyDifficulty } from './calculation.js';
 
@@ -59,11 +60,39 @@ describe('timed word difficulty', () => {
 });
 
 describe('timed rank point targets', () => {
-  it('rounds up and keeps every title positive, distinct, and achievable', () => {
-    const targets = createTargets(200, 300, [0.15, 0.30, 0.5, 0.7, 0.9], 'test')!;
-    expect(targets.thresholds).toEqual([30, 60, 100, 140, 180]);
-    expect(createTargets(10, 5, [0, 0, 1, 2, 3], 'test')?.thresholds).toEqual([1, 2, 3, 4, 5]);
-    expect(createTargets(0, 20, [1, 2, 3, 4, 5], 'test')).toBeNull();
-    expect(createTargets(10, 4, [1, 2, 3, 4, 5], 'test')).toBeNull();
+  it('uses equal integer bands, with Legend 1 anchored to its historical target', () => {
+    const targets = createTargets(200, 300, 0.9, 'test')!;
+    expect(targets.thresholds).toEqual([44, 89, 134, 179, 224]);
+    expect(targets.attainablePoints).toBe(200);
+    // Scribe 0, Wordsmith 45, Linguist 90, Virtuoso 135, Legend 1 180.
+    expect(getTimedRankStarts(targets)).toEqual([0, 45, 90, 135, 180]);
+    expect(getTimedRank(180, targets).name).toBe('Legend 1');
+    expect(getTimedRank(225, targets).name).toBe('Legend 2');
+  });
+
+  it('keeps Legend achievable and spaces every further level by the same amount', () => {
+    const targets = createTargets(200, 101, 9, 'test')!;
+    expect(getTimedRankStarts(targets)).toEqual([0, 25, 50, 75, 100]);
+    expect(getNextTimedRank(100, targets)).toMatchObject({ name: 'Legend 2', points: 125 });
+    expect(createTargets(10, 5, 0, 'test')?.thresholds).toEqual([0, 1, 2, 3, 4]);
+  });
+
+  it('rejects unsupported boards and invalid inputs', () => {
+    expect(createTargets(0, 20, 1, 'test')).toBeNull();
+    expect(createTargets(10, 4, 1, 'test')).toBeNull();
+    expect(createTargets(NaN, 20, 1, 'test')).toBeNull();
+    expect(createTargets(10, 20, NaN, 'test')).toBeNull();
+  });
+});
+
+describe('board difficulty snapshots', () => {
+  it('uses point-weighted difficulty and compares strictly below, including ties', () => {
+    const targets = createTargets(50, 100, 1, 'test', [0.1, 0.2, 0.5, 0.5, 0.8])!;
+    expect(targets.boardDifficulty).toEqual({ value: 0.5, totalPoints: 100, percentile: 40, comparisonBoards: 5 });
+    expect(createTargets(50, 100, 1, 'test', [0.1, 0.2, 0.3, 0.4, 0.45])!.boardDifficulty?.percentile).toBe(100);
+  });
+  it('does not invent a comparison for sparse or absent reference boards', () => {
+    expect(createTargets(50, 100, 1, 'test')!.boardDifficulty?.percentile).toBeNull();
+    expect(createTargets(50, 100, 1, 'test', [0.1, 0.2, 0.3, 0.4])!.boardDifficulty?.percentile).toBeNull();
   });
 });

@@ -79,6 +79,7 @@ auth.post('/__test__/rank-model', async (_req, res) => {
   const date = getDailyDatePST();
   const settings: RankSettings[] = [
     { mode: 'timed', ...getDailyConfig(date) },
+    { mode: 'zen', boardSize: 5, timeLimit: 0, minWordLength: 4 },
     { mode: 'money', ...TIME_IS_MONEY_CONFIG },
     { mode: 'freeplay', boardSize: 4, timeLimit: 180, minWordLength: 3 },
     { mode: 'freeplay', boardSize: 4, timeLimit: 60, minWordLength: 3 },
@@ -91,7 +92,7 @@ auth.post('/__test__/rank-model', async (_req, res) => {
   await publishModel(db.db, {
     version: `${MODEL_VERSION}:browser-fixture`, throughDate: '2020-01-01',
     cohorts: Object.fromEntries(settings.map(config => [settingsKey(config), {
-      settings: config, words: [], games: 100, boards: 10, calibration: null, multipliers: [0.05, 0.1, 0.2, 0.35, 0.5],
+      settings: config, words: [], games: 100, boards: 10, calibration: null, boardDifficulties: [0.2, 0.3, 0.4, 0.5, 0.6], multipliers: [0.05, 0.1, 0.2, 0.35, 0.5],
     }])),
   }, PRODUCTION_PROJECT_REF);
   res.json({ ok: true });

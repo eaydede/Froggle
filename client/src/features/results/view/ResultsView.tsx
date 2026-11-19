@@ -1,3 +1,5 @@
+import { getTimedRankRungs, type TimedRankTargets, type BoardDifficulty } from 'models/timedRanks';
+import { getZenRankRungs } from 'models/zenRanks';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ResultsInsights, ResultsSource, ResultPlayer } from 'models/results';
@@ -14,7 +16,7 @@ import { RecapView } from '../recap/RecapView';
 import { RunChart } from '../recap/RunChart';
 import { HighlightsView } from '../recap/HighlightsView';
 import { buildFinds } from '../recap/finds';
-import { useResultsInsights } from '../recap/api';
+import { useResultsInsights, useResultsDifficulties } from '../recap/api';
 import { useRunPlayback } from '../recap/useRunPlayback';
 import { useResultsMotion } from '../recap/useResultsMotion';
 import { formatTime, mergeRuns, scoreAt, timedFinds } from '../recap/run';
@@ -26,9 +28,14 @@ import type {
   ResultsOpponent,
 } from './types';
 import '../recap/recap.css';
-import { BoardRankRing } from '../recap/BoardRankRing';
+import { BoardRankPanel } from '../recap/BoardRankPanel';
 
 interface ResultsViewProps {
+  zenMaxScore?: number | null;
+  boardDifficulty?: BoardDifficulty;
+  /** Saved with the primary result so rank display never waits for field insights. */
+  rankTargets?: TimedRankTargets | null;
+  wordDifficulties?: Record<string, number>;
   source?: ResultsSource;
   insights?: ResultsInsights;
   /** The viewer's own results — board + found/missed words + display info. */
@@ -101,25 +108,38 @@ function ResultsScreen({
   soloHero,
   source,
   insights: providedInsights,
+  zenMaxScore,
+  boardDifficulty: providedBoardDifficulty,
+  rankTargets: providedRankTargets,
+  wordDifficulties: providedDifficulties,
 }: ResultsViewProps) {
   const {
     insights,
     error: insightsError,
     loading: insightsLoading,
   } = useResultsInsights(source, providedInsights);
+  const rankTargets = providedRankTargets !== undefined ? providedRankTargets : insights?.rankTargets;
+  const rankRungs = useMemo(() => zenMaxScore != null
+    ? getZenRankRungs(zenMaxScore)
+    : rankTargets ? getTimedRankRungs(me.points, rankTargets) : [], [zenMaxScore, me.points, rankTargets]);
+  const boardDifficulty = providedBoardDifficulty ?? rankTargets?.boardDifficulty;
   const [view, setView] = useState<ResultsTab>('recap');
   const run = view === 'playback';
   const [showAll, setShowAll] = useState(false);
+  const [difficultyMode, setDifficultyMode] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [opponentId, setOpponentId] = useState<string | null>(null);
   const [opponent, setOpponent] = useState<ResultsOpponent | null>(null);
   const [opponentLoading, setOpponentLoading] = useState(false);
   const [opponentError, setOpponentError] = useState<string | null>(null);
+  const showingDifficulties = difficultyMode && view === 'recap' && !opponent;
+  const wordDifficulties = useResultsDifficulties(source, showingDifficulties, providedDifficulties);
   const [sheetWord, setSheetWord] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const request = useRef(0);
   const initialLoaded = useRef(false);
   const scroller = useRef<HTMLDivElement>(null);
+  const rankClimbPlayed = useRef(false);
   const { body, comparisonLayer, captureRows, captureComparison } = useResultsMotion(
     view,
     opponent?.id ?? null,
@@ -171,6 +191,7 @@ function ResultsScreen({
     if (tab !== view) {
       if (view !== 'highlights' && tab !== 'highlights') captureRows();
       reset();
+      if (difficultyMode) { setDifficultyMode(false); setShowAll(false); }
       if (tab === 'playback') setShowAll(false);
       setView(tab);
     }
@@ -203,6 +224,7 @@ function ResultsScreen({
         captureComparison();
         reset();
         setShowAll(false);
+        setDifficultyMode(false);
         setView(current => current === 'highlights' ? 'recap' : current);
         setOpponent(result.opponent);
       } else {
@@ -379,13 +401,25 @@ function ResultsScreen({
                         )}
                       </p>
                     ))}
-                  <div className={view === 'recap' && !opponent && insights?.rankTargets ? 'recap-split' : 'recap-list-area'}>
-                    {view === 'recap' && !opponent && insights?.rankTargets && <>
-                      <BoardRankRing points={me.points} targets={insights.rankTargets} />
+                  <div className={view === 'recap' && !opponent && rankRungs.length > 0 ? 'recap-split' : 'recap-list-area'}>
+                    {view === 'recap' && !opponent && rankRungs.length > 0 && <>
+                      <BoardRankPanel points={me.points} rungs={rankRungs} difficulty={boardDifficulty} animate={!rankClimbPlayed.current} onClimbStart={() => { rankClimbPlayed.current = true; }}
+                        difficultyActive={showingDifficulties}
+                        onDifficulty={() => {
+                          setDifficultyMode(!difficultyMode);
+                          setShowAll(!difficultyMode);
+                          setSelected(null);
+                          if (scroller.current) scroller.current.scrollTop = 0;
+                        }} />
                       <div className="recap-rank-rule" aria-hidden="true" />
                     </>}
                     <RecapView
                       points={me.points}
+                      difficultyMode={showingDifficulties}
+                      difficulties={wordDifficulties.data}
+                      difficultyLoading={wordDifficulties.loading}
+                      difficultyError={wordDifficulties.error}
+                      onRetryDifficulty={wordDifficulties.retry}
                       yours={yours}
                       theirs={theirs}
                       all={all}
@@ -395,7 +429,8 @@ function ResultsScreen({
                       events={events}
                       showAll={showAll}
                       onShowAll={() => {
-                        setShowAll(!showAll);
+                        setShowAll(showingDifficulties ? false : !showAll);
+                        setDifficultyMode(false);
                         setSelected(null);
                         if (scroller.current) scroller.current.scrollTop = 0;
                       }}

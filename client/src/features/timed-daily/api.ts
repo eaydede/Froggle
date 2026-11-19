@@ -150,6 +150,7 @@ export interface DailyResultMissedWord {
 }
 
 export interface DailyResultResponse {
+  rankTargets?: TimedRankTargets | null;
   found_words: string[];
   board: string[][];
   /** Computed server-side at read time; absent in very old stored results

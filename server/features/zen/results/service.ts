@@ -6,6 +6,7 @@ import type { Database } from '../../../platform/database/types.js';
 import { getDailyDatePST } from '../../timed-daily/config.js';
 import { getZenDailyWordPercents } from '../../word-popularity/service.js';
 import { getDailyZenConfig } from '../config.js';
+import { prepareZenBoardDifficulty } from '../difficulty/service.js';
 import { getSession } from '../service.js';
 export async function getResult(db: Kysely<Database>, userId: string, date: string) {
   const session = await getSession(db, userId, date);
@@ -38,16 +39,17 @@ export async function getResult(db: Kysely<Database>, userId: string, date: stri
     .map((w) => ({ word: w.word, path: w.path, score: scoreWord(w.word) }))
     .sort((a, b) => b.score - a.score || b.word.length - a.word.length);
 
-  const findPercents = await getZenDailyWordPercents(
-    db,
-    session.date,
-    getDailyDatePST(),
-  );
+  const [findPercents, difficultyAssessment] = await Promise.all([
+    getZenDailyWordPercents(db, session.date, getDailyDatePST()),
+    prepareZenBoardDifficulty(db, session.board, session.date, allWords.map(({ word }) => word)),
+  ]);
 
 
   return {
     result: {
       date: session.date,
+      difficulty_assessment: difficultyAssessment,
+      config: getDailyZenConfig(session.date),
       found_words: foundWords,
       board: session.board,
       missed_words: missedWords,
