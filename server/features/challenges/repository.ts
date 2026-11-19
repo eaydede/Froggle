@@ -1,3 +1,4 @@
+import type { TimedRankTargets } from 'models/timedRanks';
 import type { Kysely } from 'kysely';
 import type { Database } from '../../platform/database/types.js';
 
@@ -44,13 +45,17 @@ export function listPreviewSessions(db: Kysely<Database>, challengeId: string) {
     .execute();
 }
 
-export function listChallengeSessions(db: Kysely<Database>, challengeId: string) {
-  return db
+export async function listChallengeSessions(db: Kysely<Database>, challengeId: string) {
+  const rows = await db
     .selectFrom('free_play_sessions')
     .selectAll()
     .where('challenge_id', '=', challengeId)
     .where('completed_at', 'is not', null)
     .execute();
+  return rows.map(row => ({
+    ...row,
+    rankTargets: (typeof row.rank_targets === 'string' ? JSON.parse(row.rank_targets) : row.rank_targets) as TimedRankTargets | null,
+  }));
 }
 
 export function markViewed(db: Kysely<Database>, ownerRow: { id: string; user_id: string | null; date: string; found_words: string; board: string; started_at: Date; completed_at: Date | null; points: number; word_count: number; longest_word: string; time_limit: number; board_size: number; min_word_length: number; challenge_id: string | null; seed: number | null; last_viewed_at: Date | null; } & { completed_at: Date; }) {

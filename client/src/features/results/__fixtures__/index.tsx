@@ -66,7 +66,15 @@ async function loadOpponent(id: string): Promise<LoadOpponentResult> {
 
 export const RESULTS_FIXTURES: Record<string, () => ReactNode> = {
   recap: () => <RecapFixture />,
-  'recap-legend': () => <RecapFixture points={160} />,
+  'recap-zen': () => <RecapFixture zen boardSize={5} />,
+  'recap-zen-zero': () => <RecapFixture zen boardSize={5} points={0} />,
+  'recap-zen-legend': () => <RecapFixture zen boardSize={5} points={100} />,
+  'recap-legend': () => <RecapFixture points={107} />,
+  'recap-high-legend': () => <RecapFixture points={300} difficultyPercentile={95} />,
+  'recap-easy': () => <RecapFixture difficultyPercentile={12} />,
+  'recap-fair': () => <RecapFixture difficultyPercentile={33} />,
+  'recap-hard': () => <RecapFixture difficultyPercentile={75} />,
+  'recap-difficulty-unknown': () => <RecapFixture difficultyPercentile={null} />,
   'recap-zero': () => <RecapFixture points={0} />,
   'recap-5x5': () => <RecapFixture boardSize={5} />,
   'recap-6x6': () => <RecapFixture boardSize={6} />,

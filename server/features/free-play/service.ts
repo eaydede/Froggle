@@ -1,3 +1,4 @@
+import type { TimedRankTargets } from 'models/timedRanks';
 import crypto from 'crypto';
 import { generateSeededBoard } from 'engine/board.js';
 import { scoreWord } from 'engine/scoring.js';
@@ -230,6 +231,7 @@ async function getMostRecentFreePlaySession(
 // found + missed words with scores, sorted highest first. Pure function
 // of the session row plus the dictionary.
 export function buildFreePlayResults(session: FreePlaySession): {
+  rankTargets: TimedRankTargets | null;
   board: string[][];
   foundWords: { word: string; path: Position[]; score: number; }[];
   missedWords: { word: string; path: Position[]; score: number; }[];
@@ -258,7 +260,7 @@ export function buildFreePlayResults(session: FreePlaySession): {
   foundWords.sort((a, b) => b.score - a.score || b.word.length - a.word.length);
   missedWords.sort((a, b) => b.score - a.score || b.word.length - a.word.length);
 
-  return { board: session.board, foundWords, missedWords };
+  return { board: session.board, foundWords, missedWords, rankTargets: session.rankTargets ?? null };
 }
 
 // ─── Multiplayer room → history bridge ────────────────────────────────────

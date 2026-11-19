@@ -4,6 +4,7 @@ import type { GauntletModifier } from 'models/gauntlet';
 import type { Database } from '../../platform/database/types.js';
 import type { HistoricalGame, PublishedRankModel, RankModel } from './types.js';
 import { PRODUCTION_PROJECT_REF } from './production.js';
+import { getDailyZenConfig } from '../zen/config.js';
 import { MODEL_VERSION } from './calculation.js';
 
 function parseJson<T>(value: unknown): T {
@@ -31,6 +32,10 @@ export async function listHistoricalGames(db: Kysely<Database>, beforeDate: stri
     select 'freeplay:' || id, date::text, board, found_words, 'freeplay',
       board_size, time_limit, min_word_length, null::jsonb
       from free_play_sessions where completed_at is not null and time_limit > 0 and date::date < ${beforeDate}::date
+    union all
+    select 'zen:' || id, date::text, board, found_words, 'zen',
+      jsonb_array_length(board), 0, null::integer, null::jsonb
+      from daily_zen_results where ended_at is not null and date::date < ${beforeDate}::date
     order by date, id
   `.execute(db);
   return rows.map(row => ({
@@ -38,7 +43,7 @@ export async function listHistoricalGames(db: Kysely<Database>, beforeDate: stri
     date: row.date,
     board: parseJson<string[][]>(row.board),
     foundWords: parseJson<string[]>(row.found_words),
-    settings: { mode: row.mode, boardSize: row.board_size, timeLimit: row.time_limit, minWordLength: row.min_word_length },
+    settings: { mode: row.mode, boardSize: row.board_size, timeLimit: row.time_limit, minWordLength: row.mode === 'zen' ? getDailyZenConfig(row.date).minWordLength : row.min_word_length },
     modifier: row.modifier == null ? undefined : parseJson<GauntletModifier>(row.modifier),
   }));
 }
@@ -52,6 +57,12 @@ export async function latestModel(db: Kysely<Database>, beforeDate: string): Pro
   if (!row) return null;
   const cohorts = parseJson<PublishedRankModel['cohorts']>(row.cohorts);
   return { version: row.version, throughDate: row.through_date, cohorts };
+}
+
+export async function findModel(db: Kysely<Database>, version: string): Promise<PublishedRankModel | null> {
+  const row = await db.selectFrom('timed_rank_models').select(['version', 'cohorts', sql<string>`through_date::text`.as('through_date')])
+    .where('version', '=', version).where('source_project_ref', '=', PRODUCTION_PROJECT_REF).executeTakeFirst();
+  return row ? { version: row.version, throughDate: row.through_date, cohorts: parseJson(row.cohorts) } : null;
 }
 
 export async function cohortWords(db: Kysely<Database>, version: string, key: string) {

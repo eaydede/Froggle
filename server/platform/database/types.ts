@@ -131,6 +131,11 @@ export interface TimedBoardRanksTable {
 }
 
 export interface Database {
+  zen_board_difficulties: {
+    board_key: string;
+    assessment: string;
+    created_at: Generated<Date>;
+  };
   timed_rank_models: TimedRankModelsTable;
   timed_word_statistics: TimedWordStatisticsTable;
   timed_board_ranks: TimedBoardRanksTable;

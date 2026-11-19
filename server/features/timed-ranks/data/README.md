@@ -16,5 +16,5 @@ This derived data file is distributed under
 The changes are the ENABLE intersection, capitalization and TSV formatting.
 See `WORDfreq-NOTICE.md` for upstream data-source attribution and terms, and
 `WORDfreq-LICENSE.txt` for the upstream software license. Application code is
-separate from this data artifact. The player-facing rank ladder credits the
-data author and links to its source and data license.
+separate from this data artifact. Data attribution, source links, adaptation details, and licensing are retained
+in this directory alongside the lookup.

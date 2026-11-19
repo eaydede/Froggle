@@ -191,6 +191,7 @@ export function GauntletRoundResultsRoute() {
 
   return (
     <ResultsView
+      rankTargets={result.rankTargets}
       source={{ mode: 'gauntlet', date: targetDate, round: roundIndex }}
       me={{
         displayName: displayName || 'You',

@@ -32,7 +32,7 @@ export function useResultsMotion(view: ResultsTab, opponentId: string | null) {
     element.querySelectorAll('[id]').forEach((node) => node.removeAttribute('id'));
     comparisonSnapshot.current = {
       element,
-      scrollPositions: [...el.querySelectorAll<HTMLElement>('.results-scroll')].map(
+      scrollPositions: [...el.querySelectorAll<HTMLElement>('.results-scroll, .rank-carousel')].map(
         (row) => row.scrollTop,
       ),
     };
@@ -55,7 +55,7 @@ export function useResultsMotion(view: ResultsTab, opponentId: string | null) {
     if (oldOpponent.current !== opponentId && outgoing && comparisonLayer.current) {
       comparisonLayer.current.replaceChildren(outgoing.element);
       outgoing.element
-        .querySelectorAll<HTMLElement>('.results-scroll')
+        .querySelectorAll<HTMLElement>('.results-scroll, .rank-carousel')
         .forEach((scroller, index) => {
           scroller.scrollTop = outgoing.scrollPositions[index];
         });

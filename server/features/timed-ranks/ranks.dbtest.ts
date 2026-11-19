@@ -6,12 +6,14 @@ import { dictionary } from '../../gameplay/dictionary.js';
 import { dockerAvailable, startTestDb, type TestDb } from '../../test/pgHarness.js';
 import { getDailyDatePST } from '../timed-daily/config.js';
 import { startTimedDailySession } from '../timed-daily/service.js';
-import { getInsights } from '../results/service.js';
+import { getBoardWordDifficulties, getInsights } from '../results/service.js';
 import { boardKey } from './calibration.js';
 import { latestModel, publishModel, listHistoricalGames } from './repository.js';
 import { prepareRankTargets, refreshRankStatistics } from './service.js';
 import { settingsKey } from './types.js';
-import { MODEL_VERSION } from './calculation.js';
+import { createDifficultyLookup, MODEL_VERSION } from './calculation.js';
+import { getVocabulary } from './vocabulary.js';
+import { cohortWords } from './repository.js';
 import { PRODUCTION_PROJECT_REF } from './production.js';
 
 const settings = { mode: 'timed', boardSize: 4, timeLimit: 120, minWordLength: 3 } as const;
@@ -76,6 +78,8 @@ describe.runIf(dockerAvailable())('timed rank statistics and snapshots', () => {
     expect(counts.every(row => row.finds <= row.opportunities)).toBe(true);
     expect(counts.find(row => row.word === example)?.boards).toBe(expectedOpportunities / 10);
     const original = (await latestModel(h.db, '2026-02-01'))!;
+    // Keep publication order deterministic across JS/DB timestamp precision.
+    await h.db.updateTable('timed_rank_models').set({ published_at: new Date('2026-01-01') }).execute();
     await publishModel(h.db, { ...original, version: `${MODEL_VERSION}:corrected-source`, cohorts: {} }, PRODUCTION_PROJECT_REF);
     expect((await latestModel(h.db, '2026-02-01'))?.version).toBe(`${MODEL_VERSION}:corrected-source`);
     await refreshFixtureStatistics({ beforeDate: '2026-02-01', write: true, recalibrate: true });
@@ -90,9 +94,15 @@ describe.runIf(dockerAvailable())('timed rank statistics and snapshots', () => {
     const users = [randomUUID(), randomUUID()];
     const sessions = await Promise.all(users.map(user => startTimedDailySession(h.db, user, date, board, settings)));
     expect(sessions[0].rankTargets?.thresholds).toHaveLength(5);
+    expect(sessions[0].rankTargets?.boardDifficulty?.comparisonBoards).toBe(5);
+    expect(sessions[0].rankTargets?.boardDifficulty?.percentile).not.toBeNull();
+    expect(sessions[0].rankTargets!.boardDifficulty!.value).toBeGreaterThanOrEqual(0);
+    expect(sessions[0].rankTargets!.boardDifficulty!.value).toBeLessThanOrEqual(1);
     expect(sessions[1].rankTargets).toEqual(sessions[0].rankTargets);
 
+    await expect(getBoardWordDifficulties(h.db, users[0], { mode: 'timed', date })).rejects.toMatchObject({ code: 'not-found' });
     const model = (await latestModel(h.db, date))!;
+    const difficulty = createDifficultyLookup(await cohortWords(h.db, model.version, settingsKey(settings)), getVocabulary());
     await publishModel(h.db, { ...model, version: `${MODEL_VERSION}:changed`, throughDate: '2026-02-01', cohorts: {} }, PRODUCTION_PROJECT_REF);
     const resumed = await startTimedDailySession(h.db, users[0], date, board, settings);
     expect(resumed.rankTargets).toEqual(sessions[0].rankTargets);
@@ -103,6 +113,16 @@ describe.runIf(dockerAvailable())('timed rank statistics and snapshots', () => {
     await h.pool.query('insert into auth.users (id, raw_user_meta_data) values ($1, $2)', [users[0], { display_name: 'Player' }]);
     const insights = await getInsights(h.db, users[0], { mode: 'timed', date });
     expect(insights.rankTargets).toEqual(sessions[0].rankTargets);
+    // Word details use the saved version even after a newer model is published.
+    const details = await getBoardWordDifficulties(h.db, users[0], { mode: 'timed', date });
+    expect(Object.keys(details.difficulties).sort()).toEqual([...fixtures[0].words].sort());
+    for (const [word, value] of Object.entries(details.difficulties)) {
+      expect(value).toBe(difficulty(word).combined);
+      expect(value).toBeGreaterThanOrEqual(0);
+      expect(value).toBeLessThanOrEqual(1);
+    }
+    await expect(getBoardWordDifficulties(h.db, users[1], { mode: 'timed', date })).rejects.toMatchObject({ code: 'not-found' });
+    await expect(getBoardWordDifficulties(h.db, randomUUID(), { mode: 'timed', date })).rejects.toMatchObject({ code: 'not-found' });
   });
 
   it('freezes unsupported boards and leaves legacy sessions without retroactive titles', async () => {

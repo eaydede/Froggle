@@ -1,3 +1,4 @@
+import type { TimedRankTargets } from 'models/timedRanks';
 import type { Kysely } from 'kysely';
 import type { Database } from '../../platform/database/types.js';
 
@@ -54,10 +55,14 @@ export function listCompletedParticipants(db: Kysely<Database>, ownedRows: { id:
     .execute();
 }
 
-export function findSavedSession(db: Kysely<Database>, sessionId: string) {
-  return db
+export async function findSavedSession(db: Kysely<Database>, sessionId: string) {
+  const row = await db
     .selectFrom('free_play_sessions')
     .selectAll()
     .where('id', '=', sessionId)
     .executeTakeFirst();
+  return row ? {
+    ...row,
+    rankTargets: (typeof row.rank_targets === 'string' ? JSON.parse(row.rank_targets) : row.rank_targets) as TimedRankTargets | null,
+  } : undefined;
 }

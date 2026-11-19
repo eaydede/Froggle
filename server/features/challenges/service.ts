@@ -167,6 +167,7 @@ export async function getChallenge(db: Kysely<Database>, userId: string, challen
     seed: ownerRow.seed,
     ownerUserId: ownerRow.user_id,
     players: rankedPlayers,
+    rankTargets: meRow.rankTargets,
     missedWords,
   };
 

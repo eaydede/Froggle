@@ -12,6 +12,11 @@ interface Cell {
 }
 interface Props {
   points: number;
+  difficultyMode: boolean;
+  difficulties: Record<string, number> | null;
+  difficultyLoading: boolean;
+  difficultyError: boolean;
+  onRetryDifficulty: () => void;
   yours: Word[];
   theirs: Word[] | null;
   all: Word[];
@@ -33,6 +38,11 @@ interface Props {
 
 export function RecapView({
   points,
+  difficultyMode,
+  difficulties,
+  difficultyLoading,
+  difficultyError,
+  onRetryDifficulty,
   yours,
   theirs,
   all,
@@ -78,7 +88,16 @@ export function RecapView({
         }
       : null;
   let rows: { key: string; cells: (Cell | null)[] }[];
-  if (run && !hasTiming)
+  if (difficultyMode) {
+    rows = difficultyLoading || difficultyError
+      ? []
+      : [...all]
+          .sort((a, b) =>
+            (difficulties?.[b.word] ?? -1) - (difficulties?.[a.word] ?? -1) ||
+            a.word.localeCompare(b.word),
+          )
+          .map(word => ({ key: word.word, cells: [cell(word, 'you')] }));
+  } else if (run && !hasTiming)
     rows = Array.from({ length: Math.max(yours.length, theirs?.length ?? 0) }, (_, index) => ({
       key: `order:${index}`,
       cells: comparing
@@ -112,8 +131,8 @@ export function RecapView({
   return (
     <div className="recap-list">
       {!run && !comparing && <div className="recap-metric-header recap-found-header">
-        <span>{showAll ? 'All words' : <>Found <span className="recap-count">· {yours.length}</span></>}</span>
-        <span>{showAll ? `${yours.length}/${all.length}` : `${points} pts`}</span>
+        <span>{difficultyMode ? 'Difficulty' : showAll ? 'All words' : <>Found <span className="recap-count">· {yours.length}</span></>}</span>
+        <span title={difficultyMode ? '0 = easiest, 1 = hardest' : undefined}>{difficultyMode ? '0–1' : showAll ? `${yours.length}/${all.length}` : `${points} pts`}</span>
       </div>}
       {comparing && (
         <div className="recap-compare-header">
@@ -125,10 +144,17 @@ export function RecapView({
       )}
       <div
         ref={scroller}
+        id="results-words"
+        aria-busy={difficultyMode && difficultyLoading}
         className="results-scroll recap-words"
-        aria-label={run ? 'Finds in time order' : 'Words by points'}
+        aria-label={difficultyMode ? 'Words by difficulty' : run ? 'Finds in time order' : 'Words by points'}
       >
-        {rows.length === 0 && <p className="results-empty">No words found.</p>}
+        {difficultyMode && difficultyLoading && <p role="status" className="results-status">Loading word difficulties…</p>}
+        {difficultyMode && difficultyError && <p role="alert" className="results-status">
+          Couldn’t load word difficulties.<br />
+          <button type="button" className="recap-difficulty-retry" onClick={onRetryDifficulty}>Retry</button>
+        </p>}
+        {!difficultyLoading && !difficultyError && rows.length === 0 && <p className="results-empty">No words found.</p>}
         {rows.map((row) => (
           <div key={row.key} className={comparing ? 'recap-compare-row' : ''}>
             {row.cells.map((c, i) => {
@@ -143,7 +169,8 @@ export function RecapView({
               const chosen = run
                 ? current || (!live && selected === find.word)
                 : selected === find.word;
-              const missed = showAll && !mine.has(find.word);
+              const missed = (showAll || difficultyMode) && !mine.has(find.word);
+              const rating = difficulties?.[find.word];
               return (
                 <div
                   key={side}
@@ -156,6 +183,7 @@ export function RecapView({
                     type="button"
                     className="recap-word-button"
                     aria-pressed={chosen}
+                    aria-label={difficultyMode ? `${find.word}, difficulty ${rating == null ? 'unavailable' : rating.toFixed(2)}` : undefined}
                     onClick={() => onSelect(find.word, find.time)}
                   >
                     <span
@@ -170,8 +198,8 @@ export function RecapView({
                       </span>
                     )}
                     <span className="recap-word-text">{find.word}</span>
-                    {find.bonus && <span className="recap-bonus">{find.bonus}</span>}
-                    <span className="recap-word-points">+{find.score}</span>
+                    {!difficultyMode && find.bonus && <span className="recap-bonus">{find.bonus}</span>}
+                    <span className={difficultyMode ? 'recap-word-difficulty' : 'recap-word-points'}>{difficultyMode ? (rating == null ? '—' : rating.toFixed(2)) : `+${find.score}`}</span>
                   </button>
                   {!run && chosen && (
                     <div className="recap-definition-peek">
@@ -189,7 +217,7 @@ export function RecapView({
       </div>
       {!run && !comparing && (
         <button type="button" className="recap-all" onClick={onShowAll}>
-          {showAll ? 'Found' : 'All words'}
+          {difficultyMode ? 'Points' : showAll ? 'Found' : 'All words'}
         </button>
       )}
     </div>

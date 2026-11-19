@@ -726,6 +726,7 @@ export function getRoomResultsForUser(code: string, userId: string, playerId: st
   const viewerIds = [...entry.userIds].filter(([, id]) => id === userId).map(([id]) => id);
   if (!viewerIds.includes(playerId) || !board.participantIds.includes(playerId)) return null;
   return {
+    board: board.board,
     rankTargets: board.rankTargets,
     startedAt: board.startedAt,
     config: board.config,

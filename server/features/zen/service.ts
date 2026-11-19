@@ -12,6 +12,7 @@ import { getDefinitions } from '../definitions/service.js';
 import { getDisplayNames } from '../profile/publicNames.js';
 import { getDailyZenConfig, getDailyZenNumber } from './config.js';
 import * as repository from './repository.js';
+import { prepareZenBoardDifficulty } from './difficulty/service.js';
 import type { DailyZenStatsResponse, SubmitOutcome, ZenCompareError, ZenCompareResult, ZenLeaderboardCurrentPlayer, ZenLeaderboardInProgressEntry, ZenLeaderboardResult, ZenSession } from './types.js';
 
 // Per-gap cap for active-time accumulation. If the gap between two word
@@ -51,6 +52,7 @@ export async function startSession(
   const allWords = findAllWords(board, dictionary, minWordLength);
   const theoreticalMaxScore = allWords.reduce((sum, w) => sum + scoreWord(w.word), 0);
 
+  await prepareZenBoardDifficulty(db, board, date, allWords.map(({ word }) => word));
   await repository.insertSession(db, userId, date, board, isCompetitive, theoreticalMaxScore);
 
   const session = await getSession(db, userId, date);

@@ -1,4 +1,4 @@
-import { RANK_TITLES, type TimedRankTargets } from 'models/timedRanks';
+import { RANK_TITLES, TIMED_RANK_POLICY_VERSION, type BoardDifficulty, type TimedRankTargets } from 'models/timedRanks';
 import type { WordStats } from './types.js';
 
 export const MODEL_VERSION = 'timed-ranks-v3-legend-p93-board-out-60d-wordfreq-3.1.1';
@@ -74,20 +74,38 @@ export function percentile(values: number[], fraction: number): number {
   return sorted[lower] + (sorted[Math.ceil(position)] - sorted[lower]) * (position - lower);
 }
 
+/** Use history only to anchor Legend 1; individual bands are equal score steps. */
 export function createTargets(
   attainable: number,
   maximum: number,
-  multipliers: number[],
+  legendMultiplier: number,
   statisticsVersion: string,
+  boardDifficulties: readonly number[] = [],
 ): TimedRankTargets | null {
-  if (maximum < RANK_TITLES.length || attainable <= 0 || multipliers.length !== RANK_TITLES.length) return null;
-  if (multipliers.some(value => !Number.isFinite(value) || value < 0)) return null;
-  const thresholds: number[] = [];
-  for (let i = 0; i < multipliers.length; i++) {
-    const previous = thresholds[i - 1] ?? 0;
-    // Leave at least one integer point for every remaining title.
-    const ceiling = maximum - (multipliers.length - 1 - i);
-    thresholds.push(Math.min(ceiling, Math.max(previous + 1, Math.ceil(attainable * multipliers[i]))));
-  }
-  return { modelVersion: MODEL_VERSION, statisticsVersion, attainablePoints: attainable, thresholds };
+  if (!Number.isFinite(maximum) || maximum < RANK_TITLES.length || !Number.isFinite(attainable) || attainable <= 0) return null;
+  if (!Number.isFinite(legendMultiplier) || legendMultiplier < 0) return null;
+  const stepsToLegend = RANK_TITLES.length - 1;
+  const desiredStep = Math.round(attainable * legendMultiplier / stepsToLegend);
+  // Keep Legend 1 achievable, even on a low-scoring board. Higher Legend levels
+  // may extend beyond the board's maximum; the ladder has no artificial cap.
+  const step = Math.max(1, Math.min(desiredStep, Math.floor(maximum / stepsToLegend)));
+  const thresholds = RANK_TITLES.map((_, index) => (index + 1) * step - 1);
+  return {
+    modelVersion: TIMED_RANK_POLICY_VERSION, statisticsVersion, attainablePoints: attainable, thresholds,
+    boardDifficulty: calculateBoardDifficulty(attainable, maximum, boardDifficulties),
+  };
+}
+
+/** Shared by timed and untimed boards; rank policy does not affect difficulty. */
+export function calculateBoardDifficulty(
+  attainable: number,
+  maximum: number,
+  boardDifficulties: readonly number[] = [],
+): BoardDifficulty {
+  const value = maximum > 0 ? Math.max(0, Math.min(1, 1 - attainable / maximum)) : 0;
+  const comparisonBoards = boardDifficulties.length;
+  const percentile = maximum > 0 && comparisonBoards >= MIN_CALIBRATION_BOARDS
+    ? Math.round(boardDifficulties.filter(difficulty => difficulty < value).length / comparisonBoards * 100)
+    : null;
+  return { value, totalPoints: maximum, percentile, comparisonBoards };
 }

@@ -57,6 +57,7 @@ export async function getResult(db: Kysely<Database>, userId: string, date: stri
 
   return {
     result: {
+      rankTargets: session.rankTargets ?? null,
       date: result.date,
       found_words: foundWords,
       board,

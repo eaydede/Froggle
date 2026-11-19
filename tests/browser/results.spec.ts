@@ -269,52 +269,65 @@ test('comparison changes respect reduced motion', async ({ page }) => {
   await expect(page.locator('.results-transition-layer > *')).toHaveCount(0);
 });
 
-test('board rank follows saved thresholds and continues beyond Legend 1 with a full ring', async ({ page }) => {
+test('rank carousel shows actual entry targets, unlimited Legend levels and board difficulty', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/results?mock=recap');
-  const rank = page.getByRole('region', { name: 'Board rank', exact: true });
-  await expect(rank.getByRole('img')).toHaveAccessibleName('Scribe, rank 1 of 5');
-  await expect(rank.locator('.board-rank-next')).toHaveText('+1To Wordsmith');
-  await expect(rank.locator('.board-rank-header')).toHaveText('Board rank');
-  for (const height of [667, 844]) {
-    await page.setViewportSize({ width: 375, height });
-    const body = (await rank.locator('.board-rank-body').boundingBox())!;
-    const ring = (await rank.getByRole('img').boundingBox())!;
-    expect(Math.abs(ring.y + ring.height / 2 - (body.y + body.height / 2))).toBeLessThan(1);
-  }
-  await page.setViewportSize({ width: 375, height: 667 });
-  await page.screenshot({ animations: 'disabled', path: '.context/rank-centered.png' });
-  await rank.getByRole('button', { name: 'View rank ladder' }).click();
-  const ladder = page.getByRole('dialog', { name: 'Rank ladder' });
-  await expect(ladder).toHaveCSS('background-color', 'rgb(34, 31, 26)');
-  await expect(ladder.getByText('29 pts', { exact: true })).toBeVisible();
-  await page.screenshot({ animations: 'disabled', path: '.context/rank-results-ladder-dark.png' });
-  await page.getByRole('button', { name: 'Close rank ladder' }).click();
-  await expect(page.locator('.recap-found-header')).toHaveText('Found · 1128 pts');
+  const panel = page.getByRole('region', { name: 'Board rank', exact: true });
+  const carousel = panel.getByRole('list', { name: 'Rank ladder' });
+  await expect(carousel).toHaveAttribute('data-climbing', 'false');
+  await expect(carousel.getByRole('listitem')).toHaveText(['Legend80+', 'Virtuoso60', 'Linguist+1240', 'Wordsmith20', 'Scribe0']);
+  await expect(carousel.locator('.current .rank-rung-name')).toHaveText('Wordsmith');
+  await expect(carousel.locator('[aria-current="step"]')).toHaveAccessibleName('Wordsmith, 20 points, your rank');
+  await expect(panel.locator('.board-difficulty-name')).toHaveText('Tough');
+  await expect(panel.getByRole('img')).toHaveAccessibleName('3 of 5 difficulty');
+  await expect(panel.locator('.board-difficulty-comparison')).toHaveText('Harder than 58% of boards');
+  await expect(carousel.getByRole('button')).toHaveCount(0);
+  await expect(panel.getByRole('button', { name: 'View words by difficulty' })).toBeVisible();
+  const layout = await panel.evaluate(element => {
+    const panel = element.getBoundingClientRect();
+    const comparison = element.querySelector('.board-difficulty-comparison')!.getBoundingClientRect();
+    return { bottom: panel.bottom, contentBottom: comparison.bottom };
+  });
+  expect(layout.contentBottom).toBeLessThanOrEqual(layout.bottom + 1);
+  await page.screenshot({ animations: 'disabled', path: '.context/rank-carousel-wordsmith.png' });
   await page.getByRole('button', { name: 'All words', exact: true }).click();
   await expect(page.locator('.recap-found-header')).toHaveText('All words11/44');
-  await expect(rank).toBeVisible();
-  await page.screenshot({ animations: 'disabled', path: '.context/rank-recap-all-words.png' });
   await page.getByRole('tab', { name: 'Playback' }).click();
-  await expect(rank).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'All words', exact: true })).toHaveCount(0);
+  await expect(panel).toHaveCount(0);
   await page.getByRole('button', { name: 'Compare with Wach' }).click();
   await expect(page.getByRole('tab', { name: 'Playback' })).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('.recap-curve')).toHaveCount(2);
   await page.goto('/results?mock=recap-legend');
-  await expect(rank.getByRole('img')).toHaveAccessibleName('Legend 2, rank 5 of 5');
-  await expect(rank.locator('.board-rank-next')).toHaveText('+27To Legend 3');
-  // All five colored bands stay filled, regardless of how far Legend progresses.
-  await expect(rank.locator('circle[stroke^="var(--rarity-"]')).toHaveCount(5);
-  await page.screenshot({ animations: 'disabled', path: '.context/rank-recap-legend.png' });
+  await expect(carousel.getByRole('listitem')).toHaveText(['Legend 3+13120', 'Legend 2100', 'Legend 180', 'Virtuoso60', 'Linguist40', 'Wordsmith20', 'Scribe0']);
+  // The +N pill belongs to the next rung, not the current one.
+  await expect(carousel.locator('.rank-rung-needed').locator('..')).toHaveAccessibleName('Legend 3, 120 points');
+  await expect(carousel.locator('.current .rank-rung-name')).toHaveText('Legend 2');
+  await page.screenshot({ animations: 'disabled', path: '.context/rank-carousel-legend.png' });
+  await page.goto('/results?mock=recap-high-legend');
+  await expect(carousel.getByRole('listitem')).toHaveCount(17);
+  await expect(carousel.getByRole('listitem').first()).toHaveAccessibleName('Legend 13, 320 points');
+  await expect(carousel.locator('.current .rank-rung-name')).toHaveText('Legend 12');
+  await expect(panel.locator('.board-difficulty-name')).toHaveText('Brutal');
+  await carousel.evaluate(el => { el.scrollTop = el.scrollHeight; });
+  await expect(carousel).toHaveAttribute('data-at-bottom', 'true');
+  await expect(carousel).toHaveAttribute('data-at-top', 'false');
+  await expect(carousel.getByRole('listitem').last()).toBeVisible();
   await page.goto('/results?mock=recap-zero');
-  await expect(rank.getByRole('img')).toHaveAccessibleName('Unranked, rank 0 of 5');
-  await expect(rank.locator('.board-rank-next')).toHaveText('+14To Scribe');
-  await expect(rank.locator('circle[stroke^="var(--rarity-"]')).toHaveCount(0);
+  await expect(carousel.locator('.current .rank-rung-name')).toHaveText('Scribe');
+  await expect(carousel.locator('.rank-rung-needed')).toHaveText('+20');
+  for (const [fixture, name, percentile] of [['recap-easy', 'Easy', 12], ['recap-fair', 'Fair', 33], ['recap-hard', 'Hard', 75]] as const) {
+    await page.goto(`/results?mock=${fixture}`);
+    await expect(panel.locator('.board-difficulty-name')).toHaveText(name);
+    await expect(panel.locator('.board-difficulty-comparison')).toHaveText(`Harder than ${percentile}% of boards`);
+  }
+  await page.goto('/results?mock=recap-difficulty-unknown');
+  await expect(panel.locator('.board-difficulty-comparison')).toHaveText('Board comparison unavailable.');
   await page.goto('/results?mock=recap-legacy');
-  await expect(rank).toHaveCount(0);
+  await expect(panel).toHaveCount(0);
 });
 
 test('compact boards scale for 5×5 and 6×6 and remain usable in light mode', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   for (const size of [5, 6]) {
     await page.goto(`/results?mock=recap-${size}x${size}`);
     const grid = page.locator('.grid.aspect-square');
@@ -330,8 +343,7 @@ test('compact boards scale for 5×5 and 6×6 and remain usable in light mode', a
   await expect(page.locator('[data-theme]').first()).toHaveAttribute('data-theme', 'light');
   await expect(page.getByRole('region', { name: 'Board rank', exact: true })).toBeVisible();
   await page.screenshot({ animations: 'disabled', path: '.context/rank-recap-light.png' });
-  await page.getByRole('button', { name: 'View rank ladder' }).click();
-  await expect(page.getByRole('dialog', { name: 'Rank ladder' })).toHaveCSS('background-color', 'rgb(252, 252, 250)');
+  await expect(page.locator('.rank-carousel .current .rank-rung-name')).toHaveText('Wordsmith');
 });
 
 test('keyboard tabs select playback and respect reduced motion', async ({ page }) => {
@@ -346,4 +358,91 @@ test('keyboard tabs select playback and respect reduced motion', async ({ page }
   await expect(page.getByRole('tab', { name: 'Highlights' })).toBeFocused();
   await page.keyboard.press('Home');
   await expect(page.getByRole('region', { name: 'Board rank', exact: true })).toBeVisible();
+});
+
+test('rank climb runs once, can be cancelled, and does not obstruct normal scrolling', async ({ page }) => {
+  await page.goto('/results?mock=recap');
+  const carousel = page.getByRole('list', { name: 'Rank ladder' });
+  await expect(carousel).toHaveAttribute('data-climbing', 'true');
+  await expect(carousel).toHaveCSS('scroll-snap-type', 'none');
+  await expect(carousel.locator('.current .rank-rung-name')).toHaveText('Scribe');
+  await expect(carousel.locator('.rank-rung-needed')).toHaveCount(0);
+  await expect(carousel).toHaveAttribute('data-climbing', 'false', { timeout: 6000 });
+  await expect(carousel.locator('.current .rank-rung-name')).toHaveText('Wordsmith');
+  await expect(carousel.locator('.rank-rung-needed')).toHaveText('+12');
+  await expect(carousel).toHaveCSS('scroll-snap-type', 'y mandatory');
+  await page.getByRole('tab', { name: 'Playback' }).click();
+  await page.getByRole('tab', { name: 'Recap' }).click();
+  await expect(carousel).toHaveAttribute('data-climbing', 'false');
+  await expect(carousel.locator('.current .rank-rung-name')).toHaveText('Wordsmith');
+  await page.goto('/results?mock=recap-high-legend');
+  await expect(carousel).toHaveAttribute('data-climbing', 'true');
+  await carousel.dispatchEvent('pointerdown');
+  await expect(carousel).toHaveAttribute('data-climbing', 'false');
+  await expect(carousel.locator('.current .rank-rung-name')).toHaveText('Legend 12');
+  await expect(carousel).toHaveAttribute('data-at-top', 'true');
+  await carousel.hover();
+  await page.mouse.wheel(0, 600);
+  await expect(carousel).toHaveAttribute('data-at-bottom', 'true');
+  expect(await page.evaluate(() => scrollY)).toBe(0);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/results?mock=recap');
+  await expect(carousel).toHaveAttribute('data-climbing', 'false');
+  await expect(carousel.locator('.current .rank-rung-name')).toHaveText('Wordsmith');
+});
+
+test('board difficulty opens all words from hardest to easiest and returns to points', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/results?mock=recap');
+  const card = page.getByRole('button', { name: 'View words by difficulty' });
+  await card.click();
+  await expect(card).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.recap-found-header')).toHaveText('Difficulty0–1');
+  await expect(page.locator('.recap-word')).toHaveCount(44);
+  await expect(page.locator('.recap-word-text').first()).toHaveText('AMESACES');
+  await expect(page.locator('.recap-word-difficulty').first()).toHaveText('0.94');
+  await expect(page.locator('.recap-word-points')).toHaveCount(0);
+  const ratings = (await page.locator('.recap-word-difficulty').allTextContents()).map(Number);
+  expect(ratings).toEqual([...ratings].sort((a, b) => b - a));
+  await expect(page.locator('.recap-word.missed')).toHaveCount(33);
+  await page.screenshot({ animations: 'disabled', path: '.context/word-difficulty-list.png' });
+  await page.locator('.recap-word-button').first().click();
+  await expect(page.locator('.recap-definition-peek')).toBeVisible();
+  await page.getByRole('button', { name: 'Points', exact: true }).click();
+  await expect(card).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('.recap-word-points')).toHaveCount(11);
+  await expect(page.locator('.recap-word-text').first()).toHaveText('SCALES');
+  await card.click();
+  await card.click();
+  await expect(page.locator('.recap-word-points')).toHaveCount(11);
+  await card.click();
+  await page.getByRole('tab', { name: 'Playback' }).click();
+  await page.getByRole('tab', { name: 'Recap' }).click();
+  await expect(card).toHaveAttribute('aria-pressed', 'false');
+  await card.click();
+  await page.getByRole('button', { name: 'Compare with Wach' }).click();
+  await expect(page.locator('.recap-compare-header')).toBeVisible();
+  await expect(page.locator('.recap-word-difficulty')).toHaveCount(0);
+});
+
+test('Zen uses its original percentage ladder with an Unranked start and Legend peak', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/results?mock=recap-zen');
+  const panel = page.getByRole('region', { name: 'Board rank', exact: true });
+  const carousel = panel.getByRole('list', { name: 'Rank ladder' });
+  await expect(carousel.locator('.rank-rung-points')).toHaveText(['74', '58', '37', '21', '8', '0']);
+  await expect(carousel.locator('.current .rank-rung-name')).toHaveText('Wordsmith');
+  await expect(carousel.locator('.rank-rung-needed')).toHaveText('+9');
+  await page.getByRole('button', { name: 'View words by difficulty' }).click();
+  await expect(page.locator('.recap-word-difficulty')).toHaveCount(44);
+  await page.screenshot({ animations: 'disabled', path: '.context/zen-results-difficulty.png' });
+  await page.goto('/results?mock=recap-zen-zero');
+  await expect(carousel.locator('.current .rank-rung-name')).toHaveText('Unranked');
+  await expect(carousel.locator('.rank-rung-needed')).toHaveText('+8');
+  await page.goto('/results?mock=recap-zen-legend');
+  await expect(carousel.locator('.current .rank-rung-name')).toHaveText('Legend');
+  await expect(carousel.getByRole('listitem')).toHaveCount(6);
+  await expect(carousel.locator('.rank-rung-needed')).toHaveCount(0);
+  await expect(panel.getByRole('status')).toHaveText('Legend. Top rank reached.');
+  await expect(carousel.locator('.current .rank-rung-bar > span')).toHaveCSS('height', '26px');
 });

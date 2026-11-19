@@ -1,6 +1,9 @@
 # Timed ranks
 
-Current calibration policy: **board-out / 60-day, Legend 1 at percentile 93**.
+Current rank policy: **equal point steps, Scribe at zero, titles follow the active color**.
+The existing 93rd-percentile Legend estimate supplies a starting anchor only;
+individual ranks no longer follow separate historical percentiles. Word difficulty
+and board-value calculations retain the board-out / 60-day calibration.
 See [local testing and current rank policy](TIMED-RANKS-LOCAL-TESTING.md) for the results-page implementation and Legend progression. See
 [the second-pass report](TIMED-RANKS-PASS-TWO.md) for the comparison, fresh-day
 check and remaining board-level limitations. The initial production results
@@ -13,10 +16,10 @@ below are retained as the pass-one baseline.
 - [x] Completed production timed daily, Time is Money, Gauntlet rounds, and free-play/room results can be backfilled into word statistics. Opportunities count player-games where a word was legally available, including words nobody found; distinct board counts are retained.
 - [x] An idempotent nightly job refreshes statistics without double counting or changing saved targets. Dry runs produce a calibration and chronological holdout report without writing.
 - [x] Finding difficulty uses vocabulary/length baselines under identical settings, broader vocabulary fallbacks for sparse buckets, opportunity smoothing, and a distinct-board confidence adjustment.
-- [x] Rank multipliers are calibrated from historical performance ratios at percentiles 20/45/70/90/93. Insufficient evidence is reported explicitly instead of inventing calibrated targets.
-- [x] Board targets use the agreed 40% vocabulary / 60% finding weighting, the mode's actual scoring, and strictly increasing, achievable integer thresholds.
+- [x] Legend 1 uses the existing historical performance-ratio estimate as a starting anchor. New boards use four equal integer steps from Scribe at zero to Legend 1, followed by equal Legend steps. Insufficient evidence is reported explicitly.
+- [x] Board targets use the agreed 40% vocabulary / 60% finding weighting, the mode's actual scoring, and distinct integer entry scores, with Scribe at zero and Legend 1 achievable.
 - [x] Targets are saved once for a shared puzzle/board and settings, identical for all players, and survive resume, results, and statistics refreshes. No player identity enters the calculation.
-- [x] Timed play has no rank progress display. Solo Recap shows a clickable board-rank ring beside the word list, opening a ladder dialog with focus restoration; Playback and Highlights retain their own tabs. Legend 1 targets the top 7%; Legend 2 and beyond repeat the Virtuoso-to-Legend 1 point gap while the five ring bands stay full. Zen and Gauntlet's overall rank-sum standings retain their behavior.
+- [x] Timed play has no rank progress display. Solo Recap shows a read-only rank carousel and a relative board-difficulty summary; Playback and Highlights retain their own tabs. Titles change when entering the next color. New boards have equal rank steps, including further Legend levels; the carousel expands through one Legend level above the player. Zen and Gauntlet's overall rank-sum standings retain their behavior.
 - [x] Focused formula tests, database tests for aggregation/snapshots/concurrency, type checks, unit tests, a client build, and a browser check pass. Operational steps and any unavailable calibration data are documented.
 
 ## Calculation and responsibility boundaries
@@ -38,13 +41,16 @@ confidence = min(distinct boards / 5, 1)
 finding difficulty = 1 − (confidence × smoothed + (1 − confidence) × baseline)
 word difficulty = 0.4 × vocabulary difficulty + 0.6 × finding difficulty
 attainable points = Σ word points × (1 − word difficulty)
-rank target = ceil(attainable points × rank multiplier)
+step = clamp(round(attainable points × Legend anchor multiplier / 4), 1, floor(maximum / 4))
+rank entry scores = 0, step, 2 × step, 3 × step, 4 × step
+saved inclusive band ends = step − 1, 2 × step − 1, …, 5 × step − 1
 ```
 
 The distinct-board blend caps a single board's influence at 20%, even if many
-players played it. Targets are adjusted upward to remain positive and strictly
-increasing, and downward to leave room for every rank below the theoretical
-maximum. Boards with fewer than five possible points have no five-rank ladder.
+players played it. Rank steps are rounded once, so every transition has the
+same integer gap. The gap is capped so Legend 1 remains achievable within the
+board’s maximum. Higher Legend levels can extend beyond that maximum. Boards
+with fewer than five possible points have no five-rank ladder.
 
 Calibration requires at least 50 completed player-games across five distinct
 boards for an exact settings cohort. Multipliers use the most recent 60 days
@@ -58,9 +64,12 @@ The evidence floor is not a claim that the 93rd percentile is precisely
 estimated. No per-board player minimum is imposed. Unsupported cohorts return
 no ladder; gameplay remains available. Nightly refreshes retain already
 published multipliers and their sample metadata. Explicit recalibration
-publishes new multipliers for future boards. A policy version change cannot
-silently reuse older-policy multipliers. Existing saved game targets remain
-immutable across the version change.
+publishes new multipliers for future boards. Changes to the statistics/calibration policy cannot silently reuse older-policy
+multipliers. The rank layout now has a separate version,
+`timed-ranks-v4-even-bands`, so unchanged word statistics and the existing
+Legend anchor can be reused without another backfill. Existing saved numerical
+band edges remain immutable; their displayed titles now follow the active color
+and their carousel shows entry scores. They are not respaced retroactively.
 
 The standard refresh report splits on game date: the first 80% of dates train
 the model; later dates form the holdout. Its word statistics stay frozen at the
@@ -69,7 +78,7 @@ replays causal nightly refreshes and immutable shared-board targets. Previously
 reviewed dates are not described as an untouched blind test. Reports include
 sample sizes, board diversity, achievement rates and unsupported cohorts.
 
-Existing sessions without saved targets retain no timed title. Zen uses its existing maximum-score ladder. Gauntlet receives per-round titles; overall standings continue to use round rank sums.
+Existing sessions without saved targets retain no timed title. Zen uses its existing maximum-score ladder in the shared results carousel, including Unranked below Scribe and Legend as its peak. Its separate production-derived difficulty cohort supplies the board comparison and word ratings; see the local testing guide for snapshot behavior and provenance. Gauntlet receives per-round titles; overall standings continue to use round rank sums.
 
 Daily snapshot identity includes date and round; free play, shared challenges,
 and rooms share identity by board, settings, and scoring modifier. Unsupported
@@ -77,12 +86,44 @@ snapshots are also saved, so calibration arriving later cannot change a shared
 board's treatment for later players. Saved sessions copy the public targets,
 so historical results do not depend on room lifetime or the current model.
 
+## Board difficulty and carousel
+
+The point-weighted average word difficulty is `1 − attainablePoints / maximum`.
+Each settings cohort stores a sorted reference distribution of board-out values
+for distinct layout/scoring variants. Player count does not weight this
+comparison. Refreshing word evidence also refreshes that reference while keeping
+published rank multipliers fixed. At least five reference boards are needed.
+
+New board snapshots include raw difficulty, total points, reference count, and
+the rounded percentage of reference boards strictly easier than this board.
+Ties do not count as easier. The five display states are percentile quintiles
+(Easy, Fair, Tough, Hard, Brutal), so the descriptor and comparison text agree.
+Missing reference data is shown as unavailable. Existing snapshots are not
+mutated to fabricate a comparison.
+
+The solo Recap carousel replaces the old ring and popup. It climbs once on first
+display, cancels on user input, respects reduced motion, and exposes actual entry
+scores without interactive rungs. Below Legend it shows one collapsed Legend
+entry; otherwise it includes one level above the player through Scribe. Outside
+this panel, results behavior is unchanged.
+
 ## Operations and verification
 
 The migration adds server-only model, word-statistics and board-snapshot tables,
-plus nullable target snapshots on timed session tables. Old scores are not
+plus nullable target snapshots on timed session tables. A separate Zen board-difficulty migration adds server-only shared assessments without changing Zen rank thresholds. Old scores are not
 rewritten. Model/statistics tables have RLS enabled and deny direct anon and
-authenticated access. APIs expose only the saved target totals and versions.
+authenticated access. Gameplay APIs expose only saved target totals and versions. Completed-result word-difficulty endpoints can also expose solved-word ratings after verifying the viewer has finished the game.
+The primary results response includes the saved targets, so the rank panel does
+not wait for the separate field-insights request or display-name lookups. Room
+results use their existing board snapshot directly. Insights still load playback
+and highlights separately.
+
+The scheduled production refresh requires the ranking migration to have been
+applied to production first. Merging onto main deploys staging, while production
+deployment is manual. A refresh failing with `42P01: relation "timed_rank_models"
+does not exist` indicates the production migration is missing. The normal
+production deployment applies migrations and backfills statistics before
+releasing the app; rerun the refresh after that deployment completes.
 
 Set `RANKS_SOURCE_DATABASE_URL` to the **production** PostgreSQL connection.
 `DATABASE_URL` selects only the publication destination, which may be local,

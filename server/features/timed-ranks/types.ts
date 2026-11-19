@@ -1,6 +1,6 @@
 import type { GauntletModifier } from 'models/gauntlet';
 
-export type TimedRankMode = 'timed' | 'money' | 'freeplay' | 'gauntlet-regular' | 'gauntlet-hotLetter' | 'gauntlet-rareLetters';
+export type TimedRankMode = 'zen' | 'timed' | 'money' | 'freeplay' | 'gauntlet-regular' | 'gauntlet-hotLetter' | 'gauntlet-rareLetters';
 
 export interface RankSettings {
   mode: TimedRankMode;
@@ -37,6 +37,8 @@ export interface RankCohort {
   games: number;
   boards: number;
   multipliers: number[] | null;
+  /** One board-out difficulty per distinct layout/scoring variant, sorted ascending. */
+  boardDifficulties?: number[];
   calibration: {
     fromDate: string;
     throughDate: string;

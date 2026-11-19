@@ -224,6 +224,7 @@ export async function getSavedResult(db: Kysely<Database>, userId: string, sessi
   return {
     sessionId: row.id,
     challengeId: row.challenge_id,
+    rankTargets: row.rankTargets,
     seed: row.seed,
     completedAt: completedAt.toISOString(),
     board,
