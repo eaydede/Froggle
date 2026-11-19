@@ -10,7 +10,9 @@ import { getInsights, getBoardWordDifficulties } from './service.js';
 const UUID = /^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i;
 
 export function parseSource(query: Record<string, unknown>): ResultsSource {
-  const { mode, date, sessionId, code, playerId } = query;
+  const { mode, date, sessionId, code, playerId, boardStartedAt } = query;
+  const startedAt = typeof boardStartedAt === 'string' && /^\d+$/.test(boardStartedAt)
+    ? Number(boardStartedAt) : NaN;
   if (mode === 'freeplay' && typeof sessionId === 'string' && UUID.test(sessionId))
     return { mode, sessionId };
   if (
@@ -18,9 +20,10 @@ export function parseSource(query: Record<string, unknown>): ResultsSource {
     typeof code === 'string' &&
     /^[A-Z0-9]{4,8}$/i.test(code) &&
     typeof playerId === 'string' &&
-    UUID.test(playerId)
+    UUID.test(playerId) &&
+    Number.isSafeInteger(startedAt) && startedAt > 0
   )
-    return { mode, code, playerId };
+    return { mode, code, playerId, boardStartedAt: startedAt };
   if (
     (mode === 'timed' || mode === 'zen' || mode === 'money' || mode === 'gauntlet') &&
     typeof date === 'string' &&

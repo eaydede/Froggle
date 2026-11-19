@@ -52,7 +52,7 @@ export function Board({
   }, [highlightPath]);
 
   return (
-    <div className={`${compact ? 'w-[148px]' : 'w-[168px]'} shrink-0 flex flex-col items-center`}>
+    <div className={`results-board-preview ${compact ? 'w-[148px]' : 'w-[168px]'} shrink-0 flex flex-col items-center`}>
       <div
         className="grid w-full aspect-square"
         style={{ gridTemplateColumns: `repeat(${size}, 1fr)`, gap }}

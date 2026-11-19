@@ -22,7 +22,7 @@ Use the existing `.env`, or copy `.env.example` and configure Supabase auth, the
 | `npm run build-storybook --workspace=client` | Component sandbox build |
 | `npm run verify:visual` | Compare running original/rebuilt apps with deterministic scenes |
 
-Integration/browser tests require Docker. Browser tests additionally require `npx playwright install chromium`. They start a disposable PostgreSQL database and a local auth/API/Vite runtime; they do not use the application's configured production database. The test harness requires a current Node version compatible with testcontainers (Node 22+ is suitable).
+Integration/browser tests require Docker. Browser tests additionally require `npx playwright install chromium webkit`. They start a disposable PostgreSQL database and a local auth/API/Vite runtime; they do not use the application's configured production database. The test harness requires a current Node version compatible with testcontainers (Node 22+ is suitable).
 
 Pull requests to `main` run TypeScript/boundary checks, unit tests, PostgreSQL tests, browser/API scenarios and both builds through `.github/workflows/verify.yml`, without production credentials. Staging still deploys on pushes to `main`; production deployment remains manually triggered.
 

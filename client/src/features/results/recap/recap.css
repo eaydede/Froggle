@@ -641,3 +641,32 @@
   color: var(--you-accent);
   text-decoration: underline;
 }
+
+.recap-difficulty-heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.results-recap .recap-difficulty-sort {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin-block: -9px;
+  color: var(--ink-soft);
+}
+.results-recap .recap-difficulty-sort:hover {
+  color: var(--ink);
+}
+
+/* Preserve room for the difficulty card on short phone viewports. */
+@media (max-height: 600px) {
+  .results-overview {
+    max-height: 142px;
+  }
+  .results-overview .results-board-preview {
+    width: 120px;
+  }
+}

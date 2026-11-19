@@ -40,7 +40,7 @@ jobs:
         run: npm run test:integration
 
       - name: Install browser
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium webkit
 
       - name: Run browser and API scenarios
         run: npm run test:browser

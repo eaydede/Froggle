@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type RefObject } from 'react';
+import { useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import type { ResultFind } from 'models/results';
 import { RARITY_VAR, wordRarity } from '../utils/wordRarity';
 import { formatTime, type RunFind } from './run';
@@ -61,6 +61,7 @@ export function RecapView({
   onDefinition,
   scroller,
 }: Props) {
+  const [difficultyAscending, setDifficultyAscending] = useState(false);
   const mine = new Map(yours.map((w) => [w.word, w]));
   const other = new Map(theirs?.map((w) => [w.word, w]));
   const comparing = theirs !== null;
@@ -92,10 +93,14 @@ export function RecapView({
     rows = difficultyLoading || difficultyError
       ? []
       : [...all]
-          .sort((a, b) =>
-            (difficulties?.[b.word] ?? -1) - (difficulties?.[a.word] ?? -1) ||
-            a.word.localeCompare(b.word),
-          )
+          .sort((a, b) => {
+            const first = difficulties?.[a.word];
+            const second = difficulties?.[b.word];
+            // Missing estimates stay at the bottom in either direction.
+            if (first == null || second == null)
+              return first == null ? (second == null ? a.word.localeCompare(b.word) : 1) : -1;
+            return (difficultyAscending ? first - second : second - first) || a.word.localeCompare(b.word);
+          })
           .map(word => ({ key: word.word, cells: [cell(word, 'you')] }));
   } else if (run && !hasTiming)
     rows = Array.from({ length: Math.max(yours.length, theirs?.length ?? 0) }, (_, index) => ({
@@ -131,7 +136,21 @@ export function RecapView({
   return (
     <div className="recap-list">
       {!run && !comparing && <div className="recap-metric-header recap-found-header">
-        <span>{difficultyMode ? 'Difficulty' : showAll ? 'All words' : <>Found <span className="recap-count">· {yours.length}</span></>}</span>
+        <span className={difficultyMode ? 'recap-difficulty-heading' : undefined}>{difficultyMode ? <>
+          Difficulty
+          <button type="button" className="recap-difficulty-sort"
+            aria-label={difficultyAscending ? 'Sort hardest first' : 'Sort easiest first'}
+            title={difficultyAscending ? 'Easiest first — switch to hardest first' : 'Hardest first — switch to easiest first'}
+            aria-controls="results-words"
+            onClick={() => {
+              setDifficultyAscending(!difficultyAscending);
+              if (scroller.current) scroller.current.scrollTop = 0;
+            }}>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d={difficultyAscending ? 'M6 10V2M3 5l3-3 3 3' : 'M6 2v8M3 7l3 3 3-3'} />
+            </svg>
+          </button>
+        </> : showAll ? 'All words' : <>Found <span className="recap-count">· {yours.length}</span></>}</span>
         <span title={difficultyMode ? '0 = easiest, 1 = hardest' : undefined}>{difficultyMode ? '0–1' : showAll ? `${yours.length}/${all.length}` : `${points} pts`}</span>
       </div>}
       {comparing && (

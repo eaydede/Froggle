@@ -2,7 +2,7 @@ export type ResultsSource =
   | { mode: 'timed' | 'zen' | 'money'; date: string }
   | { mode: 'gauntlet'; date: string; round: number }
   | { mode: 'freeplay'; sessionId: string }
-  | { mode: 'room'; code: string; playerId: string };
+  | { mode: 'room'; code: string; playerId: string; boardStartedAt: number };
 
 export interface ResultFind {
   word: string;
