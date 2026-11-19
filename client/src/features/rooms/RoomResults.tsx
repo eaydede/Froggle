@@ -222,7 +222,7 @@ export function RoomResults({
   return (
     <ResultsView
       rankTargets={board.rankTargets ?? null}
-      source={{ mode: 'room', code: room.code, playerId: me.id }}
+      source={{ mode: 'room', code: room.code, playerId: me.id, boardStartedAt: board.startedAt }}
       me={viewer}
       board={board.board}
       config={{

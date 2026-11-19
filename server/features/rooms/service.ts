@@ -719,10 +719,11 @@ export function markPlayerFinished(
 
 /** Completed-board data for the authenticated participant, with public room
  * player ids so Highlights names select the same rows as the standings. */
-export function getRoomResultsForUser(code: string, userId: string, playerId: string) {
+export function getRoomResultsForUser(code: string, userId: string, playerId: string, expectedStartedAt?: number) {
   const entry = repository.findEntry(code);
   const board = entry?.room.currentBoard;
   if (!entry || !board || board.endedAt === null) return null;
+  if (expectedStartedAt !== undefined && board.startedAt !== expectedStartedAt) return null;
   const viewerIds = [...entry.userIds].filter(([, id]) => id === userId).map(([id]) => id);
   if (!viewerIds.includes(playerId) || !board.participantIds.includes(playerId)) return null;
   return {

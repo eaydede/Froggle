@@ -47,13 +47,13 @@ function BoardDifficultySummary({ difficulty, active, onClick }: { difficulty?: 
   const level = getBoardDifficultyLevel(difficulty?.percentile);
   const color = level ? `var(${level.colorToken})` : 'var(--ink-soft)';
   return <button type="button" className="board-difficulty" aria-label="View words by difficulty" aria-pressed={active} aria-controls="results-words" onClick={onClick}>
-    <div className="board-difficulty-header">
+    <span className="board-difficulty-header">
       <span className="board-rank-label">This board</span>
       <span className="board-difficulty-name" style={{ color }}>{level?.name ?? '—'}</span>
-    </div>
-    <div className="board-difficulty-pips" role="img" aria-label={level ? `${level.index + 1} of 5 difficulty` : 'Difficulty unavailable'}>
+    </span>
+    <span className="board-difficulty-pips" role="img" aria-label={level ? `${level.index + 1} of 5 difficulty` : 'Difficulty unavailable'}>
       {Array.from({ length: 5 }, (_, index) => <span key={index} style={{ background: level && index <= level.index ? color : 'var(--rank-rule)' }} />)}
-    </div>
+    </span>
     <span className="board-difficulty-comparison">{level ? `Harder than ${difficulty!.percentile}% of boards` : 'Board comparison unavailable.'}</span>
   </button>;
 }

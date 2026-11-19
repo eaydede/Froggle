@@ -405,6 +405,14 @@ test('board difficulty opens all words from hardest to easiest and returns to po
   const ratings = (await page.locator('.recap-word-difficulty').allTextContents()).map(Number);
   expect(ratings).toEqual([...ratings].sort((a, b) => b - a));
   await expect(page.locator('.recap-word.missed')).toHaveCount(33);
+  await page.locator('.recap-words').evaluate(element => { element.scrollTop = 100; });
+  await page.getByRole('button', { name: 'Sort easiest first' }).click();
+  const ascending = (await page.locator('.recap-word-difficulty').allTextContents()).map(Number);
+  expect(ascending).toEqual([...ascending].sort((a, b) => a - b));
+  await expect(page.locator('.recap-word-text').first()).toHaveText('SAME');
+  expect(await page.locator('.recap-words').evaluate(element => element.scrollTop)).toBe(0);
+  await page.getByRole('button', { name: 'Sort hardest first' }).click();
+  await expect(page.locator('.recap-word-text').first()).toHaveText('AMESACES');
   await page.screenshot({ animations: 'disabled', path: '.context/word-difficulty-list.png' });
   await page.locator('.recap-word-button').first().click();
   await expect(page.locator('.recap-definition-peek')).toBeVisible();

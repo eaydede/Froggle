@@ -55,14 +55,19 @@ describe('multiplayer submitWord (characterization)', () => {
     expect(res?.outcome).toEqual({ valid: false, reason: 'invalid' });
   });
   it('keeps room timing private to participants and clears it for the next board', () => {
-    const { code, player, words } = liveBoard();
+    const { code, player, words, board } = liveBoard();
+    const firstStartedAt = board.startedAt;
     submitWord(code, player.id, words[0].path);
     expect(getRoomResultsForUser(code, 'user-1', player.id)).toBeNull();
     endBoard(code);
     expect(getRoomResultsForUser(code, 'stranger', player.id)).toBeNull();
+    expect(getRoomResultsForUser(code, 'user-1', player.id, firstStartedAt)?.startedAt).toBe(firstStartedAt);
+    expect(getRoomResultsForUser(code, 'user-1', player.id, firstStartedAt - 1)).toBeNull();
     expect(getRoomResultsForUser(code, 'user-1', player.id)?.players[0].finds[0].time).toBeGreaterThan(0);
     startBoard(code, () => {});
     expect(player.wordTimes).toEqual({});
+    endBoard(code);
+    expect(getRoomResultsForUser(code, 'user-1', player.id, firstStartedAt)).toBeNull();
   });
 
 });

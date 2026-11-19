@@ -312,7 +312,7 @@ function ResultsScreen({
             />
           )}
         </div>
-        <section className="flex items-stretch gap-2 shrink-0 box-border">
+        <section className="results-overview flex items-stretch gap-2 shrink-0 box-border">
           {roster.length > 1 && (
             <Standings
               rows={roster}

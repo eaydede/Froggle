@@ -19,7 +19,8 @@
 }
 .rank-carousel {
   height: 118px;
-  flex: none;
+  flex: 0 1 118px;
+  min-height: 0;
   overflow-y: auto;
   scrollbar-width: none;
   display: flex;
@@ -96,11 +97,20 @@
   padding: 9px 0 0;
   text-align: left;
   align-self: stretch;
+  align-items: stretch;
+  appearance: none;
 }
 .board-difficulty-header { display: flex; justify-content: space-between; align-items: baseline; gap: 4px; }
 .board-difficulty-name { font: 800 11px var(--font-structure); }
-.board-difficulty-pips { display: flex; gap: 3px; }
-.board-difficulty-pips > span { flex: 1; height: 4px; border-radius: 2px; }
+.board-difficulty-pips {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 3px;
+  width: 100%;
+  min-height: 4px;
+  flex: none;
+}
+.board-difficulty-pips > span { display: block; height: 4px; border-radius: 2px; }
 .board-difficulty-comparison {
   font: 500 10.5px/1.35 var(--font-ui);
   color: color-mix(in srgb, var(--ink) 72%, transparent);

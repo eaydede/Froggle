@@ -151,3 +151,20 @@ Three short in-app release notes dated 2026-11-18 cover results exploration,
 board ranks, and word/board difficulty since the latest Time is Money note.
 The rank and difficulty notes flag that calibration may be off and targets or
 ratings could change. Zen's existing rank rules are preserved.
+
+## Results follow-up fixes
+
+Room insights and word-difficulty requests include the server's board start
+stamp in their source identity. The API validates the stamp and requires it to
+match the current completed board, so HTTP caching, in-flight deduplication,
+and results state cannot mix successive rounds in the same room.
+
+The Difficulty header has an arrow button to switch between hardest-first and
+easiest-first ordering. Missing estimates stay last in either direction, ties
+sort alphabetically, and changing direction returns the list to the top.
+
+The board's five difficulty bars use an explicitly full-width grid with fixed
+height and no flex shrinking. The card also resets native button appearance. The carousel can shrink on
+short screens so it does not push the difficulty card under the bottom actions.
+A WebKit iPhone test checks visible bar dimensions and the touch sort control
+at narrow viewport sizes; CI installs WebKit alongside Chromium for this test.

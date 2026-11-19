@@ -49,7 +49,7 @@ export async function getInsights(
 ): Promise<ResultsInsights> {
   if (source.mode === 'room') {
     await awaitBoardPersistence(source.code);
-    const result = getRoomResultsForUser(source.code, userId, source.playerId);
+    const result = getRoomResultsForUser(source.code, userId, source.playerId, source.boardStartedAt);
     if (!result) throw new ApplicationError('not-found', 'Completed room result not found');
     return { players: result.players, ...(result.rankTargets ? { rankTargets: result.rankTargets } : {}) };
   }
@@ -78,7 +78,7 @@ export async function getBoardWordDifficulties(
       settings: { mode: 'zen' as const, boardSize: session.board.length, minWordLength: config.minWordLength, timeLimit: 0 },
     };
   } else if (source.mode === 'room') {
-    const result = getRoomResultsForUser(source.code, userId, source.playerId);
+    const result = getRoomResultsForUser(source.code, userId, source.playerId, source.boardStartedAt);
     if (!result) throw new ApplicationError('not-found', 'Completed room result not found');
     board = {
       board: result.board,

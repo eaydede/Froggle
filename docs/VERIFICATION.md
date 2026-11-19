@@ -67,7 +67,7 @@ Additional live screenshots include `.context/visual/live-lobby.png`, `live-dail
 
 ```sh
 npm ci
-npx playwright install chromium
+npx playwright install chromium webkit
 npm run check
 npm test
 npm run test:integration
