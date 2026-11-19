@@ -107,7 +107,8 @@ test('board rank and ladder render while the insights request is still pending',
     await page.getByRole('button', { name: 'End game', exact: true }).click();
     const rank = page.getByRole('region', { name: 'Board rank', exact: true });
     await expect(rank).toBeVisible();
-    expect(requested).toBe(true);
+    // The primary result can render before the insights effect dispatches.
+    await expect.poll(() => requested).toBe(true);
     await expect(rank.getByRole('list', { name: 'Rank ladder' }).getByRole('listitem')).toHaveCount(5);
     await expect(rank.locator('.board-difficulty-comparison')).toContainText('Harder than');
   } finally {
